@@ -52,6 +52,15 @@ REGRAS:
 7. Use o Bestiário para encontros balanceados.
 8. Respostas concisas mas imersivas (máximo 800 palavras).
 
+REGRA CRÍTICA DE ROLAGEM DE ATRIBUTOS (siga EXATAMENTE):
+Ao criar personagem, os atributos são definidos assim:
+- Passo 1: Role 2d8 SETE vezes. Cada rolagem gera um valor (soma dos 2 dados).
+- Passo 2: Dos 7 valores obtidos, DESCARTE o menor.
+- Passo 3: Sobram 6 valores. O jogador distribui livremente esses 6 valores entre os 6 atributos (Força, Destreza, Constituição, Inteligência, Sabedoria, Carisma).
+- Passo 4: Some os modificadores raciais a cada atributo.
+Exemplo: rolagens = [9, 5, 12, 7, 11, 8, 10] → descarta 5 → sobram [9, 12, 7, 11, 8, 10] → jogador distribui.
+IMPORTANTE: NÃO role 2d8 por atributo individualmente. Role tudo de uma vez e deixe o jogador distribuir.
+
 REFERÊNCIA COMPLETA DO SISTEMA:
 
 {RPG_CONTENT}
@@ -228,9 +237,11 @@ async def cmd_create_character(update: Update, context: ContextTypes.DEFAULT_TYP
 
     prompt = (
         "O jogador quer criar um personagem. Guie passo a passo: "
-        "1) Raça, 2) Classe, 3) Filosofia, 4) Atributos (2d8 x7, descarta menor), "
+        "1) Raça, 2) Classe, 3) Filosofia, 4) Atributos, "
         "5) PV/CD/RAM, 6) Equipamento. "
-        "Comece listando as 9 raças de forma RESUMIDA (nome, planeta, 1 frase) e peça que escolha."
+        "Comece listando as 9 raças de forma RESUMIDA (nome, planeta, 1 frase) e peça que escolha. "
+        "LEMBRETE: na etapa de atributos, role 2d8 SETE vezes de uma vez, "
+        "descarte o menor dos 7 resultados, e deixe o jogador distribuir os 6 restantes."
     )
     text = await send_to_gemini(chat, prompt, telegram_msg=update.message)
     await reply_safe(update.message, text)
