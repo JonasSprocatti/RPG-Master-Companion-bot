@@ -1,1218 +1,564 @@
 """
 🌌 Passagem Sombria - RPG Master Bot
-Bot com Gemini AI + Supabase + Botões interativos + Criação separada.
+Telegram + Gemini AI + Supabase + Botões + Glossário completo
 """
-
-import os
-import json
-import logging
-import asyncio
-import random as rng
+import os, json, logging, asyncio, random as rng
 from datetime import datetime, timezone
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    CallbackQueryHandler,
-    filters,
-    ContextTypes,
-)
+from telegram import Update, InlineKeyboardButton as Btn, InlineKeyboardMarkup as KBD
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
 from supabase import create_client
+from glossary import *
 
-# ── Logging ──────────────────────────────────────────────
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-)
+logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Config ───────────────────────────────────────────────
-TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
-GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+TG_TOKEN = os.environ["TELEGRAM_TOKEN"]
+GEMINI_KEY = os.environ["GEMINI_API_KEY"]
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
 PORT = int(os.environ.get("PORT", 10000))
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-ADMIN_ID = os.environ.get("ADMIN_ID", "")  # Telegram user ID do admin
+SB_URL = os.environ.get("SUPABASE_URL", "")
+SB_KEY = os.environ.get("SUPABASE_KEY", "")
+ADMIN_ID = os.environ.get("ADMIN_ID", "")
 
-# ── Supabase ─────────────────────────────────────────────
-db = None
-if SUPABASE_URL and SUPABASE_KEY:
-    db = create_client(SUPABASE_URL, SUPABASE_KEY)
-    logger.info("✅ Supabase conectado")
-else:
-    logger.warning("⚠️ Supabase não configurado")
+db = create_client(SB_URL, SB_KEY) if SB_URL and SB_KEY else None
+if db: logger.info("✅ Supabase conectado")
 
-# ══════════════════════════════════════════════════════════
-# DADOS DAS RAÇAS, CLASSES E FILOSOFIAS (para botões)
-# ══════════════════════════════════════════════════════════
-
-RACAS = {
-    "mercusys":     ("🔥 Mercusys", "Mercúrio", "Velocidade dobrada, regeneração, leitura sensitiva"),
-    "veny":         ("🌿 Ven'y", "Vênus", "Air Shifter — muda poderes respirando gases"),
-    "terraqueo":    ("🌍 Terráqueo", "Terra", "Adaptável — pontos livres em atributos e perícias"),
-    "marciano":     ("⚔️ Marciano", "Marte", "4 braços, Êxtase de Batalha, tanque de guerra"),
-    "conjupitero":  ("⚙️ Conjupitero", "Júpiter", "80cm de engenharia pura, +2 Mecânica/Pilotagem"),
-    "sata":         ("💫 Sata", "Saturno", "Cura genética, camuflagem cromática, médico nato"),
-    "urak":         ("❄️ Urak", "Urano", "150 cordas vocais, mímica sonora, criogênese"),
-    "proturno":     ("🧠 Proturno", "Netuno", "Telepatia, telecinese, controle mental"),
-    "infimor":      ("🪐 Infimor", "Plutão", "3m de altura, imune ao vácuo, braços de 10m"),
-}
-
-CLASSES = {
-    "estudioso":      ("📚 Estudioso", "+4PV", "Perito em fraquezas e conhecimento"),
-    "mecanico":       ("🔧 Mecânico", "+6PV", "Repara aliados e naves em combate"),
-    "assassino":      ("🗡️ Assassino", "+8PV", "Dano dobrado furtivo, desaparece ao matar"),
-    "soldado":        ("🎖️ Soldado", "+10PV", "Tanque de fogo, supressão, armas pesadas"),
-    "starlord":       ("🌟 Starlord", "+8PV", "Líder carismático, inspira aliados"),
-    "franco_atirador":("🎯 Franco-Atirador", "+6PV", "+5 ataque à distância >30m"),
-    "musico":         ("🎵 Músico", "+4PV", "Buff/debuff via frequências sonoras"),
-    "espiao":         ("🕵️ Espião", "+4PV", "Disfarce perfeito, engenharia social"),
-    "catador":        ("♻️ Catador", "+6PV", "Encontra loot extra, desmonta inimigos"),
-    "piloto":         ("✈️ Piloto", "+6PV", "Deus do cockpit, +2CD veículos"),
-    "batedor":        ("👁️ Batedor", "+8PV", "Nunca surpreendido, marca alvos"),
-    "explorador":     ("🗺️ Explorador", "+6PV", "Ignora terreno difícil, analisa biologia"),
-    "cinetico":       ("⚡ Cinético", "+4PV", "Tecnomante curador, repulsão cinética"),
-    "prospector":     ("💼 Prospector", "+4PV", "Negociador, +20% créditos"),
-    "pirata":         ("☠️ Pirata", "+10PV", "Terror em naves, grito amedrontador"),
-}
-
-FILOSOFIAS = {
-    # Caminhos (Místicos)
-    "cam_voz":        ("🗣️ Caminho da Voz", "Comando subliminar, finge-se de morto"),
-    "cam_ressonancia":("🌀 Caminho da Ressonância", "Sente vivos no escuro em 10m"),
-    "cam_engrenagem": ("⚙️ Caminho da Engrenagem", "Transforma falha crítica em falha comum"),
-    "cam_espiral":    ("🧬 Caminho da Espiral", "Cura com vantagem nos dados"),
-    "cam_anel":       ("💍 Caminho do Anel", "Sobrevive a golpe letal com 1PV"),
-    "cam_ocaso":      ("🌑 Caminho do Ocaso", "Sofre 1d4, soma 1d4 em qualquer rolagem"),
-    # Códigos (Seculares)
-    "cod_sobrevivente":("🏕️ Código do Sobrevivente", "+2 Iniciativa, age em emboscadas"),
-    "cod_corporativo": ("💰 Código Corporativo", "Vantagem em avaliar itens e negociar"),
-    "cod_cetico":      ("🧊 Código do Cético", "+2CD vs ataques psíquicos"),
-    "cod_fronteira":   ("🐺 Código da Fronteira", "+1 ataque se sozinho"),
-    "cod_caserna":     ("🛡️ Código da Caserna", "Leva dano no lugar de aliado"),
-    "cod_viralata":    ("🃏 Código do Vira-Lata", "Distrai e ataca com vantagem"),
-}
-
-# ── Estado de criação por usuário ────────────────────────
-# Armazena {user_id: {"raca": ..., "classe": ..., "filosofia": ...}}
-creation_state: dict = {}
-
-# ── Tabela de XP por nível ───────────────────────────────
-# XP_TABLE[nível_atual] = XP necessário para subir para o próximo
-XP_TABLE = {
-    1: 100, 2: 250, 3: 450, 4: 700, 5: 1000,
-    6: 1400, 7: 1900, 8: 2500, 9: 3200,
-}
-
-# ── Carregar conteúdo do RPG ─────────────────────────────
+# ── RPG Content + Model ──────────────────────────────────
 RPG_FILE = os.path.join(os.path.dirname(__file__), "rpg_content.txt")
-with open(RPG_FILE, "r", encoding="utf-8") as f:
-    RPG_CONTENT = f.read()
+with open(RPG_FILE, "r", encoding="utf-8") as f: RPG_CONTENT = f.read()
 
-# ── Formato JSON da ficha ────────────────────────────────
-FICHA_JSON_FORMAT = """{
-  "nome": "Nome", "raca": "Raça", "classe": "Classe",
-  "filosofia": "Filosofia", "nivel": 1, "xp": 0,
-  "pv_atual": 0, "pv_max": 0, "cd": 0,
-  "ram_atual": 0, "ram_max": 0, "iniciativa": 0, "deslocamento": 9,
-  "atributos": {"forca": 0, "destreza": 0, "constituicao": 0, "inteligencia": 0, "sabedoria": 0, "carisma": 0},
-  "pericias": {"nome_pericia": 0},
-  "habilidades": ["lista"],
-  "armas": [{"nome": "Arma", "dano": "1d8", "efeito": ""}],
-  "armadura": {"nome": "Armadura", "cd_bonus": 0},
-  "inventario": ["item1"], "creditos": 100, "implantes": [], "notas": ""
-}"""
+FICHA_FMT = '{"nome":"","raca":"","classe":"","filosofia":"","nivel":1,"xp":0,"pv_atual":0,"pv_max":0,"cd":0,"ram_atual":0,"ram_max":0,"iniciativa":0,"deslocamento":9,"atributos":{"forca":0,"destreza":0,"constituicao":0,"inteligencia":0,"sabedoria":0,"carisma":0},"pericias":{},"habilidades":[],"armas":[],"armadura":{},"inventario":[],"creditos":100,"implantes":[],"notas":""}'
 
-# ── System prompt ────────────────────────────────────────
 SYSTEM_PROMPT = f"""Você é o Mestre do RPG "Passagem Sombria - RPG Espacial".
-
 PAPEL: narrar aventuras, controlar NPCs, aplicar regras, rolar dados.
 
-ESTILO DE NARRAÇÃO:
-- Português brasileiro, tom sombrio e cinematográfico
-- Use emojis temáticos para dar vida visual à narrativa:
-  💀 para perigo/morte, ⚔️ para combate, 🎲 para rolagens,
-  🛡️ para defesa, 🚀 para naves/viagem, 🔥 para fogo/explosões,
-  ❤️ para vida/cura, 🧠 para tecnomancia/mente, 💎 para créditos/loot,
-  🌌 para espaço/ambiente, ⚡ para ação rápida, 🩸 para sangue/dano,
-  👁️ para percepção/investigação, 🗣️ para diálogo de NPCs
-- Use separadores visuais (━━━, ═══) para organizar combate e rolagens
-- Em combate, mostre status visual: ❤️ PV: 45/60 | 🛡️ CD: 15
-- Respostas concisas mas imersivas (máximo 800 palavras)
+ESTILO: Português BR, tom sombrio/cinematográfico. Use emojis temáticos:
+💀 perigo ⚔️ combate 🎲 rolagens 🛡️ defesa 🚀 naves 🔥 explosões
+❤️ cura 🧠 tecnomancia 💎 loot 🌌 ambiente ⚡ ação 🩸 dano 👁️ percepção 🗣️ NPCs
+Use separadores (━━━) em combate. Mostre status: ❤️ PV: 45/60 | 🛡️ CD: 15
+Máximo 800 palavras por resposta.
 
-REGRAS MECÂNICAS:
-1. Siga o sistema d20 fielmente
-2. Formato de rolagem: 🎲 1d20(14) + Mod(3) + Perícia(2) = 19 vs CD 15 → ✅ Sucesso!
-3. Em combate, mostre iniciativa, turnos e status de todos os envolvidos
-4. Controle inventário, vida e status dos jogadores
+REGRAS: d20 fielmente. Rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 
-═══════════════════════════════════════
-SISTEMA DE EXPERIÊNCIA (XP) — SIGA RIGOROSAMENTE
-═══════════════════════════════════════
+═══ CRIAÇÃO DE PERSONAGEM ═══
+PASSO 4 (após botões): Role 2d8 x7, descarte menor, mostre 6 ordenados. PARE, peça distribuição.
+PASSOS 5-9 (AUTOMÁTICO — TUDO NUMA MENSAGEM após jogador distribuir):
+- Aplique raciais, calcule PV (4d6 tira menor + ajuste racial + bônus classe), CD, RAM, perícias FIXAS da classe, Iniciativa
+- Perícias dual-attribute: mostre atributo com maior bônus
+- NÃO peça confirmação em cálculos automáticos
+PASSO 10: Equipamento (PARE só se tiver escolha de arma)
+PASSO 11: Pergunte nome. Terráqueo: pergunte +3 perícias livres.
+PASSO 12: Resumo + [FICHA_COMPLETA]
 
-XP NECESSÁRIO PARA SUBIR DE NÍVEL:
-Nv1→2: 100 XP | Nv2→3: 250 XP | Nv3→4: 450 XP | Nv4→5: 700 XP
-Nv5→6: 1000 XP | Nv6→7: 1400 XP | Nv7→8: 1900 XP | Nv8→9: 2500 XP | Nv9→10: 3200 XP
+Perícias FIXAS da classe nv1. Level up: +1 em QUALQUER perícia (nova ou existente).
 
-FONTES DE XP (conceda AUTOMATICAMENTE durante o jogo):
-⚔️ COMBATE (por inimigo derrotado pelo grupo, dividido igualmente):
-  - Lacaio (Comum): 15-25 XP
-  - Elite (Forte): 40-60 XP
-  - Chefe: 100-150 XP
-  - Super Chefe: 200-300 XP
-  - Cria do Vazio (qualquer): +50% bônus extra pelo perigo
+═══ XP ═══
+Nv1→2:100|2→3:250|3→4:450|4→5:700|5→6:1000|6→7:1400|7→8:1900|8→9:2500|9→10:3200
+Combate(dividido): Lacaio 15-25, Elite 40-60, Chefe 100-150, Super 200-300, Vazio +50%
+História: Decisão 25-50, Missão 50-100, Puzzle 20-40, Criativo 10-20, RP 10-25, Lore 30-50
+SEMPRE anuncie: ✨ *+XX XP* — (motivo). Level up SÓ em Descanso Longo.
 
-📖 HISTÓRIA E ROLEPLAY:
-  - Decisão importante para a trama: 25-50 XP
-  - Completar objetivo de missão: 50-100 XP
-  - Resolver puzzle ou investigação complexa: 20-40 XP
-  - Uso criativo de habilidade/perícia: 10-20 XP
-  - Roleplay excepcional (interpretação marcante): 10-25 XP
-  - Sobreviver a evento catastrófico: 15-30 XP
-  - Descoberta de lore importante (Monólitos, Passagem): 30-50 XP
+═══ DESCANSOS ═══
+Curto(1h): kits, habilidades. NÃO RAM/level. Longo(8h+comida+seguro): TUDO + level up.
+Sugira descanso curto após combate difícil. Longo só em nave/base/dobra.
+Se alguém tem XP suficiente em DL: "⬆️ [Nome] pode subir de nível! Use /levelup"
 
-REGRAS DE CONCESSÃO DE XP:
-- SEMPRE anuncie o XP ganho imediatamente após o evento, no formato:
-  ✨ *+XX XP* — (motivo)
-- Ao final de cada combate, mostre o XP total ganho por todos
-- Mantenha o XP acumulado de cada jogador atualizado na sua memória
-- Quando um jogador perguntar seu XP, responda com o total e quanto falta para o próximo nível
-- XP de combate é DIVIDIDO igualmente entre todos os jogadores que participaram
-- XP de roleplay/história é INDIVIDUAL (só quem fez a ação recebe)
+LEVEL UP: dado racial (d10 Marte/Plutão, d8 Terra/Vênus/Júpiter/Urano, d6 Netuno/Saturno/Mercúrio) +Con. +1 Atrib, +1 perícia, +1RAM ímpares.
+MODOS: CRIAÇÃO=só ficha. JOGO=narrar. CONTEXTO=absorver e continuar.
 
-═══════════════════════════════════════
-DESCANSOS — QUANDO E COMO USAR
-═══════════════════════════════════════
+EXPORT_FICHA → responda SÓ JSON puro: {FICHA_FMT}
+[FICHA_COMPLETA] na última linha quando criação 100% completa.
 
-☕ DESCANSO CURTO (1-2 horas, local minimamente seguro):
-  Efeitos: usar kits médicos, recuperar habilidades de Caminho/Código, reorganizar equipamento
-  NÃO recupera: RAM, PV total, habilidades de classe
-  NÃO permite: level up
-  QUANDO SUGERIR (o Mestre deve propor naturalmente):
-  - Após um combate difícil onde alguém ficou abaixo de 50% PV
-  - Quando o grupo encontra uma sala segura temporária
-  - Quando um jogador pede para tratar ferimentos
-  - Entre encontros numa mesma missão/dungeon
-
-🛏️ DESCANSO LONGO (8 horas, local SEGURO + comida):
-  Efeitos: recupera TUDO (PV, RAM, habilidades, escudos)
-  PERMITE: level up (se tiver XP suficiente)
-  Consome: 1 ração por personagem
-  QUANDO SUGERIR (o Mestre deve propor ou permitir):
-  - Ao final de uma missão/arco narrativo completo
-  - Quando o grupo volta para a nave/estalagem/base
-  - Quando estão em viagem de dobra (tempo de trânsito)
-  - Quando todos estão muito debilitados (maioria abaixo de 30% PV)
-  - NUNCA em território hostil sem justificativa narrativa
-
-  DURANTE O DESCANSO LONGO, se alguém tiver XP suficiente:
-  - Anuncie: "⬆️ [Nome] tem XP suficiente para subir de nível! Use /levelup"
-  - O level up SÓ pode acontecer durante descanso longo
-  - Se alguém tentar /levelup fora de descanso longo, o Mestre deve informar
-    que precisa descansar primeiro
-
-COMPORTAMENTO DO MESTRE COM DESCANSOS:
-- NÃO ofereça descanso longo a cada 5 minutos — deve ser significativo
-- Se o grupo insistir em descansar em local perigoso, faça encontros aleatórios
-- A viagem de dobra é o momento PERFEITO para descanso longo
-- Use descansos curtos como momentos de diálogo e desenvolvimento de personagem
-
-═══════════════════════════════════════
-
-═══════════════════════════════════════
-CRIAÇÃO DE PERSONAGEM — PASSO A PASSO (siga EXATAMENTE nesta ordem)
-═══════════════════════════════════════
-
-PASSO 1-3: Raça, Classe e Filosofia (já feitos por botões antes de você entrar)
-
-PASSO 4 — ROLAGEM DE ATRIBUTOS:
-a) Role 2d8 SETE vezes (cada dado é 1 a 8, some os 2). Mostre todos os 7 resultados.
-b) Identifique e descarte o MENOR dos 7 valores.
-c) Mostre os 6 valores restantes ordenados do maior ao menor.
-d) Peça ao jogador para distribuir entre: Força, Destreza, Constituição, Inteligência, Sabedoria, Carisma.
-e) ESPERE o jogador responder antes de continuar.
-
-PASSOS 5 a 9 — CÁLCULOS AUTOMÁTICOS (faça TUDO de uma vez, SEM pedir confirmação):
-Depois que o jogador distribuiu os atributos, calcule TUDO abaixo numa ÚNICA resposta:
-
-📊 ATRIBUTOS FINAIS:
-Some os modificadores raciais. Mostre cada um:
-  💪 For: 6 (base) + (-1) racial = *5* (mod: -2)
-  ⚡ Des: 9 (base) + 0 racial = *9* (mod: +0)
-  etc.
-Tabela: 2-3=-3, 4-5=-2, 6-7=-1, 8-9=+0, 10-11=+1, 12-13=+2, 14-15=+3, 16+=+4
-
-❤️ PV (3 etapas — mostre cada uma):
-a) 🎲 4d6 → descarta menor → soma 3 restantes
-b) + ajuste racial (Mercusys-2, Ven'y-1, Terra 0, Marte+2, Júpiter-3, Saturno-1, Urano-1, Netuno-3, Plutão+3)
-c) + bônus classe (Estud/Mús/Esp/Cin/Prosp +4, Mec/Franco/Cat/Pil/Expl +6, Ass/Star/Bat +8, Sold/Pirata +10)
-d) PV FINAL = a + b + c
-
-🛡️ CD: 10 + Mod.Des + Armadura inicial da classe
-
-🧠 RAM: 1 + Mod.Int + ½ Perícia Tecnomancia (arredonda para baixo)
-
-🎯 PERÍCIAS (FIXAS da classe, NÃO pergunte):
-- Aplique as perícias da classe automaticamente
-- Se raça dá bônus (Conjupitero +2 Mec/Pil), aplique
-- Para Terráqueos (+3 livres): NÃO pergunte agora, faça depois do equipamento
-- Mostre bônus total = pontos perícia + Mod.Atributo (use o maior para dual-attribute)
-- Calcule Iniciativa: Mod.Des + bônus classe/filosofia
-
-⚡ Iniciativa e 🏃 Deslocamento: calcule e mostre
-
-Depois de mostrar tudo isso, vá DIRETO para o equipamento.
-
-PASSO 10 — EQUIPAMENTO:
-Liste o equipamento inicial com dano e efeitos + Kit Sobrevivência Base (Comunicador, 3 rações, 2 luzes, 100 CG).
-Se a classe oferece escolha de arma (ex: "Rifle ou Escopeta"), PERGUNTE ao jogador e PARE.
-Se NÃO tem escolha, vá direto para pedir o nome.
-
-PASSO 11 — NOME DO PERSONAGEM:
-Pergunte o nome. PARE e espere.
-Se for Terráqueo, pergunte TAMBÉM onde quer os +3 pontos de perícia livres.
-
-PASSO 12 — RESUMO FINAL:
-Mostre a ficha completa formatada e adicione [FICHA_COMPLETA] na última linha.
-
-REGRA GERAL DE FLUXO:
-- SÓ pare para esperar resposta quando PRECISA de input do jogador (distribuir atributos, escolher arma, dar nome)
-- Cálculos automáticos (raciais, PV, CD, RAM, perícias fixas) NUNCA pedem confirmação
-- Agrupe o máximo possível numa única mensagem para economizar tempo e tokens
-
-REGRA DE PERÍCIAS NO LEVEL UP:
-- +1 ponto em QUALQUER perícia (nova ou existente). Limite: +5 até nv4, +7 do nv5+.
-- Perícias dual-attribute: ficha mostra o atributo com maior bônus, jogador escolhe a cada rolagem.
-
-═══════════════════════════════════════
-
-LEVEL UP (SÓ EM DESCANSO LONGO + XP SUFICIENTE):
-Dado de vida por nível: Pesado 1d10 (Marcianos, Infimor's), Médio 1d8 (Terráqueos, Ven'y,
-Conjupiteros, Urak's), Leve 1d6 (Proturnos, Satas, Mercusys)
-PV ganho = dado de vida + Mod. Constituição (mínimo 1)
-+1 Atributo (máx +6), +1 perícia, +1 RAM em níveis ímpares (3,5,7,9)
-
-FICHA JSON — quando pedirem EXPORT_FICHA, responda SÓ JSON puro:
-{FICHA_JSON_FORMAT}
-
-SEPARAÇÃO DE MODOS:
-- MODO CRIAÇÃO: quando estiver criando personagem, foque APENAS na ficha. Não narre aventuras.
-- MODO JOGO: quando estiver em sessão, narre normalmente.
-- MODO CONTEXTO: quando receber CONTEXTO_SESSAO, absorva e continue dali.
-
-AUTO-SAVE DE FICHA (MUITO IMPORTANTE):
-Quando a criação do personagem estiver 100% COMPLETA (raça, classe, filosofia, atributos
-distribuídos, PV/CD/RAM calculados, equipamento definido), faça o seguinte:
-1. Apresente o resumo final da ficha para o jogador
-2. Adicione EXATAMENTE a tag [FICHA_COMPLETA] na ÚLTIMA LINHA da sua resposta
-3. Essa tag será detectada pelo sistema para salvar automaticamente
-NUNCA use [FICHA_COMPLETA] antes da ficha estar totalmente finalizada.
-
-REFERÊNCIA DO SISTEMA:
-{RPG_CONTENT}
+REFERÊNCIA: {RPG_CONTENT}
 """
 
-# ── Configurar Gemini ────────────────────────────────────
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash-lite",
-    system_instruction=SYSTEM_PROMPT,
-    generation_config=genai.GenerationConfig(
-        temperature=0.85,
-        max_output_tokens=1500,
-    ),
-)
+genai.configure(api_key=GEMINI_KEY)
+mdl = genai.GenerativeModel("gemini-2.5-flash-lite", system_instruction=SYSTEM_PROMPT,
+    generation_config=genai.GenerationConfig(temperature=0.85, max_output_tokens=1500))
 
-# ── Chat sessions ────────────────────────────────────────
-MAX_HISTORY = 30
-chat_sessions: dict = {}
+MAX_HIST = 30
+chats: dict = {}
+creation_state: dict = {}
+XP_TABLE = {1:100,2:250,3:450,4:700,5:1000,6:1400,7:1900,8:2500,9:3200}
 
+RACAS_BTN = {
+    "mercusys":"🔥 Mercusys","veny":"🌿 Ven'y","terraqueo":"🌍 Terráqueo",
+    "marciano":"⚔️ Marciano","conjupitero":"⚙️ Conjupitero","sata":"💫 Sata",
+    "urak":"❄️ Urak","proturno":"🧠 Proturno","infimor":"🪐 Infimor"}
+CLASSES_BTN = {
+    "estudioso":"📚 Estudioso","mecanico":"🔧 Mecânico","assassino":"🗡️ Assassino",
+    "soldado":"🎖️ Soldado","starlord":"🌟 Starlord","franco_atirador":"🎯 Franco-At.",
+    "musico":"🎵 Músico","espiao":"🕵️ Espião","catador":"♻️ Catador",
+    "piloto":"✈️ Piloto","batedor":"👁️ Batedor","explorador":"🗺️ Explorador",
+    "cinetico":"⚡ Cinético","prospector":"💼 Prospector","pirata":"☠️ Pirata"}
+FILOS_BTN = {
+    "cam_voz":"🗣️ Voz","cam_ressonancia":"🌀 Ressonância","cam_engrenagem":"⚙️ Engrenagem",
+    "cam_espiral":"🧬 Espiral","cam_anel":"💍 Anel","cam_ocaso":"🌑 Ocaso",
+    "cod_sobrevivente":"🏕️ Sobrevivente","cod_corporativo":"💰 Corporativo",
+    "cod_cetico":"🧊 Cético","cod_fronteira":"🐺 Fronteira",
+    "cod_caserna":"🛡️ Caserna","cod_viralata":"🃏 Vira-Lata"}
 
-def get_chat(chat_id: int):
-    if chat_id not in chat_sessions:
-        chat_sessions[chat_id] = model.start_chat(history=[])
-    return chat_sessions[chat_id]
+def get_chat(cid):
+    if cid not in chats: chats[cid] = mdl.start_chat(history=[])
+    return chats[cid]
 
+def trim_hist(cid):
+    if cid in chats and len(chats[cid].history)>MAX_HIST*2:
+        chats[cid].history = chats[cid].history[-(MAX_HIST*2):]
 
-def trim_history(chat_id: int):
-    if chat_id in chat_sessions:
-        s = chat_sessions[chat_id]
-        if len(s.history) > MAX_HISTORY * 2:
-            s.history = s.history[-(MAX_HISTORY * 2):]
-
-
-# ══════════════════════════════════════════════════════════
-# SUPABASE HELPERS
-# ══════════════════════════════════════════════════════════
-
-def save_ficha(user_id, user_name, chat_id, ficha_data):
+# ── Supabase ─────────────────────────────────────────────
+def save_ficha(uid,uname,cid,data):
     if not db: return False
     try:
-        db.table("fichas").upsert({
-            "user_id": str(user_id), "chat_id": str(chat_id),
-            "user_name": user_name,
-            "character_name": ficha_data.get("nome", "?"),
-            "ficha": json.dumps(ficha_data, ensure_ascii=False),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }, on_conflict="user_id,chat_id").execute()
+        db.table("fichas").upsert({"user_id":str(uid),"chat_id":str(cid),"user_name":uname,
+            "character_name":data.get("nome","?"),"ficha":json.dumps(data,ensure_ascii=False),
+            "updated_at":datetime.now(timezone.utc).isoformat()},on_conflict="user_id,chat_id").execute()
         return True
-    except Exception as e:
-        logger.error(f"Erro salvar ficha: {e}"); return False
+    except Exception as e: logger.error(f"save_ficha: {e}"); return False
 
-
-def load_ficha(user_id, chat_id):
+def load_ficha(uid,cid):
     if not db: return None
     try:
-        r = db.table("fichas").select("ficha").eq("user_id", str(user_id)).eq("chat_id", str(chat_id)).execute()
+        r=db.table("fichas").select("ficha").eq("user_id",str(uid)).eq("chat_id",str(cid)).execute()
         return json.loads(r.data[0]["ficha"]) if r.data else None
-    except Exception as e:
-        logger.error(f"Erro carregar ficha: {e}"); return None
+    except Exception as e: logger.error(f"load_ficha: {e}"); return None
 
-
-def list_fichas(chat_id):
+def list_fichas(cid):
     if not db: return []
     try:
-        r = db.table("fichas").select("user_id,user_name,character_name,updated_at").eq("chat_id", str(chat_id)).execute()
+        r=db.table("fichas").select("user_id,user_name,character_name").eq("chat_id",str(cid)).execute()
         return r.data or []
-    except Exception as e:
-        logger.error(f"Erro listar: {e}"); return []
+    except: return []
 
-
-def delete_ficha(user_id, chat_id):
-    """Deleta a ficha de um usuário num chat específico."""
+def delete_ficha(uid,cid):
     if not db: return False
-    try:
-        db.table("fichas").delete().eq("user_id", str(user_id)).eq("chat_id", str(chat_id)).execute()
-        return True
-    except Exception as e:
-        logger.error(f"Erro deletar ficha: {e}"); return False
+    try: db.table("fichas").delete().eq("user_id",str(uid)).eq("chat_id",str(cid)).execute(); return True
+    except: return False
 
-
-def save_session_log(chat_id, title, summary):
+def save_session(cid,title,summary):
     if not db: return False
-    try:
-        db.table("sessoes").insert({"chat_id": str(chat_id), "title": title, "summary": summary, "created_at": datetime.now(timezone.utc).isoformat()}).execute()
-        return True
-    except Exception as e:
-        logger.error(f"Erro sessão: {e}"); return False
+    try: db.table("sessoes").insert({"chat_id":str(cid),"title":title,"summary":summary,"created_at":datetime.now(timezone.utc).isoformat()}).execute(); return True
+    except: return False
 
-
-def load_session_logs(chat_id):
+def load_sessions(cid):
     if not db: return []
-    try:
-        r = db.table("sessoes").select("id,title,created_at").eq("chat_id", str(chat_id)).order("created_at", desc=True).limit(10).execute()
-        return r.data or []
-    except Exception as e:
-        logger.error(f"Erro listar sessões: {e}"); return []
+    try: r=db.table("sessoes").select("id,title,created_at").eq("chat_id",str(cid)).order("created_at",desc=True).limit(10).execute(); return r.data or []
+    except: return []
 
-
-def load_session_by_id(session_id):
+def load_session_id(sid):
     if not db: return None
-    try:
-        r = db.table("sessoes").select("*").eq("id", session_id).execute()
-        return r.data[0] if r.data else None
-    except Exception as e:
-        logger.error(f"Erro carregar sessão: {e}"); return None
+    try: r=db.table("sessoes").select("*").eq("id",sid).execute(); return r.data[0] if r.data else None
+    except: return None
 
+# ── Gemini + Helpers ─────────────────────────────────────
+async def ask_gemini(chat,prompt,retries=4,msg=None):
+    for i in range(retries):
+        try: return chat.send_message(prompt).text
+        except google_exceptions.ResourceExhausted as e:
+            if "per_day" in str(e): return "⚠️ Limite diário atingido. Tente amanhã. Comandos offline funcionam: /rolar /ficha /glossario"
+            w=(2**i)*10+rng.uniform(0,5)
+            if msg and i<retries-1:
+                try: await msg.reply_text(f"⏳ _Retentando em {w:.0f}s..._",parse_mode="Markdown")
+                except: pass
+            await asyncio.sleep(w)
+        except Exception as e:
+            logger.error(f"Gemini: {e}")
+            if i==retries-1: raise
+            await asyncio.sleep(5)
+    return "⚠️ Mestre indisponível. Use comandos offline enquanto isso."
 
-# ══════════════════════════════════════════════════════════
-# FORMAT FICHA
-# ══════════════════════════════════════════════════════════
+async def reply(msg,text):
+    for part in [text[i:i+4000] for i in range(0,len(text),4000)] if len(text)>4000 else [text]:
+        try: await msg.reply_text(part,parse_mode="Markdown")
+        except: await msg.reply_text(part)
+
+def parse_json(raw):
+    c=raw.strip()
+    if c.startswith("```"): c=c.split("\n",1)[-1]
+    if c.endswith("```"): c=c.rsplit("```",1)[0]
+    try: return json.loads(c.strip())
+    except: return None
 
 def format_ficha(f):
-    a = f.get("atributos", {})
-    armas = f.get("armas", [])
-    armas_t = "\n".join(f"  ⚔️ {x.get('nome','?')} ({x.get('dano','?')}) {x.get('efeito','')}" for x in armas) if armas else "  Nenhuma"
-    impl = ", ".join(f.get("implantes", [])) or "Nenhum"
-    inv = ", ".join(f.get("inventario", [])) or "Vazio"
-    per = f.get("pericias", {})
-    per_t = ", ".join(f"{k} +{v}" for k, v in per.items() if v) if per else "Nenhuma"
-    habs = f.get("habilidades", [])
-    hab_t = "\n".join(f"  🔹 {h}" for h in habs) if habs else "  Nenhuma"
-    arm = f.get("armadura", {})
-    arm_n = arm.get("nome", "Nenhuma") if isinstance(arm, dict) else str(arm)
+    a=f.get("atributos",{})
+    arms="\n".join(f"  ⚔️ {x.get('nome','?')} ({x.get('dano','?')}) {x.get('efeito','')}" for x in f.get("armas",[])) or "  Nenhuma"
+    impl=", ".join(f.get("implantes",[])) or "Nenhum"
+    inv=", ".join(f.get("inventario",[])) or "Vazio"
+    per=", ".join(f"{k} +{v}" for k,v in f.get("pericias",{}).items() if v) or "Nenhuma"
+    habs="\n".join(f"  🔹 {h}" for h in f.get("habilidades",[])) or "  Nenhuma"
+    arm=f.get("armadura",{});arm_n=arm.get("nome","?") if isinstance(arm,dict) else str(arm)
+    return (f"🧑‍🚀 *{f.get('nome','???')}*\n━━━━━━━━━━━━━━━━━━━━\n"
+        f"🌌 {f.get('raca','?')} | ⚔️ {f.get('classe','?')} | 📜 {f.get('filosofia','?')}\n"
+        f"📊 Nv{f.get('nivel',1)} | ✨ {f.get('xp',0)} XP\n━━━━━━━━━━━━━━━━━━━━\n"
+        f"❤️ {f.get('pv_atual','?')}/{f.get('pv_max','?')} | 🛡️ CD{f.get('cd','?')} | 🧠 RAM {f.get('ram_atual','?')}/{f.get('ram_max','?')}\n"
+        f"⚡ Init +{f.get('iniciativa',0)} | 🏃 {f.get('deslocamento',9)}m\n━━━━━━━━━━━━━━━━━━━━\n"
+        f"💪{a.get('forca','?')} ⚡{a.get('destreza','?')} 🩸{a.get('constituicao','?')} "
+        f"🧠{a.get('inteligencia','?')} 🦉{a.get('sabedoria','?')} 🗣️{a.get('carisma','?')}\n━━━━━━━━━━━━━━━━━━━━\n"
+        f"🎯 {per}\n🛠️ Habilidades:\n{habs}\n⚔️ Armas:\n{arms}\n"
+        f"🛡️ {arm_n} | 🦾 {impl}\n🎒 {inv}\n💎 {f.get('creditos',0)} CG")
 
-    return (
-        f"🧑‍🚀 *FICHA: {f.get('nome', '???')}*\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🌌 Raça: {f.get('raca', '?')} | ⚔️ Classe: {f.get('classe', '?')}\n"
-        f"📜 Filosofia: {f.get('filosofia', '?')}\n"
-        f"📊 Nível: {f.get('nivel', 1)} | ✨ XP: {f.get('xp', 0)}\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"❤️ PV: {f.get('pv_atual', '?')}/{f.get('pv_max', '?')} | "
-        f"🛡️ CD: {f.get('cd', '?')} | 🧠 RAM: {f.get('ram_atual', '?')}/{f.get('ram_max', '?')}\n"
-        f"⚡ Iniciativa: +{f.get('iniciativa', 0)} | 🏃 Desloc: {f.get('deslocamento', 9)}m\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"💪 For: {a.get('forca', '?')} | ⚡ Des: {a.get('destreza', '?')} | "
-        f"🩸 Con: {a.get('constituicao', '?')}\n"
-        f"🧠 Int: {a.get('inteligencia', '?')} | 🦉 Sab: {a.get('sabedoria', '?')} | "
-        f"🗣️ Car: {a.get('carisma', '?')}\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🎯 Perícias: {per_t}\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"🛠️ Habilidades:\n{hab_t}\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"⚔️ Armas:\n{armas_t}\n"
-        f"🛡️ Armadura: {arm_n}\n"
-        f"🦾 Implantes: {impl}\n"
-        f"🎒 Inventário: {inv}\n"
-        f"💎 Créditos: {f.get('creditos', 0)} CG\n"
-    )
+def kb(items,prefix,cols=2):
+    btns=[Btn(v,callback_data=f"{prefix}:{k}") for k,v in items.items()]
+    return KBD([btns[i:i+cols] for i in range(0,len(btns),cols)])
 
+# ── Menu Principal ───────────────────────────────────────
+MAIN_MENU = KBD([
+    [Btn("🚀 Iniciar Aventura",callback_data="m:jogo"),Btn("🧑‍🚀 Criar Personagem",callback_data="m:criar")],
+    [Btn("📂 Carregar Ficha",callback_data="m:cficha"),Btn("📚 Retomar Sessão",callback_data="m:csess")],
+    [Btn("📖 Glossário",callback_data="m:gloss"),Btn("❓ Comandos",callback_data="m:help")]])
 
-# ══════════════════════════════════════════════════════════
-# GEMINI COM RETRY
-# ══════════════════════════════════════════════════════════
+WELCOME = ("🌌 *TERMINAL DA CONFEDERAÇÃO* 🌌\n"
+    "━━━━━━━━━━━━━━━━━━━━\n\n"
+    "⚡ _Conexão estabelecida..._\n"
+    "🛸 _Coordenadas do Sistema Solar carregadas._\n"
+    "📡 _Aguardando instruções, viajante._\n\n"
+    "O que deseja fazer?")
 
-async def send_to_gemini(chat, prompt, retries=4, telegram_msg=None):
-    for attempt in range(retries):
-        try:
-            return chat.send_message(prompt).text
-        except google_exceptions.ResourceExhausted as e:
-            ed = str(e)
-            if "per_day" in ed:
-                return "⚠️ Limite diário atingido. Tente amanhã. /rolar e /ficha funcionam offline."
-            wait = (2 ** attempt) * 10 + rng.uniform(0, 5)
-            logger.warning(f"429. Tentativa {attempt+1}/{retries}. {wait:.0f}s...")
-            if telegram_msg and attempt < retries - 1:
-                try: await telegram_msg.reply_text(f"⏳ _Retentando em {wait:.0f}s..._", parse_mode="Markdown")
-                except: pass
-            await asyncio.sleep(wait)
-        except Exception as e:
-            logger.error(f"Erro Gemini: {e}")
-            if attempt == retries - 1: raise
-            await asyncio.sleep(5)
-    return "⚠️ Mestre indisponível. Aguarde e tente novamente."
+# ── Glossário Menu ───────────────────────────────────────
+GLOSS_MENU = KBD([
+    [Btn("🌌 Raças",callback_data="g:racas"),Btn("⚔️ Classes",callback_data="g:classes")],
+    [Btn("🗡️ Armas Brancas",callback_data="g:abr"),Btn("🔫 Armas de Fogo",callback_data="g:afg")],
+    [Btn("🛡️ Armaduras",callback_data="g:arm"),Btn("🦾 Implantes",callback_data="g:imp")],
+    [Btn("🧠 Tecnomancia",callback_data="g:tecno"),Btn("🚀 Naves",callback_data="g:naves")],
+    [Btn("🛠️ Ferramentas",callback_data="g:ferr"),Btn("🔧 Modificações",callback_data="g:mods")],
+    [Btn("📜 Filosofias",callback_data="g:filos"),Btn("👾 Bestiário",callback_data="g:best")],
+    [Btn("🔙 Menu Principal",callback_data="m:back")]])
 
+TECNO_MENU = KBD([
+    [Btn("🟢 Básicas (Nv1)",callback_data="gt:bas")],
+    [Btn("🟡 Injeções (Nv2)",callback_data="gt:inj")],
+    [Btn("🔴 Protocolos (Nv3)",callback_data="gt:pro")],
+    [Btn("🔙 Glossário",callback_data="m:gloss")]])
 
-async def reply_safe(msg, text):
-    if len(text) > 4000:
-        for part in [text[i:i+4000] for i in range(0, len(text), 4000)]:
-            try: await msg.reply_text(part, parse_mode="Markdown")
-            except: await msg.reply_text(part)
-    else:
-        try: await msg.reply_text(text, parse_mode="Markdown")
-        except: await msg.reply_text(text)
-
-
-def parse_json_response(raw):
-    c = raw.strip()
-    if c.startswith("```"): c = c.split("\n", 1)[-1]
-    if c.endswith("```"): c = c.rsplit("```", 1)[0]
-    try: return json.loads(c.strip())
-    except: logger.error(f"JSON inválido: {raw[:300]}"); return None
-
+BEST_MENU = KBD([
+    [Btn("🌍 Por Planeta",callback_data="gb:plan")],
+    [Btn("🦎 Fauna Alienígena",callback_data="gb:fauna")],
+    [Btn("👾 Crias do Vazio",callback_data="gb:vazio")],
+    [Btn("🔙 Glossário",callback_data="m:gloss")]])
 
 # ══════════════════════════════════════════════════════════
-# CRIAÇÃO DE PERSONAGEM COM BOTÕES
+# HANDLERS
 # ══════════════════════════════════════════════════════════
 
-def build_keyboard(items, prefix, cols=2):
-    """Cria teclado inline a partir de um dict de items."""
-    buttons = []
-    for key, val in items.items():
-        label = val[0] if isinstance(val, tuple) else val
-        buttons.append(InlineKeyboardButton(label, callback_data=f"{prefix}:{key}"))
-    # Organiza em linhas de N colunas
-    return InlineKeyboardMarkup([buttons[i:i+cols] for i in range(0, len(buttons), cols)])
+async def cmd_start(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(WELCOME,reply_markup=MAIN_MENU,parse_mode="Markdown")
 
-
-async def cmd_create_character(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    creation_state[user_id] = {}
-
-    text = (
-        "🧑‍🚀 *CRIAÇÃO DE PERSONAGEM*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n\n"
-        "Vamos criar seu viajante das estrelas!\n"
-        "📋 Passo 1 de 4: Escolha sua *Raça*\n\n"
-        "Cada raça vem de um planeta diferente\n"
-        "com habilidades únicas. Toque para escolher:"
-    )
-
-    keyboard = build_keyboard(RACAS, "raca", cols=2)
-    await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
-
-
-async def callback_raca(query, data_key):
-    user_id = query.from_user.id
-    raca_info = RACAS[data_key]
-
-    creation_state.setdefault(user_id, {})
-    creation_state[user_id]["raca"] = data_key
-    creation_state[user_id]["raca_nome"] = raca_info[0]
-
-    await query.edit_message_text(
-        f"✅ Raça escolhida: *{raca_info[0]}*\n"
-        f"🌍 Planeta: {raca_info[1]}\n"
-        f"⚡ Destaque: {raca_info[2]}\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"📋 Passo 2 de 4: Escolha sua *Classe*\n\n"
-        f"Sua especialização define seu papel no grupo:",
-        parse_mode="Markdown"
-    )
-
-    keyboard = build_keyboard(CLASSES, "classe", cols=2)
-    await query.message.reply_text("⚔️ Toque para escolher sua classe:", reply_markup=keyboard)
-
-
-async def callback_classe(query, data_key):
-    user_id = query.from_user.id
-    classe_info = CLASSES[data_key]
-
-    creation_state.setdefault(user_id, {})
-    creation_state[user_id]["classe"] = data_key
-    creation_state[user_id]["classe_nome"] = classe_info[0]
-
-    await query.edit_message_text(
-        f"✅ Classe escolhida: *{classe_info[0]}*\n"
-        f"❤️ Bônus de Vida: {classe_info[1]}\n"
-        f"🎯 Papel: {classe_info[2]}\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"📋 Passo 3 de 4: Escolha sua *Filosofia de Vida*\n\n"
-        f"🌌 *Caminhos* = místicos/religiosos\n"
-        f"⚙️ *Códigos* = seculares/pragmáticos",
-        parse_mode="Markdown"
-    )
-
-    keyboard = build_keyboard(FILOSOFIAS, "filos", cols=2)
-    await query.message.reply_text("📜 Toque para escolher:", reply_markup=keyboard)
-
-
-async def callback_filosofia(query, data_key):
-    user_id = query.from_user.id
-    chat_id = query.message.chat_id
-    filos_info = FILOSOFIAS[data_key]
-
-    creation_state.setdefault(user_id, {})
-    creation_state[user_id]["filosofia"] = data_key
-    creation_state[user_id]["filosofia_nome"] = filos_info[0]
-
-    state = creation_state[user_id]
-
-    await query.edit_message_text(
-        f"✅ Filosofia escolhida: *{filos_info[0]}*\n"
-        f"⚡ Efeito: {filos_info[1]}\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"📋 Passo 4 de 4: *Atributos e Finalização*\n\n"
-        f"🎲 O Mestre vai rolar seus dados agora...",
-        parse_mode="Markdown"
-    )
-
-    # Agora sim chama o Gemini para a parte de atributos
-    chat = get_chat(chat_id)
-
-    raca_nome = state.get("raca_nome", "?")
-    classe_nome = state.get("classe_nome", "?")
-    filos_nome = state.get("filosofia_nome", "?")
-
-    prompt = (
-        f"MODO CRIAÇÃO (NÃO narre aventura, foque APENAS na ficha):\n"
-        f"O jogador está criando um personagem com:\n"
-        f"- Raça: {raca_nome}\n"
-        f"- Classe: {classe_nome}\n"
-        f"- Filosofia: {filos_nome}\n\n"
-        f"Comece pelo PASSO 4 — ROLAGEM DE ATRIBUTOS:\n"
-        f"a) Role 2d8 SETE vezes (cada dado 1-8, some os dois). Mostre os 7 resultados.\n"
-        f"b) Descarte o menor.\n"
-        f"c) Mostre os 6 restantes ordenados.\n"
-        f"d) Lembre os modificadores raciais desta raça.\n"
-        f"e) Peça ao jogador para distribuir entre For, Des, Con, Int, Sab, Car.\n\n"
-        f"PARE AQUI. NÃO calcule PV, CD, RAM, perícias ou equipamento ainda.\n"
-        f"Espere o jogador responder com a distribuição."
-    )
-
-    text = await send_to_gemini(chat, prompt, telegram_msg=query.message)
-    await reply_safe(query.message, text)
-
-
-async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Roteador de callbacks dos botões inline."""
-    query = update.callback_query
-    await query.answer()
-
-    data = query.data  # ex: "raca:mercusys"
-    prefix, key = data.split(":", 1)
-
-    if prefix == "raca":
-        await callback_raca(query, key)
-    elif prefix == "classe":
-        await callback_classe(query, key)
-    elif prefix == "filos":
-        await callback_filosofia(query, key)
-
-
-# ══════════════════════════════════════════════════════════
-# HANDLERS BÁSICOS
-# ══════════════════════════════════════════════════════════
-
-async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🚀 Nova Aventura", callback_data="menu:novojogo"),
-         InlineKeyboardButton("🧑‍🚀 Criar Personagem", callback_data="menu:criar")],
-        [InlineKeyboardButton("📂 Carregar Ficha", callback_data="menu:carregar"),
-         InlineKeyboardButton("📚 Carregar Sessão", callback_data="menu:sessoes")],
-        [InlineKeyboardButton("❓ Ajuda", callback_data="menu:ajuda")],
-    ])
+async def cmd_reset(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    chats.pop(update.effective_chat.id,None)
     await update.message.reply_text(
-        "🌌 *PASSAGEM SOMBRIA — RPG ESPACIAL* 🌌\n"
-        "━━━━━━━━━━━━━━━━━━━━\n\n"
-        "Bem-vindo ao vácuo, viajante.\n"
-        "Eu sou o Mestre. O que deseja?\n\n"
-        "_O silêncio das estrelas te observa..._",
-        reply_markup=kb, parse_mode="Markdown"
-    )
+        "🔄 _Memória neural purgada..._\n💾 Fichas e sessões permanecem nos servidores.\n\n"
+        "📡 _Terminal reiniciado. Aguardando instruções._",
+        reply_markup=MAIN_MENU,parse_mode="Markdown")
 
+async def cmd_help(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    await reply(update.message,
+        "📡 *PROTOCOLOS DO TERMINAL*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        "⚔️ *Operações:*\n/novojogo /criarpersonagem\n/rolar 1d20 /regras\n\n"
+        "💾 *Banco de Dados:*\n/salvar /carregar /ficha /fichas\n/levelup /deletarficha\n\n"
+        "📚 *Registros de Missão:*\n/salvarsessao /sessoes /cargarsessao ID\n/contexto\n\n"
+        "📖 *Arquivos:*\n/glossario — Consultar base de dados completa\n\n"
+        "🔧 *Sistema:*\n/reset — Purgar memória neural\n/ajuda — Este protocolo")
 
-async def handle_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
+async def cmd_glossario(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📖 *BANCO DE DADOS DA CONFEDERAÇÃO*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        "Selecione a categoria para consulta:",
+        reply_markup=GLOSS_MENU,parse_mode="Markdown")
 
-    if not data.startswith("menu:"):
-        return
+async def cmd_novojogo(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    cid=update.effective_chat.id; chats.pop(cid,None); chat=get_chat(cid)
+    await update.message.reply_text("🌌 _Inicializando simulação..._",parse_mode="Markdown")
+    t=await ask_gemini(chat,"Novo jogo. Cena de abertura épica com emojis. Opções de onde começar. Conciso.",msg=update.message)
+    await reply(update.message,t)
 
-    action = data.split(":", 1)[1]
-    msg = query.message
+async def cmd_criar(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    creation_state[update.message.from_user.id]={}
+    await update.message.reply_text(
+        "🧑‍🚀 *PROTOCOLO DE RECRUTAMENTO*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        "📋 Etapa 1/4: Selecione sua *origem genética*\n\n"
+        "Cada raça carrega o peso de seu planeta natal.\nEscolha com sabedoria, viajante:",
+        reply_markup=kb(RACAS_BTN,"r",2),parse_mode="Markdown")
 
-    if action == "novojogo":
-        chat_id = msg.chat_id
-        chat_sessions.pop(chat_id, None)
-        chat = get_chat(chat_id)
-        await msg.reply_text("🌌 _Preparando a aventura..._", parse_mode="Markdown")
-        text = await send_to_gemini(chat,
-            "O jogador quer começar uma nova aventura. "
-            "Apresente uma cena de abertura épica. "
-            "Dê opções de onde começar. Seja conciso e use emojis temáticos.",
-            telegram_msg=msg)
-        await reply_safe(msg, text)
+async def cmd_rolar(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    args=ctx.args
+    if not args: await update.message.reply_text("🎲 Protocolo: /rolar NdN"); return
+    d=args[0].lower()
+    try: n,s=d.split("d"); n=int(n) if n else 1; s=int(s)
+    except: await update.message.reply_text("❌ Formato inválido"); return
+    if n<1 or n>20 or s<1 or s>100: await update.message.reply_text("❌ Limites: 1-20 dados, 1-100 faces"); return
+    rolls=[rng.randint(1,s) for _ in range(n)]; total=sum(rolls)
+    c=""
+    if s==20 and n==1:
+        if rolls[0]==20: c="\n\n🌟 *O COSMOS SE CURVA À SUA VONTADE!*"
+        elif rolls[0]==1: c="\n\n💀 *O VÁCUO RI DA SUA OUSADIA...*"
+    await reply(update.message,f"🎲 *{d.upper()}*\nResultados: {rolls}\n*Total: {total}*{c}")
 
-    elif action == "criar":
-        user_id = query.from_user.id
-        creation_state[user_id] = {}
-        text = (
-            "🧑‍🚀 *CRIAÇÃO DE PERSONAGEM*\n"
-            "━━━━━━━━━━━━━━━━━━━━\n\n"
-            "📋 Passo 1 de 4: Escolha sua *Raça*\n\n"
-            "Cada raça tem habilidades únicas:"
-        )
-        keyboard = build_keyboard(RACAS, "raca", cols=2)
-        await msg.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
-
-    elif action == "carregar":
-        user_id = query.from_user.id
-        chat_id = msg.chat_id
-        ficha = load_ficha(user_id, chat_id)
-        if not ficha:
-            await msg.reply_text("❌ Nenhuma ficha salva. Use /criarpersonagem")
-        else:
-            chat = get_chat(chat_id)
-            user_name = query.from_user.first_name or "Viajante"
-            inject = (
-                f"CARREGAR_FICHA: {user_name} carregou:\n"
-                f"{json.dumps(ficha, ensure_ascii=False, indent=2)}\n"
-                f"Use como ficha oficial. Confirme brevemente."
-            )
-            text = await send_to_gemini(chat, inject, telegram_msg=msg)
-            await reply_safe(msg, format_ficha(ficha))
-            await reply_safe(msg, text)
-
-    elif action == "sessoes":
-        chat_id = msg.chat_id
-        sessoes = load_session_logs(chat_id)
-        if not sessoes:
-            await msg.reply_text("📚 Nenhuma sessão salva. Jogue e use /salvarsessao")
-        else:
-            lines = ["📚 *SESSÕES SALVAS:*\n"]
-            for s in sessoes:
-                d = s.get("created_at", "")[:10]
-                lines.append(f"• ID *{s['id']}* — {s.get('title', '?')} ({d})")
-            lines.append("\nUse /cargarsessao ID")
-            await reply_safe(msg, "\n".join(lines))
-
-    elif action == "ajuda":
-        await cmd_help_text(msg)
-
-
-async def cmd_help_text(msg):
-    await reply_safe(msg,
-        "📖 *COMANDOS:*\n\n"
-        "*⚔️ Jogo:*\n"
-        "/novojogo — Nova aventura\n"
-        "/criarpersonagem — Criar personagem\n"
-        "/rolar 1d20 — Rolar dados\n"
-        "/regras /racas /classes\n\n"
-        "*💾 Ficha:*\n"
-        "/salvar /carregar /ficha /fichas\n"
-        "/levelup — Subir de nível\n"
-        "/deletarficha — Deletar sua ficha\n"
-        "💡 _Fichas salvam automaticamente ao criar!_\n\n"
-        "*📚 Sessões:*\n"
-        "/salvarsessao — Salvar progresso\n"
-        "/sessoes — Listar sessões\n"
-        "/cargarsessao ID — Retomar\n"
-        "/contexto — Importar de fora\n\n"
-        "/reset — Limpar sessão\n"
-        "/ajuda — Esta mensagem"
-    )
-
-async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await cmd_help_text(update.message)
-
-
-async def cmd_new_game(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    chat_sessions.pop(chat_id, None)
-    chat = get_chat(chat_id)
-    await update.message.reply_text("🌌 _Preparando..._", parse_mode="Markdown")
-    text = await send_to_gemini(chat,
-        "O jogador quer começar uma aventura nova. Cena de abertura épica com emojis. Conciso.",
-        telegram_msg=update.message)
-    await reply_safe(update.message, text)
-
-
-async def cmd_roll(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    args = context.args
-    if not args:
-        await update.message.reply_text("🎲 Use: /rolar NdN"); return
-    dice_str = args[0].lower()
-    try:
-        n, s = dice_str.split("d"); n = int(n) if n else 1; s = int(s)
-        if n < 1 or n > 20 or s < 1 or s > 100: raise ValueError
-    except:
-        await update.message.reply_text("❌ Formato inválido"); return
-    rolls = [rng.randint(1, s) for _ in range(n)]
-    total = sum(rolls)
-    crit = ""
-    if s == 20 and n == 1:
-        if rolls[0] == 20: crit = "\n\n🌟 *ACERTO CRÍTICO! O cosmos sorriu!*"
-        elif rolls[0] == 1: crit = "\n\n💀 *FALHA CRÍTICA! O vácuo ri de você...*"
-    await reply_safe(update.message, f"🎲 *{dice_str.upper()}*\nDados: {rolls}\n*Total: {total}*{crit}")
-
-
-async def cmd_rules(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await reply_safe(update.message,
-        "📖 *REGRAS RÁPIDAS*\n━━━━━━━━━━━━━━━━━━━━\n"
+async def cmd_regras(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    await reply(update.message,
+        "📖 *MANUAL DE SOBREVIVÊNCIA*\n━━━━━━━━━━━━━━━━━━━━\n"
         "🎲 Teste: 1d20 + Atributo + Perícia ≥ CD\n"
-        "⚔️ Melee: dado + Força | 🔫 Ranged: dado + Destreza\n"
+        "⚔️ Melee: dado + For | 🔫 Ranged: dado + Des\n"
         "🛡️ Defesa: 10 + Des + Armadura\n\n"
-        "💥 20 nat = Crítico | 💀 1 nat = Falha\n"
-        "❤️ 0 PV = Testes de Morte (3 sucessos/falhas)\n"
-        "🔋 Pentes: 3 turnos | 🧠 RAM: 1 + Int + ½Tecno")
+        "💥 20 nat = Crítico (dobra dados)\n"
+        "💀 1 nat = Falha crítica (arma emperra)\n\n"
+        "❤️ 0 PV = Testes de Morte (3 sucessos ou falhas)\n"
+        "🔋 Pentes: 3 turnos de tiro | Rajada: 2t\n"
+        "🧠 RAM: 1 + Int + ½Tecnomancia")
 
+# ── Ficha ────────────────────────────────────────────────
+async def cmd_salvar(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    if not db: await update.message.reply_text("⚠️ Banco offline."); return
+    cid,uid,un=update.effective_chat.id,update.message.from_user.id,update.message.from_user.first_name or"?"
+    chat=get_chat(cid)
+    await update.message.reply_text("💾 _Transmitindo dados ao servidor... aguarde._",parse_mode="Markdown")
+    await asyncio.sleep(5)
+    raw=await ask_gemini(chat,"EXPORT_FICHA: JSON puro. Sem markdown. Se não tem personagem: NO_CHARACTER",retries=3,msg=update.message)
+    if "NO_CHARACTER" in raw or "⚠️" in raw: await update.message.reply_text("❌ Sem personagem ativo. Use /criarpersonagem"); return
+    ficha=parse_json(raw)
+    if not ficha: await update.message.reply_text("⚠️ Falha na extração. Aguarde 1 min e tente /salvar"); return
+    if save_ficha(uid,un,cid,ficha): await update.message.reply_text(f"✅ *{ficha.get('nome','?')}* — dados salvos nos servidores da Confederação.",parse_mode="Markdown")
+    else: await update.message.reply_text("❌ Erro no servidor.")
 
-async def cmd_races(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lines = ["🌌 *RAÇAS JOGÁVEIS:*\n━━━━━━━━━━━━━━━━━━━━\n"]
-    for k, v in RACAS.items():
-        lines.append(f"{v[0]} — 🌍 {v[1]}\n  _{v[2]}_\n")
-    await reply_safe(update.message, "\n".join(lines))
+async def cmd_carregar(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    if not db: return
+    cid,uid,un=update.effective_chat.id,update.message.from_user.id,update.message.from_user.first_name or"?"
+    ficha=load_ficha(uid,cid)
+    if not ficha: await update.message.reply_text("❌ Nenhum registro encontrado. Use /criarpersonagem + /salvar"); return
+    chat=get_chat(cid)
+    t=await ask_gemini(chat,f"CARREGAR_FICHA: {un} carregou:\n{json.dumps(ficha,ensure_ascii=False)}\nConfirme brevemente.",msg=update.message)
+    await reply(update.message,format_ficha(ficha))
+    await reply(update.message,t)
 
+async def cmd_ficha(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    if not db: return
+    f=load_ficha(update.message.from_user.id,update.effective_chat.id)
+    if not f: await update.message.reply_text("❌ Sem registro. Use /salvar"); return
+    await reply(update.message,format_ficha(f))
 
-async def cmd_classes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lines = ["⚔️ *CLASSES DISPONÍVEIS:*\n━━━━━━━━━━━━━━━━━━━━\n"]
-    for k, v in CLASSES.items():
-        lines.append(f"{v[0]} ({v[1]}) — _{v[2]}_")
-    await reply_safe(update.message, "\n".join(lines))
+async def cmd_fichas(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    if not db: return
+    fs=list_fichas(update.effective_chat.id)
+    if not fs: await update.message.reply_text("📋 Nenhum registro neste canal."); return
+    lines=["📋 *REGISTROS ATIVOS:*\n"]+[f"• *{f.get('character_name','?')}* — {f.get('user_name','?')}" for f in fs]
+    await reply(update.message,"\n".join(lines))
 
+async def cmd_deletar(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    if not db: return
+    cid,uid=update.effective_chat.id,update.message.from_user.id
+    is_adm=ADMIN_ID and str(uid)==str(ADMIN_ID)
+    args=ctx.args; target=uid
+    if args and is_adm:
+        name=" ".join(args).lower()
+        for f in list_fichas(cid):
+            if name in f.get("character_name","").lower() or name in f.get("user_name","").lower():
+                target=int(f["user_id"]); break
+        else: await update.message.reply_text("❌ Não encontrado. Use /fichas"); return
+    elif args and not is_adm: await update.message.reply_text("❌ Apenas o Comandante pode deletar registros alheios."); return
+    ficha=load_ficha(target,cid)
+    if not ficha: await update.message.reply_text("❌ Sem registro."); return
+    if delete_ficha(target,cid): await update.message.reply_text(f"🗑️ Registro de *{ficha.get('nome','?')}* eliminado dos servidores.",parse_mode="Markdown")
 
-# ══════════════════════════════════════════════════════════
-# FICHA: SALVAR / CARREGAR / VER / LEVELUP
-# ══════════════════════════════════════════════════════════
+async def cmd_levelup(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    if not db: return
+    cid,uid,un=update.effective_chat.id,update.message.from_user.id,update.message.from_user.first_name or"?"
+    ficha=load_ficha(uid,cid)
+    if not ficha: await update.message.reply_text("❌ Sem registro. Use /salvar"); return
+    nv,xp,nome=ficha.get("nivel",1),ficha.get("xp",0),ficha.get("nome","?")
+    if nv>=10: await update.message.reply_text("🌟 *Lenda do Sistema* — nível máximo atingido!",parse_mode="Markdown"); return
+    xp_req=XP_TABLE.get(nv,9999)
+    if xp<xp_req:
+        await update.message.reply_text(f"❌ *{nome}* — XP insuficiente.\n✨ {xp}/{xp_req} (faltam {xp_req-xp})\nContinue a missão, soldado.",parse_mode="Markdown"); return
+    chat=get_chat(cid)
+    chk=await ask_gemini(chat,"O grupo está em Descanso Longo? Responda SIM ou NAO.",msg=update.message)
+    if "NAO" in chk.upper() or "NÃO" in chk.upper():
+        await update.message.reply_text(f"🛏️ *{nome}* precisa de Descanso Longo para evoluir.\n✨ XP: {xp}/{xp_req} — pronto quando descansar.",parse_mode="Markdown"); return
+    await update.message.reply_text(f"⬆️ _Evolução neural de {nome} em progresso..._",parse_mode="Markdown")
+    t=await ask_gemini(chat,f"MODO CRIAÇÃO — LEVELUP:\nFicha:{json.dumps(ficha,ensure_ascii=False)}\n{nv}→{nv+1}. XP:{xp}/{xp_req}. DL ativo.\n"
+        f"1.🎲 Role dado vida raça+Con, mostre etapas\n2.💪 +1 atributo — liste atuais, PERGUNTE\n"
+        f"3.🎯 +1 perícia (qualquer) — liste atuais+sugestões, PERGUNTE\n4.🧠 Nv{nv+1} ímpar? +1RAM\n5.❤️ Cura total\nNarre épico. NÃO inicie aventura.",msg=update.message)
+    await reply(update.message,t)
+    ficha["nivel"]=nv+1; save_ficha(uid,un,cid,ficha)
 
-async def cmd_salvar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
-    chat_id = update.effective_chat.id
-    user_id = update.message.from_user.id
-    user_name = update.message.from_user.first_name or "Viajante"
-    chat = get_chat(chat_id)
-    await update.message.reply_text(
-        "💾 _Exportando ficha... aguarde alguns segundos._", parse_mode="Markdown")
-    await asyncio.sleep(5)  # Pequeno delay para evitar rate limit
-    raw = await send_to_gemini(chat,
-        "EXPORT_FICHA: Exporte a ficha do jogador atual em JSON puro. "
-        "Sem markdown, sem texto extra. Se não tem personagem: NO_CHARACTER",
-        retries=3, telegram_msg=update.message)
-    if "NO_CHARACTER" in raw or "⚠️" in raw:
-        await update.message.reply_text(
-            "❌ Sem personagem ou API indisponível. Aguarde 1 minuto e tente de novo.")
-        return
-    ficha = parse_json_response(raw)
-    if not ficha:
-        await update.message.reply_text("⚠️ Erro ao extrair. Aguarde 1 minuto e tente /salvar de novo.")
-        return
-    if save_ficha(user_id, user_name, chat_id, ficha):
-        await update.message.reply_text(f"✅ *{ficha.get('nome','?')}* salvo!", parse_mode="Markdown")
-    else:
-        await update.message.reply_text("❌ Erro ao salvar.")
+# ── Sessões ──────────────────────────────────────────────
+async def cmd_salvar_sessao(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    if not db: return
+    cid=update.effective_chat.id; chat=get_chat(cid)
+    if cid not in chats or not chats[cid].history: await update.message.reply_text("❌ Sem sessão ativa."); return
+    await update.message.reply_text("📝 _Compilando relatório de missão..._",parse_mode="Markdown")
+    s=await ask_gemini(chat,"RESUMO_SESSAO: Resuma TUDO — jogadores, local, eventos, combates, itens, NPCs, ganchos, onde parou. Factual. 1000 palavras máx.",msg=update.message)
+    t=await ask_gemini(chat,"Título CURTO (6 palavras máx) desta sessão. Só o título.")
+    t=t.strip().strip('"')[:60]
+    if save_session(cid,t,s):
+        await update.message.reply_text(f"✅ Missão registrada: *{t}*",parse_mode="Markdown")
+        await reply(update.message,f"📝 *Relatório:*\n\n{s}")
 
+async def cmd_sessoes(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    if not db: return
+    ss=load_sessions(update.effective_chat.id)
+    if not ss: await update.message.reply_text("📚 Sem registros de missão."); return
+    lines=["📚 *REGISTROS DE MISSÃO:*\n"]+[f"• ID *{s['id']}* — {s.get('title','?')} ({s.get('created_at','')[:10]})" for s in ss]+["\n/cargarsessao ID para retomar"]
+    await reply(update.message,"\n".join(lines))
 
-async def cmd_carregar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
-    chat_id = update.effective_chat.id
-    user_id = update.message.from_user.id
-    user_name = update.message.from_user.first_name or "Viajante"
-    ficha = load_ficha(user_id, chat_id)
-    if not ficha:
-        await update.message.reply_text("❌ Sem ficha. Use /criarpersonagem + /salvar"); return
-    chat = get_chat(chat_id)
-    text = await send_to_gemini(chat,
-        f"CARREGAR_FICHA: {user_name} carregou:\n{json.dumps(ficha, ensure_ascii=False, indent=2)}\n"
-        f"Use como ficha oficial. Confirme brevemente com emojis.",
-        telegram_msg=update.message)
-    await reply_safe(update.message, format_ficha(ficha))
-    await reply_safe(update.message, text)
-
-
-async def cmd_ficha(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
-    ficha = load_ficha(update.message.from_user.id, update.effective_chat.id)
-    if not ficha: await update.message.reply_text("❌ Sem ficha salva. Use /salvar"); return
-    await reply_safe(update.message, format_ficha(ficha))
-
-
-async def cmd_fichas(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
-    fichas = list_fichas(update.effective_chat.id)
-    if not fichas: await update.message.reply_text("📋 Nenhuma ficha neste chat."); return
-    lines = ["📋 *FICHAS DESTE CHAT:*\n"]
-    for f in fichas:
-        lines.append(f"• *{f.get('character_name', '?')}* — {f.get('user_name', '?')}")
-    await reply_safe(update.message, "\n".join(lines))
-
-
-async def cmd_deletar_ficha(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Deleta a ficha. Só o próprio dono ou o Admin podem deletar."""
-    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
-    chat_id = update.effective_chat.id
-    user_id = update.message.from_user.id
-    is_admin = ADMIN_ID and str(user_id) == str(ADMIN_ID)
-
-    # Se admin, pode deletar a de qualquer um (passa o user_id como argumento)
-    args = context.args
-    target_id = user_id  # default: deleta a própria
-
-    if args and is_admin:
-        # Admin pode passar o user_id de outro jogador
-        # Mas também pode passar o nome — vamos buscar pelo nome
-        target_name = " ".join(args)
-        fichas = list_fichas(chat_id)
-        found = None
-        for f in fichas:
-            if target_name.lower() in f.get("character_name", "").lower() or \
-               target_name.lower() in f.get("user_name", "").lower():
-                found = f
-                break
-        if found:
-            target_id = int(found.get("user_id", user_id))
-        else:
-            await update.message.reply_text(
-                f"❌ Personagem/jogador '{target_name}' não encontrado.\n"
-                f"Use /fichas para ver os nomes.")
-            return
-    elif args and not is_admin:
-        await update.message.reply_text("❌ Só o Admin pode deletar fichas de outros jogadores.")
-        return
-
-    # Verifica se a ficha existe
-    ficha = load_ficha(target_id, chat_id)
-    if not ficha:
-        await update.message.reply_text("❌ Nenhuma ficha encontrada para deletar.")
-        return
-
-    nome = ficha.get("nome", "?")
-
-    # Confirma e deleta
-    if delete_ficha(target_id, chat_id):
-        if target_id == user_id:
-            await update.message.reply_text(f"🗑️ Ficha de *{nome}* deletada.", parse_mode="Markdown")
-        else:
-            await update.message.reply_text(
-                f"🗑️ Admin deletou a ficha de *{nome}*.", parse_mode="Markdown")
-    else:
-        await update.message.reply_text("❌ Erro ao deletar.")
-
-
-async def cmd_levelup(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
-    chat_id = update.effective_chat.id
-    user_id = update.message.from_user.id
-    user_name = update.message.from_user.first_name or "Viajante"
-    ficha = load_ficha(user_id, chat_id)
-    if not ficha: await update.message.reply_text("❌ Sem ficha. Use /salvar primeiro."); return
-
-    nv = ficha.get("nivel", 1)
-    xp = ficha.get("xp", 0)
-    nome = ficha.get("nome", "?")
-
-    # Nível máximo
-    if nv >= 10:
-        await update.message.reply_text("🌟 Nível máximo (10) atingido!"); return
-
-    # Verifica XP necessário
-    xp_necessario = XP_TABLE.get(nv, 9999)
-    if xp < xp_necessario:
-        falta = xp_necessario - xp
-        await update.message.reply_text(
-            f"❌ *{nome}* ainda não tem XP suficiente.\n\n"
-            f"📊 Nível atual: {nv}\n"
-            f"✨ XP atual: {xp} / {xp_necessario}\n"
-            f"⏳ Faltam: *{falta} XP*\n\n"
-            f"Continue jogando para ganhar XP em combates e decisões!",
-            parse_mode="Markdown"
-        )
-        return
-
-    # Verifica se está em descanso longo (pergunta ao Gemini)
-    chat = get_chat(chat_id)
-    check_prompt = (
-        "O jogador quer fazer level up. Verifique: o grupo está ATUALMENTE em um "
-        "Descanso Longo ou acabou de completar um? Responda APENAS 'SIM' ou 'NAO'. "
-        "Se não tem certeza ou não houve descanso longo recente, responda 'NAO'."
-    )
-    rest_check = await send_to_gemini(chat, check_prompt, telegram_msg=update.message)
-
-    if "NAO" in rest_check.upper() or "NÃO" in rest_check.upper():
-        await update.message.reply_text(
-            f"🛏️ *{nome}* precisa de um Descanso Longo para subir de nível!\n\n"
-            f"Encontre um local seguro (nave, estalagem, base) e descanse 8 horas.\n"
-            f"Viagens de dobra também contam como descanso longo.\n\n"
-            f"✨ XP: {xp}/{xp_necessario} — Pronto para subir quando descansar!",
-            parse_mode="Markdown"
-        )
-        return
-
-    # Tudo OK — faz o level up
-    await update.message.reply_text(
-        f"⬆️ _Subindo {nome} para Nível {nv+1}..._", parse_mode="Markdown")
-
-    prompt = (
-        f"MODO CRIAÇÃO — LEVELUP do personagem:\n"
-        f"Ficha atual:\n{json.dumps(ficha, ensure_ascii=False, indent=2)}\n\n"
-        f"O jogador tem {xp} XP (precisava de {xp_necessario}) e está em Descanso Longo.\n"
-        f"Aplique level up de {nv} → {nv+1}:\n"
-        f"1. 🎲 Role dado de vida da raça + Con → some ao PV máximo. Mostre cada etapa.\n"
-        f"2. 💪 +1 ponto de atributo — liste os atuais e PERGUNTE onde quer\n"
-        f"3. 🎯 +1 ponto de perícia — pode ir em qualquer perícia (nova ou existente).\n"
-        f"   Liste as perícias atuais E sugira opções novas úteis para a classe.\n"
-        f"   Limite: +5 até nv4, +7 do nv5+. PERGUNTE onde quer investir.\n"
-        f"4. 🧠 Se nível {nv+1} é ímpar (3,5,7,9), ganha +1 RAM\n"
-        f"5. ❤️ PV atual = novo PV máximo (cura completa no descanso)\n\n"
-        f"Narre o level up de forma épica. "
-        f"PERGUNTE onde colocar atributo e perícia. "
-        f"NÃO inicie aventura — foque só na progressão."
-    )
-    text = await send_to_gemini(chat, prompt, telegram_msg=update.message)
-    await reply_safe(update.message, text)
-
-    # Salva nível incrementado (atributos finalizados quando jogador responder + /salvar)
-    ficha["nivel"] = nv + 1
-    save_ficha(user_id, user_name, chat_id, ficha)
-
-
-# ══════════════════════════════════════════════════════════
-# SESSÕES: SALVAR / LISTAR / CARREGAR / IMPORTAR
-# ══════════════════════════════════════════════════════════
-
-async def cmd_salvar_sessao(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
-    chat_id = update.effective_chat.id
-    chat = get_chat(chat_id)
-    if chat_id not in chat_sessions or not chat_sessions[chat_id].history:
-        await update.message.reply_text("❌ Sem sessão ativa."); return
-    await update.message.reply_text("📝 _Resumindo sessão..._", parse_mode="Markdown")
-    summary = await send_to_gemini(chat,
-        "RESUMO_SESSAO: Resuma TUDO desta sessão — jogadores, personagens, local, "
-        "eventos, combates, itens, NPCs, ganchos pendentes, onde parou. "
-        "Factual e detalhado. Máximo 1000 palavras.",
-        telegram_msg=update.message)
-    title = await send_to_gemini(chat,
-        "Título CURTO (máx 6 palavras) para esta sessão. Só o título, sem aspas.")
-    title = title.strip().strip('"').strip("'")[:60]
-    if save_session_log(chat_id, title, summary):
-        await update.message.reply_text(f"✅ Sessão salva: *{title}*\nUse /sessoes para ver.", parse_mode="Markdown")
-        await reply_safe(update.message, f"📝 *Resumo:*\n\n{summary}")
-    else:
-        await update.message.reply_text("❌ Erro ao salvar.")
-
-
-async def cmd_listar_sessoes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
-    sessoes = load_session_logs(update.effective_chat.id)
-    if not sessoes: await update.message.reply_text("📚 Nenhuma sessão salva."); return
-    lines = ["📚 *SESSÕES SALVAS:*\n"]
-    for s in sessoes:
-        lines.append(f"• ID *{s['id']}* — {s.get('title','?')} ({s.get('created_at','')[:10]})")
-    lines.append("\n/cargarsessao ID para retomar")
-    await reply_safe(update.message, "\n".join(lines))
-
-
-async def cmd_carregar_sessao(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
-    args = context.args
-    if not args: await update.message.reply_text("❌ Use: /cargarsessao ID"); return
-    try: sid = int(args[0])
+async def cmd_cargar_sessao(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    if not db or not ctx.args: await update.message.reply_text("❌ Use: /cargarsessao ID"); return
+    try: sid=int(ctx.args[0])
     except: await update.message.reply_text("❌ ID inválido."); return
-    sessao = load_session_by_id(sid)
-    if not sessao: await update.message.reply_text("❌ Sessão não encontrada."); return
-    chat_id = update.effective_chat.id
-    if sessao.get("chat_id") != str(chat_id):
-        await update.message.reply_text("❌ Esta sessão pertence a outro chat."); return
-    chat_sessions.pop(chat_id, None)
-    chat = get_chat(chat_id)
-    await update.message.reply_text(f"📂 _Carregando: {sessao.get('title','?')}..._", parse_mode="Markdown")
-    text = await send_to_gemini(chat,
-        f"CONTEXTO_SESSAO: Retomando sessão anterior.\n"
-        f"Título: {sessao.get('title','?')}\n\n"
-        f"RESUMO:\n{sessao.get('summary','')}\n\n"
-        f"Recapitule brevemente com emojis e pergunte o que querem fazer.",
-        telegram_msg=update.message)
-    await reply_safe(update.message, text)
+    s=load_session_id(sid)
+    if not s or s.get("chat_id")!=str(update.effective_chat.id): await update.message.reply_text("❌ Registro não encontrado ou de outro canal."); return
+    cid=update.effective_chat.id; chats.pop(cid,None); chat=get_chat(cid)
+    await update.message.reply_text(f"📂 _Restaurando: {s.get('title','?')}..._",parse_mode="Markdown")
+    t=await ask_gemini(chat,f"CONTEXTO_SESSAO: Retomando.\nTítulo:{s.get('title')}\nResumo:{s.get('summary')}\nRecapitule com emojis, pergunte o que fazer.",msg=update.message)
+    await reply(update.message,t)
 
-
-async def cmd_contexto(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    ctx = update.message.text.replace("/contexto", "", 1).strip()
-    if not ctx:
-        await update.message.reply_text(
-            "📎 *IMPORTAR CONTEXTO*\n━━━━━━━━━━━━━━━━━━━━\n\n"
-            "Cole o resumo junto com o comando:\n\n"
-            "`/contexto Estávamos em Marte. Kira é Ven'y Assassina nv3. "
-            "Encontramos um Monólito ativado...`\n\n"
-            "Quanto mais detalhe, melhor!", parse_mode="Markdown")
-        return
-    chat_sessions.pop(chat_id, None)
-    chat = get_chat(chat_id)
-    await update.message.reply_text("📎 _Absorvendo contexto..._", parse_mode="Markdown")
-    text = await send_to_gemini(chat,
-        f"CONTEXTO_SESSAO: Sessão importada de fora do bot.\n\n{ctx}\n\n"
-        f"Confirme que entendeu: personagens, local, situação. "
-        f"Recapitule e pergunte se está correto. Use emojis.",
-        telegram_msg=update.message)
-    if db: save_session_log(chat_id, "📎 Sessão Importada", ctx)
-    await reply_safe(update.message, text)
-
+async def cmd_contexto(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    cid=update.effective_chat.id; txt=update.message.text.replace("/contexto","",1).strip()
+    if not txt:
+        await update.message.reply_text("📎 *IMPORTAR DADOS EXTERNOS*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+            "Cole o contexto junto ao comando:\n\n`/contexto Estávamos em Marte. Kira é Ven'y Assassina nv3...`",parse_mode="Markdown"); return
+    chats.pop(cid,None); chat=get_chat(cid)
+    await update.message.reply_text("📎 _Processando dados externos..._",parse_mode="Markdown")
+    t=await ask_gemini(chat,f"CONTEXTO_SESSAO: Importado de fora.\n{txt}\nConfirme entendimento, recapitule, pergunte se correto.",msg=update.message)
+    if db: save_session(cid,"📎 Importado",txt)
+    await reply(update.message,t)
 
 # ══════════════════════════════════════════════════════════
-# RESET E MENSAGENS
+# CALLBACKS (Botões)
 # ══════════════════════════════════════════════════════════
 
-async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_sessions.pop(update.effective_chat.id, None)
-    await update.message.reply_text(
-        "🔄 Sessão resetada!\n💾 Fichas e sessões salvas permanecem no banco.\n"
-        "Use /carregar ou /cargarsessao para retomar.")
+async def on_callback(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    q=update.callback_query; await q.answer(); d=q.data; m=q.message
+    uid=q.from_user.id; cid=m.chat_id; un=q.from_user.first_name or"?"
 
+    # ── Menu principal ──
+    if d=="m:back" or d=="m:start":
+        await m.reply_text(WELCOME,reply_markup=MAIN_MENU,parse_mode="Markdown")
+    elif d=="m:jogo":
+        chats.pop(cid,None); chat=get_chat(cid)
+        await m.reply_text("🌌 _Inicializando simulação..._",parse_mode="Markdown")
+        t=await ask_gemini(chat,"Novo jogo. Cena de abertura épica. Opções de onde começar. Conciso.",msg=m)
+        await reply(m,t)
+    elif d=="m:criar":
+        creation_state[uid]={}
+        await m.reply_text("🧑‍🚀 *PROTOCOLO DE RECRUTAMENTO*\n━━━━━━━━━━━━━━━━━━━━\n\n📋 Etapa 1/4: *Origem genética*\n\nCada raça carrega o legado de seu planeta:",
+            reply_markup=kb(RACAS_BTN,"r",2),parse_mode="Markdown")
+    elif d=="m:cficha":
+        f=load_ficha(uid,cid)
+        if not f: await m.reply_text("❌ Sem registro. Inicie o Protocolo de Recrutamento."); return
+        chat=get_chat(cid)
+        t=await ask_gemini(chat,f"CARREGAR_FICHA: {un} carregou:\n{json.dumps(f,ensure_ascii=False)}\nConfirme brevemente.",msg=m)
+        await reply(m,format_ficha(f)); await reply(m,t)
+    elif d=="m:csess":
+        ss=load_sessions(cid)
+        if not ss: await m.reply_text("📚 Sem registros. Jogue e use /salvarsessao"); return
+        lines=["📚 *REGISTROS DE MISSÃO:*\n"]+[f"• ID *{s['id']}* — {s.get('title','?')}" for s in ss]+["\n/cargarsessao ID"]
+        await reply(m,"\n".join(lines))
+    elif d=="m:gloss":
+        await m.reply_text("📖 *BANCO DE DADOS DA CONFEDERAÇÃO*\n━━━━━━━━━━━━━━━━━━━━\nSelecione categoria:",reply_markup=GLOSS_MENU,parse_mode="Markdown")
+    elif d=="m:help":
+        await reply(m,"📡 *PROTOCOLOS:*\n/novojogo /criarpersonagem /rolar /regras\n/salvar /carregar /ficha /fichas /levelup /deletarficha\n/salvarsessao /sessoes /cargarsessao /contexto\n/glossario /reset /ajuda")
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    user_msg = update.message.text
-    user_name = update.message.from_user.first_name or "Viajante"
-    user_id = update.message.from_user.id
-    if not user_msg: return
-    chat = get_chat(chat_id)
+    # ── Glossário ──
+    elif d=="g:racas":
+        await m.reply_text("🌌 *RAÇAS DO SISTEMA*\nSelecione para detalhes:",reply_markup=kb(RACAS_BTN,"gr",2),parse_mode="Markdown")
+    elif d=="g:classes":
+        await m.reply_text("⚔️ *CLASSES DE ESPECIALIZAÇÃO*\nSelecione para detalhes:",reply_markup=kb(CLASSES_BTN,"gc",2),parse_mode="Markdown")
+    elif d.startswith("gr:"):
+        k=d[3:]; txt=RACAS_DETAIL.get(k,"❌ Não encontrado.")
+        await reply(m,txt)
+        await m.reply_text("🔙 Voltar:",reply_markup=KBD([[Btn("🌌 Raças",callback_data="g:racas"),Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d.startswith("gc:"):
+        k=d[3:]; txt=CLASSES_DETAIL.get(k,"❌ Não encontrado.")
+        await reply(m,txt)
+        await m.reply_text("🔙 Voltar:",reply_markup=KBD([[Btn("⚔️ Classes",callback_data="g:classes"),Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:abr": await reply(m,ARMAS_BRANCAS_TEXT); await m.reply_text("🔙",reply_markup=KBD([[Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:afg": await reply(m,ARMAS_FOGO_TEXT); await m.reply_text("🔙",reply_markup=KBD([[Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:arm": await reply(m,ARMADURAS_TEXT); await m.reply_text("🔙",reply_markup=KBD([[Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:imp": await reply(m,IMPLANTES_TEXT); await m.reply_text("🔙",reply_markup=KBD([[Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:ferr": await reply(m,FERRAMENTAS_TEXT); await m.reply_text("🔙",reply_markup=KBD([[Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:mods": await reply(m,MODIFICACOES_TEXT); await m.reply_text("🔙",reply_markup=KBD([[Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:naves": await reply(m,NAVES_TEXT); await m.reply_text("🔙",reply_markup=KBD([[Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:filos": await reply(m,FILOSOFIAS_TEXT); await m.reply_text("🔙",reply_markup=KBD([[Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:tecno":
+        await m.reply_text("🧠 *TECNOMANCIA*\n━━━━━━━━━━━━━━━━━━━━\nRAM: 1+Mod.Int+½Tecno (+1 ímpares)\nSelecione o nível:",reply_markup=TECNO_MENU,parse_mode="Markdown")
+    elif d=="gt:bas": await reply(m,TECNO_BASICAS); await m.reply_text("🔙",reply_markup=KBD([[Btn("🧠 Tecnomancia",callback_data="g:tecno"),Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="gt:inj": await reply(m,TECNO_INJECOES); await m.reply_text("🔙",reply_markup=KBD([[Btn("🧠 Tecnomancia",callback_data="g:tecno"),Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="gt:pro": await reply(m,TECNO_PROTOCOLOS); await m.reply_text("🔙",reply_markup=KBD([[Btn("🧠 Tecnomancia",callback_data="g:tecno"),Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="g:best":
+        await m.reply_text("👾 *BESTIÁRIO*\n━━━━━━━━━━━━━━━━━━━━\nSelecione categoria:",reply_markup=BEST_MENU,parse_mode="Markdown")
+    elif d=="gb:plan": await reply(m,BESTIARIO_PLANETAS); await m.reply_text("🔙",reply_markup=KBD([[Btn("👾 Bestiário",callback_data="g:best"),Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="gb:fauna": await reply(m,BESTIARIO_FAUNA); await m.reply_text("🔙",reply_markup=KBD([[Btn("👾 Bestiário",callback_data="g:best"),Btn("📖 Glossário",callback_data="m:gloss")]]))
+    elif d=="gb:vazio": await reply(m,BESTIARIO_VAZIO); await m.reply_text("🔙",reply_markup=KBD([[Btn("👾 Bestiário",callback_data="g:best"),Btn("📖 Glossário",callback_data="m:gloss")]]))
+
+    # ── Criação de personagem ──
+    elif d.startswith("r:"):
+        k=d[2:]; creation_state.setdefault(uid,{})
+        creation_state[uid]["raca"]=k; creation_state[uid]["raca_nome"]=RACAS_BTN[k]
+        await q.edit_message_text(f"✅ Origem: *{RACAS_BTN[k]}*\n\n📋 Etapa 2/4: *Especialização de combate*\nSua classe define seu papel na tripulação:",parse_mode="Markdown")
+        await m.reply_text("⚔️ Selecione sua classe:",reply_markup=kb(CLASSES_BTN,"c",2))
+    elif d.startswith("c:"):
+        k=d[2:]; creation_state.setdefault(uid,{})
+        creation_state[uid]["classe"]=k; creation_state[uid]["classe_nome"]=CLASSES_BTN[k]
+        await q.edit_message_text(f"✅ Classe: *{CLASSES_BTN[k]}*\n\n📋 Etapa 3/4: *Código de conduta*\n🌌 Caminhos = fé e misticismo\n⚙️ Códigos = lógica e pragmatismo",parse_mode="Markdown")
+        await m.reply_text("📜 Selecione sua filosofia:",reply_markup=kb(FILOS_BTN,"f",2))
+    elif d.startswith("f:"):
+        k=d[2:]; creation_state.setdefault(uid,{})
+        creation_state[uid]["filosofia"]=k; creation_state[uid]["filosofia_nome"]=FILOS_BTN[k]
+        st=creation_state[uid]
+        await q.edit_message_text(f"✅ Filosofia: *{FILOS_BTN[k]}*\n\n📋 Etapa 4/4: *Calibração neural*\n🎲 O Mestre rolará seus dados...",parse_mode="Markdown")
+        chat=get_chat(cid)
+        t=await ask_gemini(chat,
+            f"MODO CRIAÇÃO:\nRaça:{st.get('raca_nome','?')}\nClasse:{st.get('classe_nome','?')}\nFilosofia:{st.get('filosofia_nome','?')}\n\n"
+            f"PASSO 4: Role 2d8 x7, descarte menor, mostre 6 ordenados. Lembre raciais. Peça distribuição. PARE.",msg=m)
+        await reply(m,t)
+
+# ── Mensagens livres ─────────────────────────────────────
+async def handle_msg(update:Update,ctx:ContextTypes.DEFAULT_TYPE):
+    cid=update.effective_chat.id; txt=update.message.text; un=update.message.from_user.first_name or"?"
+    uid=update.message.from_user.id
+    if not txt: return
+    chat=get_chat(cid)
     try:
-        text = await send_to_gemini(chat, f"[Jogador: {user_name}]: {user_msg}", telegram_msg=update.message)
-        trim_history(chat_id)
-
-        # Detecta auto-save de ficha completa
-        if "[FICHA_COMPLETA]" in text:
-            text = text.replace("[FICHA_COMPLETA]", "").strip()
-            await reply_safe(update.message, text)
-
-            # Tenta exportar e salvar automaticamente (com delay para evitar rate limit)
+        resp=await ask_gemini(chat,f"[Jogador: {un}]: {txt}",msg=update.message)
+        trim_hist(cid)
+        if "[FICHA_COMPLETA]" in resp:
+            resp=resp.replace("[FICHA_COMPLETA]","").strip()
+            await reply(update.message,resp)
             if db:
-                await update.message.reply_text(
-                    "💾 _Salvando ficha... aguarde 15s para evitar limite da API._",
-                    parse_mode="Markdown")
-                await asyncio.sleep(15)  # Espera rate limit resetar
-
-                raw = await send_to_gemini(chat,
-                    "EXPORT_FICHA: Exporte a ficha completa em JSON puro. Sem markdown, sem texto extra.",
-                    retries=2, telegram_msg=None)  # Menos retries, sem spam
-                ficha = parse_json_response(raw)
-                if ficha and save_ficha(user_id, user_name, chat_id, ficha):
-                    await update.message.reply_text(
-                        f"✅ Ficha de *{ficha.get('nome', '?')}* salva!\n"
-                        f"Use /ficha para ver a qualquer momento.",
-                        parse_mode="Markdown")
-                else:
-                    await update.message.reply_text(
-                        "⚠️ Auto-save falhou. Aguarde 1 minuto e use /salvar.")
-        else:
-            await reply_safe(update.message, text)
+                await update.message.reply_text("💾 _Salvando registro... aguarde 15s._",parse_mode="Markdown")
+                await asyncio.sleep(15)
+                raw=await ask_gemini(chat,"EXPORT_FICHA: JSON puro. Sem markdown.",retries=2)
+                f=parse_json(raw)
+                if f and save_ficha(uid,un,cid,f):
+                    await update.message.reply_text(f"✅ *{f.get('nome','?')}* — registro salvo automaticamente!",parse_mode="Markdown")
+                else: await update.message.reply_text("⚠️ Auto-save falhou. Aguarde 1 min e use /salvar")
+        else: await reply(update.message,resp)
     except Exception as e:
-        logger.error(f"Erro: {e}")
-        await update.message.reply_text("⚠️ Erro. Tente novamente!")
+        logger.error(f"Msg: {e}"); await update.message.reply_text("⚠️ Interferência no sinal. Tente novamente.")
 
-
-async def error_handler(update, context):
-    logger.error(f"Erro: {context.error}")
-
-
-# ══════════════════════════════════════════════════════════
-# CALLBACK ROUTER
-# ══════════════════════════════════════════════════════════
-
-async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Roteia todos os callbacks de botões inline."""
-    query = update.callback_query
-    data = query.data
-
-    if data.startswith("menu:"):
-        await handle_menu_callback(update, context)
-    elif data.startswith(("raca:", "classe:", "filos:")):
-        await handle_callback(update, context)
-
+async def on_error(update,ctx): logger.error(f"Erro: {ctx.error}")
 
 # ══════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════
-
 def main():
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-
-    # Comandos
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(CommandHandler("ajuda", cmd_help))
-    app.add_handler(CommandHandler("help", cmd_help))
-    app.add_handler(CommandHandler("novojogo", cmd_new_game))
-    app.add_handler(CommandHandler("criarpersonagem", cmd_create_character))
-    app.add_handler(CommandHandler("rolar", cmd_roll))
-    app.add_handler(CommandHandler("roll", cmd_roll))
-    app.add_handler(CommandHandler("regras", cmd_rules))
-    app.add_handler(CommandHandler("racas", cmd_races))
-    app.add_handler(CommandHandler("classes", cmd_classes))
-    app.add_handler(CommandHandler("salvar", cmd_salvar))
-    app.add_handler(CommandHandler("carregar", cmd_carregar))
-    app.add_handler(CommandHandler("ficha", cmd_ficha))
-    app.add_handler(CommandHandler("fichas", cmd_fichas))
-    app.add_handler(CommandHandler("deletarficha", cmd_deletar_ficha))
-    app.add_handler(CommandHandler("levelup", cmd_levelup))
-    app.add_handler(CommandHandler("salvarsessao", cmd_salvar_sessao))
-    app.add_handler(CommandHandler("sessoes", cmd_listar_sessoes))
-    app.add_handler(CommandHandler("cargarsessao", cmd_carregar_sessao))
-    app.add_handler(CommandHandler("contexto", cmd_contexto))
-    app.add_handler(CommandHandler("reset", cmd_reset))
-
-    # Botões inline (um único handler roteia tudo)
-    app.add_handler(CallbackQueryHandler(callback_router))
-
-    # Mensagens livres
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.add_error_handler(error_handler)
-
+    app=Application.builder().token(TG_TOKEN).build()
+    for cmd,fn in [("start",cmd_start),("reset",cmd_reset),("ajuda",cmd_help),("help",cmd_help),
+        ("novojogo",cmd_novojogo),("criarpersonagem",cmd_criar),("rolar",cmd_rolar),("roll",cmd_rolar),
+        ("regras",cmd_regras),("glossario",cmd_glossario),("salvar",cmd_salvar),("carregar",cmd_carregar),
+        ("ficha",cmd_ficha),("fichas",cmd_fichas),("deletarficha",cmd_deletar),("levelup",cmd_levelup),
+        ("salvarsessao",cmd_salvar_sessao),("sessoes",cmd_sessoes),("cargarsessao",cmd_cargar_sessao),("contexto",cmd_contexto)]:
+        app.add_handler(CommandHandler(cmd,fn))
+    app.add_handler(CallbackQueryHandler(on_callback))
+    app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,handle_msg))
+    app.add_error_handler(on_error)
     if WEBHOOK_URL:
-        logger.info(f"🚀 Webhook: {WEBHOOK_URL}")
-        app.run_webhook(listen="0.0.0.0", port=PORT, url_path=TELEGRAM_TOKEN,
-                        webhook_url=f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}")
+        logger.info(f"🚀 {WEBHOOK_URL}")
+        app.run_webhook(listen="0.0.0.0",port=PORT,url_path=TG_TOKEN,webhook_url=f"{WEBHOOK_URL}/{TG_TOKEN}")
     else:
-        logger.info("🚀 Polling (local)...")
+        logger.info("🚀 Polling...")
         app.run_polling(allowed_updates=Update.ALL_TYPES)
 
-
-if __name__ == "__main__":
-    main()
+if __name__=="__main__": main()
