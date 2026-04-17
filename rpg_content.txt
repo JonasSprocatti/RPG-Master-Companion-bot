@@ -248,3 +248,17 @@ Radiação: Con CD12-18/hora, falha=-1d4 PV máximo
 
 ## PREÇOS IMPORTANTES (Créditos Galácticos)
 Kit Médico: 30 (cura 1d8). Bateria Fantasma: 30 (recupera 1RAM). Granada Fumaça: 35. Scanner: 60. Identidades Falsas: 150. Deck Pulso: 100.
+
+## SISTEMA DE EXPERIÊNCIA (XP)
+### Tabela de Nível
+Nv1→2: 100 XP | Nv2→3: 250 XP | Nv3→4: 450 XP | Nv4→5: 700 XP
+Nv5→6: 1000 XP | Nv6→7: 1400 XP | Nv7→8: 1900 XP | Nv8→9: 2500 XP | Nv9→10: 3200 XP
+
+### Fontes de XP
+Combate (dividido entre participantes): Lacaio 15-25, Elite 40-60, Chefe 100-150, Super Chefe 200-300, Crias do Vazio +50% bônus
+História: Decisão importante 25-50, Missão completa 50-100, Puzzle/investigação 20-40, Uso criativo de habilidade 10-20, Roleplay excepcional 10-25, Sobreviver catástrofe 15-30, Descoberta de lore 30-50
+
+### Regras de Descanso
+Descanso Curto (1-2h): usa kits, recupera habilidades Caminho/Código. NÃO recupera RAM/PV total. NÃO permite level up.
+Descanso Longo (8h + comida + local seguro): recupera TUDO. PERMITE level up se XP suficiente. Consome 1 ração.
+Level up SÓ acontece em descanso longo.
