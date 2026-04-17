@@ -223,12 +223,76 @@ COMPORTAMENTO DO MESTRE COM DESCANSOS:
 
 ═══════════════════════════════════════
 
-ROLAGEM DE ATRIBUTOS (EXATAMENTE):
-- Role 2d8 SETE vezes → descarte o menor → jogador distribui os 6 restantes
-- NÃO role por atributo individual
+═══════════════════════════════════════
+CRIAÇÃO DE PERSONAGEM — PASSO A PASSO (siga EXATAMENTE nesta ordem)
+═══════════════════════════════════════
+
+PASSO 1-3: Raça, Classe e Filosofia (já feitos por botões antes de você entrar)
+
+PASSO 4 — ROLAGEM DE ATRIBUTOS:
+a) Role 2d8 SETE vezes (cada dado é 1 a 8, some os 2). Mostre todos os 7 resultados.
+b) Identifique e descarte o MENOR dos 7 valores.
+c) Mostre os 6 valores restantes ordenados do maior ao menor.
+d) Peça ao jogador para distribuir entre: Força, Destreza, Constituição, Inteligência, Sabedoria, Carisma.
+e) ESPERE o jogador responder antes de continuar.
+
+PASSO 5 — APLICAR MODIFICADORES RACIAIS:
+Depois que o jogador distribuiu, some os modificadores da raça a cada atributo.
+Mostre o resultado final no formato:
+  💪 For: 6 (base) + (-1) racial = *5* (mod: -2)
+  ⚡ Des: 9 (base) + 0 racial = *9* (mod: +0)
+  etc.
+Os MODIFICADORES são: valor 2-3=-3, 4-5=-2, 6-7=-1, 8-9=+0, 10-11=+1, 12-13=+2, 14-15=+3, 16+=+4
+
+PASSO 6 — CALCULAR PV (Pontos de Vida):
+⚠️ SIGA EXATAMENTE — este cálculo tem 3 partes:
+a) Role o dado racial de VIDA: role 4d6 (cada dado 1 a 6), descarte o MENOR, some os 3 restantes.
+   Exemplo: 🎲 4d6 → [4, 2, 5, 6] → descarta 2 → 4+5+6 = 15
+b) Aplique o ajuste racial: (Mercusys -2, Ven'y -1, Terráqueo 0, Marciano +2,
+   Conjupitero -3, Sata -1, Urak -1, Proturno -3, Infimor +3)
+c) Some o bônus de PV da CLASSE (Estudioso +4, Mecânico +6, Assassino +8, Soldado +10,
+   Starlord +8, Franco-Atirador +6, Músico +4, Espião +4, Catador +6, Piloto +6,
+   Batedor +8, Explorador +6, Cinético +4, Prospector +4, Pirata +10)
+d) PV FINAL = resultado da rolagem + ajuste racial + bônus classe
+   Exemplo Proturno Cinético: 15 + (-3) + 4 = *16 PV*
+MOSTRE CADA ETAPA SEPARADAMENTE para o jogador acompanhar.
+
+PASSO 7 — CALCULAR CD (Classe de Defesa):
+CD = 10 + Modificador de Destreza + Bônus da Armadura Inicial
+(A armadura inicial vem do equipamento da classe)
+
+PASSO 8 — CALCULAR RAM:
+RAM = 1 + Modificador de Inteligência + ½ Perícia Tecnomancia (arredondar para baixo)
+(Use a Tecnomancia que a classe dá como perícia inicial)
+
+PASSO 9 — PERÍCIAS:
+a) Aplique AUTOMATICAMENTE as perícias iniciais da classe. Mostre a lista completa:
+   Exemplo Cinético: "🎯 Tecnomancia +5, Medicina +3, Resistência +2, Acrobacia +2"
+b) Se a raça dá bônus em perícias (ex: Terráqueo +3 pontos livres, Conjupitero +2 Mecânica/Pilotagem),
+   aplique-os também.
+c) Mostre TODAS as perícias e seus valores finais.
+d) Calcule a Iniciativa: Mod. Destreza + bônus (se houver da classe/filosofia)
+
+PASSO 10 — EQUIPAMENTO:
+Liste o equipamento inicial da classe com dano e efeitos.
+Inclua o Kit de Sobrevivência Base (Comunicador, 3 rações, 2 luzes químicas, 100 CG).
+
+PASSO 11 — NOME DO PERSONAGEM:
+Pergunte o nome que o jogador quer dar ao personagem.
+
+PASSO 12 — RESUMO FINAL:
+Mostre a ficha completa formatada e adicione [FICHA_COMPLETA] na última linha.
+
+REGRA: cada passo deve ser uma mensagem separada. ESPERE o jogador confirmar/responder
+antes de avançar. NÃO pule passos. NÃO calcule tudo de uma vez.
+
+═══════════════════════════════════════
 
 LEVEL UP (SÓ EM DESCANSO LONGO + XP SUFICIENTE):
-+1 Atributo (máx +6), dado de vida+Con para PV, +1 perícia, +1 RAM em níveis ímpares
+Dado de vida por nível: Pesado 1d10 (Marcianos, Infimor's), Médio 1d8 (Terráqueos, Ven'y,
+Conjupiteros, Urak's), Leve 1d6 (Proturnos, Satas, Mercusys)
+PV ganho = dado de vida + Mod. Constituição (mínimo 1)
++1 Atributo (máx +6), +1 perícia, +1 RAM em níveis ímpares (3,5,7,9)
 
 FICHA JSON — quando pedirem EXPORT_FICHA, responda SÓ JSON puro:
 {FICHA_JSON_FORMAT}
@@ -550,12 +614,14 @@ async def callback_filosofia(query, data_key):
         f"- Raça: {raca_nome}\n"
         f"- Classe: {classe_nome}\n"
         f"- Filosofia: {filos_nome}\n\n"
-        f"Agora faça o Passo 4 — Atributos e Finalização:\n"
-        f"1. Role 2d8 SETE vezes, mostre todos os resultados\n"
-        f"2. Descarte o menor dos 7\n"
-        f"3. Mostre os 6 valores restantes e peça ao jogador para distribuir\n"
-        f"4. Lembre os modificadores raciais desta raça\n\n"
-        f"NÃO calcule PV/CD/RAM ainda — espere o jogador distribuir os atributos."
+        f"Comece pelo PASSO 4 — ROLAGEM DE ATRIBUTOS:\n"
+        f"a) Role 2d8 SETE vezes (cada dado 1-8, some os dois). Mostre os 7 resultados.\n"
+        f"b) Descarte o menor.\n"
+        f"c) Mostre os 6 restantes ordenados.\n"
+        f"d) Lembre os modificadores raciais desta raça.\n"
+        f"e) Peça ao jogador para distribuir entre For, Des, Con, Int, Sab, Car.\n\n"
+        f"PARE AQUI. NÃO calcule PV, CD, RAM, perícias ou equipamento ainda.\n"
+        f"Espere o jogador responder com a distribuição."
     )
 
     text = await send_to_gemini(chat, prompt, telegram_msg=query.message)

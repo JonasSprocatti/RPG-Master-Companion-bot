@@ -32,6 +32,23 @@ Planetas: Mercúrio (colônia penal/fornalhas solares), Vênus (selvas tribais/c
 - Limite perícia: +5 até nv4, +7 do nv5 em diante.
 - Início: 100 Créditos Galácticos + Kit Sobrevivência Base.
 
+### CÁLCULO DE PV INICIAL (Nível 1) — PASSO A PASSO:
+1. Role 4d6 (cada dado 1-6). Descarte o MENOR. Some os 3 restantes.
+   Exemplo: [4, 2, 5, 6] → descarta 2 → 4+5+6 = 15
+2. Aplique ajuste racial: Mercusys -2, Ven'y -1, Terráqueo 0, Marciano +2,
+   Conjupitero -3, Sata -1, Urak -1, Proturno -3, Infimor +3
+3. Some bônus PV da classe: Estudioso/Músico/Espião/Cinético/Prospector +4,
+   Mecânico/Franco-Atirador/Catador/Piloto/Explorador +6, Assassino/Starlord/Batedor +8,
+   Soldado/Pirata +10
+4. PV Final = soma dos dados + ajuste racial + bônus classe
+
+### CÁLCULO DE PV AO SUBIR DE NÍVEL:
+Dado por nível: Pesado 1d10 (Marcianos, Infimor's), Médio 1d8 (Terráqueos, Ven'y, Conjupiteros, Urak's), Leve 1d6 (Proturnos, Satas, Mercusys)
+PV ganho = dado de vida + Mod.Constituição (mínimo 1 PV ganho)
+
+### TABELA DE MODIFICADORES DE ATRIBUTO:
+2-3 = -3 | 4-5 = -2 | 6-7 = -1 | 8-9 = +0 | 10-11 = +1 | 12-13 = +2 | 14-15 = +3 | 16+ = +4
+
 ## RAÇAS
 ### Mercusys (Mercúrio)
 Dados: Vida 4d6(tira menor)-2 | For+0 Des+3 Con+0 Int+1 Sab-1 Car+1
