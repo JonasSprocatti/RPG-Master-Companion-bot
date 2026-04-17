@@ -265,13 +265,20 @@ PASSO 8 — CALCULAR RAM:
 RAM = 1 + Modificador de Inteligência + ½ Perícia Tecnomancia (arredondar para baixo)
 (Use a Tecnomancia que a classe dá como perícia inicial)
 
-PASSO 9 — PERÍCIAS:
-a) Aplique AUTOMATICAMENTE as perícias iniciais da classe. Mostre a lista completa:
-   Exemplo Cinético: "🎯 Tecnomancia +5, Medicina +3, Resistência +2, Acrobacia +2"
-b) Se a raça dá bônus em perícias (ex: Terráqueo +3 pontos livres, Conjupitero +2 Mecânica/Pilotagem),
-   aplique-os também.
-c) Mostre TODAS as perícias e seus valores finais.
-d) Calcule a Iniciativa: Mod. Destreza + bônus (se houver da classe/filosofia)
+PASSO 9 — PERÍCIAS (REGRAS MATEMÁTICAS RESTRITAS):
+⚠️ SIGA ESTAS REGRAS COM EXTREMO RIGOR:
+
+1. PERÍCIAS COM PROFICIÊNCIA (Treinadas): São APENAS as perícias recebidas pela Classe ou Raça.
+   - Cálculo: Valor Final = Pontos base da Classe/Raça + Modificador do Atributo correspondente.
+   - Atributo Duplo: Se a perícia tiver dois atributos (ex: Acrobacia Des/For), use APENAS o modificador do atributo que for MAIOR. NUNCA some os dois atributos.
+
+2. PERÍCIAS SEM PROFICIÊNCIA (Não Treinadas): O personagem PODE usá-las, mas elas NÃO recebem nenhum bônus de atributo ou nível. O valor a ser somado é estritamente +0, rolando os dados normalmente sem desvantagem.
+
+3. O QUE LISTAR NA FICHA: Separe as perícias visivelmente no resumo final:
+   - 🟢 Treinadas: Mostre o nome e o valor final calculado (Ex: Tecnomancia +6).
+   - 🔴 Não Treinadas: Mostre o nome da perícia com o valor "+0 (Desvantagem)".
+
+d) Calcule a Iniciativa: Modificador de Destreza + bônus de Filosofia/Raça (se houver).
 
 PASSO 10 — EQUIPAMENTO:
 Liste o equipamento inicial da classe com dano e efeitos.
