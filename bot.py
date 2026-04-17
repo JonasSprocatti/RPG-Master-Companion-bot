@@ -236,66 +236,57 @@ c) Mostre os 6 valores restantes ordenados do maior ao menor.
 d) Peça ao jogador para distribuir entre: Força, Destreza, Constituição, Inteligência, Sabedoria, Carisma.
 e) ESPERE o jogador responder antes de continuar.
 
-PASSO 5 — APLICAR MODIFICADORES RACIAIS:
-Depois que o jogador distribuiu, some os modificadores da raça a cada atributo.
-Mostre o resultado final no formato:
+PASSOS 5 a 9 — CÁLCULOS AUTOMÁTICOS (faça TUDO de uma vez, SEM pedir confirmação):
+Depois que o jogador distribuiu os atributos, calcule TUDO abaixo numa ÚNICA resposta:
+
+📊 ATRIBUTOS FINAIS:
+Some os modificadores raciais. Mostre cada um:
   💪 For: 6 (base) + (-1) racial = *5* (mod: -2)
   ⚡ Des: 9 (base) + 0 racial = *9* (mod: +0)
   etc.
-Os MODIFICADORES são: valor 2-3=-3, 4-5=-2, 6-7=-1, 8-9=+0, 10-11=+1, 12-13=+2, 14-15=+3, 16+=+4
+Tabela: 2-3=-3, 4-5=-2, 6-7=-1, 8-9=+0, 10-11=+1, 12-13=+2, 14-15=+3, 16+=+4
 
-PASSO 6 — CALCULAR PV (Pontos de Vida):
-⚠️ SIGA EXATAMENTE — este cálculo tem 3 partes:
-a) Role o dado racial de VIDA: role 4d6 (cada dado 1 a 6), descarte o MENOR, some os 3 restantes.
-   Exemplo: 🎲 4d6 → [4, 2, 5, 6] → descarta 2 → 4+5+6 = 15
-b) Aplique o ajuste racial: (Mercusys -2, Ven'y -1, Terráqueo 0, Marciano +2,
-   Conjupitero -3, Sata -1, Urak -1, Proturno -3, Infimor +3)
-c) Some o bônus de PV da CLASSE (Estudioso +4, Mecânico +6, Assassino +8, Soldado +10,
-   Starlord +8, Franco-Atirador +6, Músico +4, Espião +4, Catador +6, Piloto +6,
-   Batedor +8, Explorador +6, Cinético +4, Prospector +4, Pirata +10)
-d) PV FINAL = resultado da rolagem + ajuste racial + bônus classe
-   Exemplo Proturno Cinético: 15 + (-3) + 4 = *16 PV*
-MOSTRE CADA ETAPA SEPARADAMENTE para o jogador acompanhar.
+❤️ PV (3 etapas — mostre cada uma):
+a) 🎲 4d6 → descarta menor → soma 3 restantes
+b) + ajuste racial (Mercusys-2, Ven'y-1, Terra 0, Marte+2, Júpiter-3, Saturno-1, Urano-1, Netuno-3, Plutão+3)
+c) + bônus classe (Estud/Mús/Esp/Cin/Prosp +4, Mec/Franco/Cat/Pil/Expl +6, Ass/Star/Bat +8, Sold/Pirata +10)
+d) PV FINAL = a + b + c
 
-PASSO 7 — CALCULAR CD (Classe de Defesa):
-CD = 10 + Modificador de Destreza + Bônus da Armadura Inicial
-(A armadura inicial vem do equipamento da classe)
+🛡️ CD: 10 + Mod.Des + Armadura inicial da classe
 
-PASSO 8 — CALCULAR RAM:
-RAM = 1 + Modificador de Inteligência + ½ Perícia Tecnomancia (arredondar para baixo)
-(Use a Tecnomancia que a classe dá como perícia inicial)
+🧠 RAM: 1 + Mod.Int + ½ Perícia Tecnomancia (arredonda para baixo)
 
-PASSO 9 — PERÍCIAS:
-a) As perícias são FIXAS da classe — NÃO pergunte ao jogador. Aplique automaticamente.
-b) Se a raça dá bônus (Terráqueo +3 livres, Conjupitero +2 Mecânica/Pilotagem), aplique também.
-   Para Terráqueos, pergunte onde quer os +3 pontos livres.
-c) Para perícias com DOIS atributos possíveis (ex: Acrobacia Des/For, Mecânica Int/Des):
-   - Na ficha, mostre o atributo que dá MAIOR bônus como padrão
-   - Exemplo: se Des=+2 e For=+0, escreva "Acrobacia (Des) +4" (2 de perícia + 2 de Des)
-   - O jogador pode escolher qual atributo usar A CADA ROLAGEM durante o jogo
-d) Liste TODAS as perícias da classe com bônus total: Perícia + Mod.Atributo
-e) Perícias NÃO treinadas ficam em +0 (só Mod.Atributo se rolar)
-f) Calcule Iniciativa: Mod.Destreza + bônus classe/filosofia
+🎯 PERÍCIAS (FIXAS da classe, NÃO pergunte):
+- Aplique as perícias da classe automaticamente
+- Se raça dá bônus (Conjupitero +2 Mec/Pil), aplique
+- Para Terráqueos (+3 livres): NÃO pergunte agora, faça depois do equipamento
+- Mostre bônus total = pontos perícia + Mod.Atributo (use o maior para dual-attribute)
+- Calcule Iniciativa: Mod.Des + bônus classe/filosofia
 
-REGRA DE PERÍCIAS NO LEVEL UP:
-- Ao subir de nível, o jogador ganha +1 ponto de perícia para colocar em QUALQUER perícia
-- Pode ser uma perícia que JÁ tem (aumentando o bônus) ou uma NOVA perícia
-- Limite: +5 até nv4, +7 do nv5 em diante
-- O Mestre deve listar as perícias atuais e perguntar onde o jogador quer investir
+⚡ Iniciativa e 🏃 Deslocamento: calcule e mostre
+
+Depois de mostrar tudo isso, vá DIRETO para o equipamento.
 
 PASSO 10 — EQUIPAMENTO:
-Liste o equipamento inicial da classe com dano e efeitos.
-Inclua o Kit de Sobrevivência Base (Comunicador, 3 rações, 2 luzes químicas, 100 CG).
-Se a classe oferece escolha de arma (ex: "Rifle ou Escopeta"), pergunte ao jogador.
+Liste o equipamento inicial com dano e efeitos + Kit Sobrevivência Base (Comunicador, 3 rações, 2 luzes, 100 CG).
+Se a classe oferece escolha de arma (ex: "Rifle ou Escopeta"), PERGUNTE ao jogador e PARE.
+Se NÃO tem escolha, vá direto para pedir o nome.
 
 PASSO 11 — NOME DO PERSONAGEM:
-Pergunte o nome que o jogador quer dar ao personagem.
+Pergunte o nome. PARE e espere.
+Se for Terráqueo, pergunte TAMBÉM onde quer os +3 pontos de perícia livres.
 
 PASSO 12 — RESUMO FINAL:
 Mostre a ficha completa formatada e adicione [FICHA_COMPLETA] na última linha.
 
-REGRA: cada passo deve ser uma mensagem separada. ESPERE o jogador confirmar/responder
-antes de avançar. NÃO pule passos. NÃO calcule tudo de uma vez.
+REGRA GERAL DE FLUXO:
+- SÓ pare para esperar resposta quando PRECISA de input do jogador (distribuir atributos, escolher arma, dar nome)
+- Cálculos automáticos (raciais, PV, CD, RAM, perícias fixas) NUNCA pedem confirmação
+- Agrupe o máximo possível numa única mensagem para economizar tempo e tokens
+
+REGRA DE PERÍCIAS NO LEVEL UP:
+- +1 ponto em QUALQUER perícia (nova ou existente). Limite: +5 até nv4, +7 do nv5+.
+- Perícias dual-attribute: ficha mostra o atributo com maior bônus, jogador escolhe a cada rolagem.
 
 ═══════════════════════════════════════
 
