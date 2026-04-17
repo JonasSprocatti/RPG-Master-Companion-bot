@@ -827,16 +827,21 @@ async def cmd_salvar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     user_name = update.message.from_user.first_name or "Viajante"
     chat = get_chat(chat_id)
-    await update.message.reply_text("💾 _Exportando ficha..._", parse_mode="Markdown")
+    await update.message.reply_text(
+        "💾 _Exportando ficha... aguarde alguns segundos._", parse_mode="Markdown")
+    await asyncio.sleep(5)  # Pequeno delay para evitar rate limit
     raw = await send_to_gemini(chat,
         "EXPORT_FICHA: Exporte a ficha do jogador atual em JSON puro. "
         "Sem markdown, sem texto extra. Se não tem personagem: NO_CHARACTER",
-        telegram_msg=update.message)
-    if "NO_CHARACTER" in raw:
-        await update.message.reply_text("❌ Sem personagem. Use /criarpersonagem"); return
+        retries=3, telegram_msg=update.message)
+    if "NO_CHARACTER" in raw or "⚠️" in raw:
+        await update.message.reply_text(
+            "❌ Sem personagem ou API indisponível. Aguarde 1 minuto e tente de novo.")
+        return
     ficha = parse_json_response(raw)
     if not ficha:
-        await update.message.reply_text("⚠️ Erro ao extrair. Tente /salvar de novo."); return
+        await update.message.reply_text("⚠️ Erro ao extrair. Aguarde 1 minuto e tente /salvar de novo.")
+        return
     if save_ficha(user_id, user_name, chat_id, ficha):
         await update.message.reply_text(f"✅ *{ficha.get('nome','?')}* salvo!", parse_mode="Markdown")
     else:
@@ -1114,21 +1119,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = text.replace("[FICHA_COMPLETA]", "").strip()
             await reply_safe(update.message, text)
 
-            # Tenta exportar e salvar automaticamente
+            # Tenta exportar e salvar automaticamente (com delay para evitar rate limit)
             if db:
-                await update.message.reply_text("💾 _Salvando ficha automaticamente..._", parse_mode="Markdown")
+                await update.message.reply_text(
+                    "💾 _Salvando ficha... aguarde 15s para evitar limite da API._",
+                    parse_mode="Markdown")
+                await asyncio.sleep(15)  # Espera rate limit resetar
+
                 raw = await send_to_gemini(chat,
                     "EXPORT_FICHA: Exporte a ficha completa em JSON puro. Sem markdown, sem texto extra.",
-                    telegram_msg=update.message)
+                    retries=2, telegram_msg=None)  # Menos retries, sem spam
                 ficha = parse_json_response(raw)
                 if ficha and save_ficha(user_id, user_name, chat_id, ficha):
                     await update.message.reply_text(
-                        f"✅ Ficha de *{ficha.get('nome', '?')}* salva automaticamente!\n"
+                        f"✅ Ficha de *{ficha.get('nome', '?')}* salva!\n"
                         f"Use /ficha para ver a qualquer momento.",
                         parse_mode="Markdown")
                 else:
                     await update.message.reply_text(
-                        "⚠️ Não consegui salvar automaticamente. Use /salvar manualmente.")
+                        "⚠️ Auto-save falhou. Aguarde 1 minuto e use /salvar.")
         else:
             await reply_safe(update.message, text)
     except Exception as e:
