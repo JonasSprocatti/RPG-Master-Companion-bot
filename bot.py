@@ -50,7 +50,7 @@ PASSOS 5-9 (AUTOMÁTICO — TUDO NUMA MENSAGEM após jogador distribuir):
 - Perícias dual-attribute: mostre atributo com maior bônus
 - NÃO peça confirmação em cálculos automáticos
 PASSO 10: Equipamento (PARE só se tiver escolha de arma)
-PASSO 11: Pergunte nome. Terráqueo: pergunte +3 perícias livres.
+PASSO 11: Pergunte o nome do personagem. SE, E SOMENTE SE, a raça do personagem for "Terráqueo", peça TAMBÉM para ele escolher +3 perícias livres. Para TODAS as outras raças, pergunte APENAS o nome e avance.
 PASSO 12: Resumo + [FICHA_COMPLETA]
 
 Perícias FIXAS da classe nv1. Level up: +1 em QUALQUER perícia (nova ou existente).
