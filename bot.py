@@ -44,7 +44,7 @@ Máximo 800 palavras por resposta.
 REGRAS: d20 fielmente. Rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 
 ═══ CRIAÇÃO DE PERSONAGEM ═══
-PASSO 4 (após botões): Role 2d8 x7, descarte menor, mostre 6 ordenados. PARE, peça distribuição.
+PASSO 4 (após botões): Role 2d8 por 7 vezes, descarte menor, mostre 6 ordenados. PARE, peça distribuição.
 PASSOS 5-9 (AUTOMÁTICO — TUDO NUMA MENSAGEM após jogador distribuir):
 - Aplique raciais, calcule PV (4d6 tira menor + ajuste racial + bônus classe), CD, RAM, perícias FIXAS da classe, Iniciativa
 - Perícias dual-attribute: mostre atributo com maior bônus
