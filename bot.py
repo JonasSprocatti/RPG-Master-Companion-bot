@@ -265,24 +265,28 @@ PASSO 8 — CALCULAR RAM:
 RAM = 1 + Modificador de Inteligência + ½ Perícia Tecnomancia (arredondar para baixo)
 (Use a Tecnomancia que a classe dá como perícia inicial)
 
-PASSO 9 — PERÍCIAS (REGRAS MATEMÁTICAS RESTRITAS):
-⚠️ SIGA ESTAS REGRAS COM EXTREMO RIGOR:
+PASSO 9 — PERÍCIAS:
+a) As perícias são FIXAS da classe — NÃO pergunte ao jogador. Aplique automaticamente.
+b) Se a raça dá bônus (Terráqueo +3 livres, Conjupitero +2 Mecânica/Pilotagem), aplique também.
+   Para Terráqueos, pergunte onde quer os +3 pontos livres.
+c) Para perícias com DOIS atributos possíveis (ex: Acrobacia Des/For, Mecânica Int/Des):
+   - Na ficha, mostre o atributo que dá MAIOR bônus como padrão
+   - Exemplo: se Des=+2 e For=+0, escreva "Acrobacia (Des) +4" (2 de perícia + 2 de Des)
+   - O jogador pode escolher qual atributo usar A CADA ROLAGEM durante o jogo
+d) Liste TODAS as perícias da classe com bônus total: Perícia + Mod.Atributo
+e) Perícias NÃO treinadas ficam em +0 (só Mod.Atributo se rolar)
+f) Calcule Iniciativa: Mod.Destreza + bônus classe/filosofia
 
-1. PERÍCIAS COM PROFICIÊNCIA (Treinadas): São APENAS as perícias recebidas pela Classe ou Raça.
-   - Cálculo: Valor Final = Pontos base da Classe/Raça + Modificador do Atributo correspondente.
-   - Atributo Duplo: Se a perícia tiver dois atributos (ex: Acrobacia Des/For), use APENAS o modificador do atributo que for MAIOR. NUNCA some os dois atributos.
-
-2. PERÍCIAS SEM PROFICIÊNCIA (Não Treinadas): O personagem PODE usá-las, mas elas NÃO recebem nenhum bônus de atributo ou nível. O valor a ser somado é estritamente +0, rolando os dados normalmente sem desvantagem.
-
-3. O QUE LISTAR NA FICHA: Separe as perícias visivelmente no resumo final:
-   - 🟢 Treinadas: Mostre o nome e o valor final calculado (Ex: Tecnomancia +6).
-   - 🔴 Não Treinadas: Mostre o nome da perícia com o valor "+0 (Desvantagem)".
-
-d) Calcule a Iniciativa: Modificador de Destreza + bônus de Filosofia/Raça (se houver).
+REGRA DE PERÍCIAS NO LEVEL UP:
+- Ao subir de nível, o jogador ganha +1 ponto de perícia para colocar em QUALQUER perícia
+- Pode ser uma perícia que JÁ tem (aumentando o bônus) ou uma NOVA perícia
+- Limite: +5 até nv4, +7 do nv5 em diante
+- O Mestre deve listar as perícias atuais e perguntar onde o jogador quer investir
 
 PASSO 10 — EQUIPAMENTO:
 Liste o equipamento inicial da classe com dano e efeitos.
 Inclua o Kit de Sobrevivência Base (Comunicador, 3 rações, 2 luzes químicas, 100 CG).
+Se a classe oferece escolha de arma (ex: "Rifle ou Escopeta"), pergunte ao jogador.
 
 PASSO 11 — NOME DO PERSONAGEM:
 Pergunte o nome que o jogador quer dar ao personagem.
@@ -999,10 +1003,12 @@ async def cmd_levelup(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Ficha atual:\n{json.dumps(ficha, ensure_ascii=False, indent=2)}\n\n"
         f"O jogador tem {xp} XP (precisava de {xp_necessario}) e está em Descanso Longo.\n"
         f"Aplique level up de {nv} → {nv+1}:\n"
-        f"1. 🎲 Role dado de vida da raça + Con → some ao PV máximo\n"
-        f"2. 💪 O jogador ganha +1 ponto de atributo — PERGUNTE onde quer\n"
-        f"3. 🎯 Ganha +1 ponto de perícia — PERGUNTE onde quer\n"
-        f"4. 🧠 Se nível {nv+1} é ímpar, ganha +1 RAM\n"
+        f"1. 🎲 Role dado de vida da raça + Con → some ao PV máximo. Mostre cada etapa.\n"
+        f"2. 💪 +1 ponto de atributo — liste os atuais e PERGUNTE onde quer\n"
+        f"3. 🎯 +1 ponto de perícia — pode ir em qualquer perícia (nova ou existente).\n"
+        f"   Liste as perícias atuais E sugira opções novas úteis para a classe.\n"
+        f"   Limite: +5 até nv4, +7 do nv5+. PERGUNTE onde quer investir.\n"
+        f"4. 🧠 Se nível {nv+1} é ímpar (3,5,7,9), ganha +1 RAM\n"
         f"5. ❤️ PV atual = novo PV máximo (cura completa no descanso)\n\n"
         f"Narre o level up de forma épica. "
         f"PERGUNTE onde colocar atributo e perícia. "
