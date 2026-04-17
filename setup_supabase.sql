@@ -1,7 +1,10 @@
--- Execute este SQL no SQL Editor do Supabase para criar a tabela de fichas
--- Acesse: https://supabase.com/dashboard → seu projeto → SQL Editor → New Query
+-- Execute no SQL Editor do Supabase (https://supabase.com/dashboard → SQL Editor)
+-- Se já criou a tabela fichas antes, rode apenas a parte de sessões.
 
-CREATE TABLE fichas (
+-- ═══════════════════════════════════════
+-- TABELA DE FICHAS (personagens)
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS fichas (
     id BIGSERIAL PRIMARY KEY,
     user_id TEXT NOT NULL,
     chat_id TEXT NOT NULL,
@@ -13,14 +16,27 @@ CREATE TABLE fichas (
     UNIQUE(user_id, chat_id)
 );
 
--- Índice para buscas rápidas
-CREATE INDEX idx_fichas_chat ON fichas(chat_id);
+CREATE INDEX IF NOT EXISTS idx_fichas_chat ON fichas(chat_id);
 
--- Habilitar Row Level Security (boa prática)
 ALTER TABLE fichas ENABLE ROW LEVEL SECURITY;
 
--- Política que permite tudo via service key (que é o que o bot usa)
-CREATE POLICY "Bot pode tudo" ON fichas
-    FOR ALL
-    USING (true)
-    WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "fichas_full_access" ON fichas
+    FOR ALL USING (true) WITH CHECK (true);
+
+-- ═══════════════════════════════════════
+-- TABELA DE SESSÕES (progresso da aventura)
+-- ═══════════════════════════════════════
+CREATE TABLE IF NOT EXISTS sessoes (
+    id BIGSERIAL PRIMARY KEY,
+    chat_id TEXT NOT NULL,
+    title TEXT DEFAULT 'Sessão sem título',
+    summary TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessoes_chat ON sessoes(chat_id);
+
+ALTER TABLE sessoes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "sessoes_full_access" ON sessoes
+    FOR ALL USING (true) WITH CHECK (true);
