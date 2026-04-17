@@ -317,7 +317,7 @@ REFERÊNCIA DO SISTEMA:
 # ── Configurar Gemini ────────────────────────────────────
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
+    model_name="gemini-2.5-flash-lite",
     system_instruction=SYSTEM_PROMPT,
     generation_config=genai.GenerationConfig(
         temperature=0.85,
