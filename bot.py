@@ -36,6 +36,7 @@ WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
 PORT = int(os.environ.get("PORT", 10000))
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
+ADMIN_ID = os.environ.get("ADMIN_ID", "")  # Telegram user ID do admin
 
 # ── Supabase ─────────────────────────────────────────────
 db = None
@@ -237,6 +238,14 @@ SEPARAÇÃO DE MODOS:
 - MODO JOGO: quando estiver em sessão, narre normalmente.
 - MODO CONTEXTO: quando receber CONTEXTO_SESSAO, absorva e continue dali.
 
+AUTO-SAVE DE FICHA (MUITO IMPORTANTE):
+Quando a criação do personagem estiver 100% COMPLETA (raça, classe, filosofia, atributos
+distribuídos, PV/CD/RAM calculados, equipamento definido), faça o seguinte:
+1. Apresente o resumo final da ficha para o jogador
+2. Adicione EXATAMENTE a tag [FICHA_COMPLETA] na ÚLTIMA LINHA da sua resposta
+3. Essa tag será detectada pelo sistema para salvar automaticamente
+NUNCA use [FICHA_COMPLETA] antes da ficha estar totalmente finalizada.
+
 REFERÊNCIA DO SISTEMA:
 {RPG_CONTENT}
 """
@@ -301,10 +310,20 @@ def load_ficha(user_id, chat_id):
 def list_fichas(chat_id):
     if not db: return []
     try:
-        r = db.table("fichas").select("user_name,character_name,updated_at").eq("chat_id", str(chat_id)).execute()
+        r = db.table("fichas").select("user_id,user_name,character_name,updated_at").eq("chat_id", str(chat_id)).execute()
         return r.data or []
     except Exception as e:
         logger.error(f"Erro listar: {e}"); return []
+
+
+def delete_ficha(user_id, chat_id):
+    """Deleta a ficha de um usuário num chat específico."""
+    if not db: return False
+    try:
+        db.table("fichas").delete().eq("user_id", str(user_id)).eq("chat_id", str(chat_id)).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Erro deletar ficha: {e}"); return False
 
 
 def save_session_log(chat_id, title, summary):
@@ -661,7 +680,9 @@ async def cmd_help_text(msg):
         "/regras /racas /classes\n\n"
         "*💾 Ficha:*\n"
         "/salvar /carregar /ficha /fichas\n"
-        "/levelup — Subir de nível\n\n"
+        "/levelup — Subir de nível\n"
+        "/deletarficha — Deletar sua ficha\n"
+        "💡 _Fichas salvam automaticamente ao criar!_\n\n"
         "*📚 Sessões:*\n"
         "/salvarsessao — Salvar progresso\n"
         "/sessoes — Listar sessões\n"
@@ -788,6 +809,58 @@ async def cmd_fichas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for f in fichas:
         lines.append(f"• *{f.get('character_name', '?')}* — {f.get('user_name', '?')}")
     await reply_safe(update.message, "\n".join(lines))
+
+
+async def cmd_deletar_ficha(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Deleta a ficha. Só o próprio dono ou o Admin podem deletar."""
+    if not db: await update.message.reply_text("⚠️ Banco não configurado."); return
+    chat_id = update.effective_chat.id
+    user_id = update.message.from_user.id
+    is_admin = ADMIN_ID and str(user_id) == str(ADMIN_ID)
+
+    # Se admin, pode deletar a de qualquer um (passa o user_id como argumento)
+    args = context.args
+    target_id = user_id  # default: deleta a própria
+
+    if args and is_admin:
+        # Admin pode passar o user_id de outro jogador
+        # Mas também pode passar o nome — vamos buscar pelo nome
+        target_name = " ".join(args)
+        fichas = list_fichas(chat_id)
+        found = None
+        for f in fichas:
+            if target_name.lower() in f.get("character_name", "").lower() or \
+               target_name.lower() in f.get("user_name", "").lower():
+                found = f
+                break
+        if found:
+            target_id = int(found.get("user_id", user_id))
+        else:
+            await update.message.reply_text(
+                f"❌ Personagem/jogador '{target_name}' não encontrado.\n"
+                f"Use /fichas para ver os nomes.")
+            return
+    elif args and not is_admin:
+        await update.message.reply_text("❌ Só o Admin pode deletar fichas de outros jogadores.")
+        return
+
+    # Verifica se a ficha existe
+    ficha = load_ficha(target_id, chat_id)
+    if not ficha:
+        await update.message.reply_text("❌ Nenhuma ficha encontrada para deletar.")
+        return
+
+    nome = ficha.get("nome", "?")
+
+    # Confirma e deleta
+    if delete_ficha(target_id, chat_id):
+        if target_id == user_id:
+            await update.message.reply_text(f"🗑️ Ficha de *{nome}* deletada.", parse_mode="Markdown")
+        else:
+            await update.message.reply_text(
+                f"🗑️ Admin deletou a ficha de *{nome}*.", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("❌ Erro ao deletar.")
 
 
 async def cmd_levelup(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -963,12 +1036,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     user_msg = update.message.text
     user_name = update.message.from_user.first_name or "Viajante"
+    user_id = update.message.from_user.id
     if not user_msg: return
     chat = get_chat(chat_id)
     try:
         text = await send_to_gemini(chat, f"[Jogador: {user_name}]: {user_msg}", telegram_msg=update.message)
         trim_history(chat_id)
-        await reply_safe(update.message, text)
+
+        # Detecta auto-save de ficha completa
+        if "[FICHA_COMPLETA]" in text:
+            text = text.replace("[FICHA_COMPLETA]", "").strip()
+            await reply_safe(update.message, text)
+
+            # Tenta exportar e salvar automaticamente
+            if db:
+                await update.message.reply_text("💾 _Salvando ficha automaticamente..._", parse_mode="Markdown")
+                raw = await send_to_gemini(chat,
+                    "EXPORT_FICHA: Exporte a ficha completa em JSON puro. Sem markdown, sem texto extra.",
+                    telegram_msg=update.message)
+                ficha = parse_json_response(raw)
+                if ficha and save_ficha(user_id, user_name, chat_id, ficha):
+                    await update.message.reply_text(
+                        f"✅ Ficha de *{ficha.get('nome', '?')}* salva automaticamente!\n"
+                        f"Use /ficha para ver a qualquer momento.",
+                        parse_mode="Markdown")
+                else:
+                    await update.message.reply_text(
+                        "⚠️ Não consegui salvar automaticamente. Use /salvar manualmente.")
+        else:
+            await reply_safe(update.message, text)
     except Exception as e:
         logger.error(f"Erro: {e}")
         await update.message.reply_text("⚠️ Erro. Tente novamente!")
@@ -1015,6 +1111,7 @@ def main():
     app.add_handler(CommandHandler("carregar", cmd_carregar))
     app.add_handler(CommandHandler("ficha", cmd_ficha))
     app.add_handler(CommandHandler("fichas", cmd_fichas))
+    app.add_handler(CommandHandler("deletarficha", cmd_deletar_ficha))
     app.add_handler(CommandHandler("levelup", cmd_levelup))
     app.add_handler(CommandHandler("salvarsessao", cmd_salvar_sessao))
     app.add_handler(CommandHandler("sessoes", cmd_listar_sessoes))
