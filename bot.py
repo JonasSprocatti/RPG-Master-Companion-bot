@@ -485,9 +485,15 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         if f:
             await m.reply_text(f"✅ *{f.get('nome','?')}* ativado para esta sessão!",parse_mode="Markdown")
             await rp(m,ff(f))
-            # Injeta na IA
             ch=gc(cid)
             await ask(ch,f"FICHAS_ATIVAS:\n{inject_fichas_prompt([f])}\nPersonagem ativo. Aguarde.",m=m)
+            
+            # --- ADICIONADO: Pergunta automática após selecionar a ficha ---
+            kb = KBD([
+                [Btn("🆕 Nova Aventura (Do Zero)", callback_data="play:new")],
+                [Btn("📜 Continuar História (Com Contexto)", callback_data="play:context")]
+            ])
+            await m.reply_text("🌌 *As fichas estão sincronizadas com o Terminal.* Como desejam iniciar a sessão?", reply_markup=kb, parse_mode="Markdown")
     elif d=="m:criar":
         cstate[uid]={"step":"raca","chat_id":cid}
         await m.reply_text("🧑‍🚀 *RECRUTAMENTO*\n━━━━━━━━━━━━━━━━━━━━\n📋 Etapa 1/5: *Origem*",reply_markup=kb(RACAS_BTN,"r",2),parse_mode="Markdown")
