@@ -1,51 +1,81 @@
-# PASSAGEM SOMBRIA - RPG ESPACIAL (Referência do Mestre v2.0)
+# PASSAGEM SOMBRIA - RPG ESPACIAL (Referência do Mestre v3.0)
+
+## LORE DO UNIVERSO
+- Sistema Solar: Decaído, isolado e governado pela opressiva Confederação.
+- A Passagem Sombria: Uma fenda cósmica em Plutão ligada a uma dimensão de horrores (Crias do Vazio).
+- Monólitos Silenciosos: Antigas âncoras gravitacionais usadas para saltos de dobra, agora reveladas como armadilhas do Vazio.
+- Planetas: Mercúrio (Prisão/Fornalha); Vênus (Selvas tóxicas/Caçadores); Terra (Megacorporações/Sucata); Marte (Guerra/Casernas); Júpiter (Oligarcas/Alta Gravidade); Saturno (Cultistas/Genética); Urano (Arquivistas/Gelo); Netuno (Telepatas/Soberania); Plutão (Ressentidos/Gigantes).
 
 ## REGRAS BÁSICAS (Sistema d20)
-- Teste: 1d20 + Mod.Atributo + Perícia ≥ CD
-- CD: 10 Fácil, 15 Médio, 20 Difícil, 25 Formidável, 30 Quase Impossível
-- Vantagem: 2d20 pega maior. Desvantagem: pega menor. Ambas: anulam-se.
-- 20 Natural: Crítico (dobra dados dano). 1 Natural: Falha Crítica.
-- Testes Resistidos: maior vence. Empate = Defensor.
-- Modificadores: 2-3=-3|4-5=-2|6-7=-1|8-9=0|10-11=+1|12-13=+2|14-15=+3|16+=+4
+- Teste Base: 1d20 + Mod.Atributo + Perícia ≥ CD. (Modificadores: 8-9=0 | 10-11=+1 | 12-13=+2 | 14-15=+3 | 16-17=+4).
+- CD Padrão: 10 Fácil, 15 Médio, 20 Difícil, 25 Formidável, 30 Quase Impossível.
+- Vantagem/Desvantagem: Rola 2d20, escolhe maior/menor. Ambas anulam-se.
+- Crítico (20 Natural): Sucesso absoluto. No dano, rola o dobro de dados (ex: 2d6 vira 4d6).
+- Falha Crítica (1 Natural): Desastre. Arma emperra (gasta Ação Movimento próximo turno para destravar).
+- Turno (6s): Iniciativa (1d20+Des). Ações: Principal (atacar/script), Movimento (9m/recarregar), Livre (falar), Reação.
+- Vida a 0: Inconsciente. Salvaguardas: d20 (10+ sucesso, 9- falha). 3 suc = estabiliza, 3 falhas = morte. Dano sofrido a 0 PV = 1 falha automática.
+- Descanso Curto (1h): Gasta kits, recupera PV. Não restaura RAM.
+- Descanso Longo (8h): Restaura PV max, RAM max, reseta habilidades. Pede comida. Level UP.
 
-## ECONOMIA DO TURNO (6s)
-Iniciativa: 1d20+Des. Principal: atacar/script/kit. Movimento: 9m/recarregar. Livre: falar/botão. Reação: oportunidade/firewall.
+## RAÇAS (Mecânicas Passivas/Ativas)
+- Mercusys: +2 Des, Deslocamento duplo. Imune a calor. Lê química pelo toque. Perde cura se não comer dobro.
+- Ven'y: +2 Des. Respira gases para buffs temporários (ex: voo, força, escudo). Imune a pressão atmosférica.
+- Terráqueos: Adaptáveis (+atributos e perícias base). Gambiarra (1x/dia, transforma 3 sucatas em 1 item funcional temporário).
+- Marcianos: 4 Braços. Êxtase da Batalha (1d6: ganha dano físico/movimento OU bônus de tiro). Endurecer (-2 dano sofrido).
+- Conjupiteros: 80cm e 120kg. Física de Motor (+2 CD contra empurrões). +2 em Mecânica. Desconto de 10% nas lojas.
+- Satas: Cura Genética (Cura 1d8+Sab aliada). Camuflagem Cromática (+5 Furtividade parados). Empresta própria Vida a aliado.
+- Urak's: Resistentes ao vácuo/frio (sofrem no calor). Mímica Sonora (imita vozes perfeito). Criogênese (cria objetos frágeis de gelo).
+- Proturnos: Telecinese (levanta 50kg com Int). Invasão da Sombra (Teste Sab; domina mente de inimigo para 1 turno, falha causa 2 dano no Proturno).
+- Infimor's: 3 metros, imunes a asfixia. Compactam-se (vantagem Furtividade). Braços alcançam 10m. Fúria cega se ouvir "Plutão não é planeta" (+2 Atrib/Dano).
 
-## VIDA E MORTE
-0PV=Inconsciente. Salvaguardas: 1d20, 10+=sucesso, 9-=falha. 3 suces=estabiliza. 3 falhas=morre. Dano a 0PV=1 falha auto.
+## CLASSES (Funções e Habilidades)
+- Estudioso: Mestre em Perícias. Mapa Mental (Mestre revela fraqueza do alvo). Ponto Estrutural (Custa 1 RAM: Próximo acerto causa dano máximo automático).
+- Mecânico: Reparo Tático (Cura aliados/Naves em 1d6+Mecânica PV Temp). Usa armaduras pesadas sem penalidade.
+- Assassino: Furtividade. Primeiro Corte (+2 acerto e Dano Duplo se alvo estiver surpreso/não agiu). Desaparece se matar inimigo.
+- Soldado: Fogo de Supressão (Inimigo testa Sab ou fica acovardado/Desvantagem). Usa arma pesada sem penalidade (-2 acerto removido).
+- Starlord: Liderança. Charme Malandro (Re-rola falha em Persuasão). Dá Vantagem ao próximo ataque de um aliado como ação livre.
+- Franco-Atirador: +5 de acerto a >30m de distância (penalidade de perto). Tiro Incapacitante (dano metade, mas alvo perde movimento/arma).
+- Músico: Deck/Instrumento sonoro. +2 defesa psíquica/sônica. Toca aura: +2 dano aliados OU -2 CD (Defesa) inimigos próximos.
+- Espião: Vantagem com disfarces. Ponto Cego (Mistura-se; inimigos ignoram-no até que ele ataque primeiro).
+- Catador: Rola 1d6 em caixas: 4-6 acha loot extra. Desmanche Rápido (Arranca armadura: 1d8 dano + reduz CD inimiga em 1 permanentemente).
+- Piloto: +2 CD em veículos. Sobrecarga Propulsor (Vantagem evasiva, mas nave sofre 1d4 dano).
+- Batedor: +2 Iniciativa passiva; não pode ser surpreendido. Marca do Caçador (ignora cobertura de um alvo focado).
+- Explorador: Ignora penalidade de terreno difícil. Expõe Fraqueza biológica (+1d6 dano para o grupo).
+- Cinético: Ao curar aliado com Tecnomancia, cura-se em 2 PV. Repulsão Cinética (custa 1 RAM, empurra todos próximos 3m e derruba).
+- Prospector: +20% créditos ao fechar contratos pro grupo. Faz inimigo hesitar na conversa e perder o turno (1x combate).
+- Pirata: Ignora penalidades em corredores/tubos (+1 dano em naves). Grito de Saqueador (Inimigos próximos testam Sab ou ficam Amedrontados/Desvantagem).
 
-## DESCANSOS
-Curto(1h): kits, habilidades Caminho/Código. NÃO RAM/level.
-Longo(8h+comida+seguro): TUDO. PERMITE level up. Consome 1 ração.
+## FILOSOFIAS DE VIDA
+- (Caminhos) Voz: impõe Desvant. em defesa social. Ressonância: Sente seres vivos no escuro a 10m. Engrenagem: 1x/dia transforma Falha Crítica em erro comum. Espiral: Rola curas médicas com Vantagem. Anel: Fica com 1 PV invés de desmaiar a 0. Ocaso: Toma 1d4 de dano proposital para ganhar esse valor no teste.
+- (Códigos) Sobrevivente: +2 Iniciativa. Corporativo: Vantagem negociar. Cético: +2 CD vs Telepatia. Fronteira: +1 Ataque se longe de aliados. Caserna: Recebe dano pelo aliado adjacente. Vira-Lata: Ação livre suja (areia no olho) concede Vantagem no ataque.
 
-## XP
-Nv1→2:100|2→3:250|3→4:450|4→5:700|5→6:1000|6→7:1400|7→8:1900|8→9:2500|9→10:3200
-Combate(dividido): Lacaio 15-25, Elite 40-60, Chefe 100-150, Super 200-300, Vazio +50%
-História: Decisão 25-50, Missão 50-100, Puzzle 20-40, Criativo 10-20, RP 10-25, Lore 30-50
+## ARMAS E PALAVRAS-CHAVE
+- Ágil: Pode usar modificador de Destreza invés de Força (corpo a corpo).
+- Pesada: -2 em testes de acerto (devido ao recuo/peso).
+- Rajada: Permite atirar em 2 alvos próximos (Ataque com Desvantagem). Gasta 2 turnos de munição.
+- Oculta: Fica invisível; +2 no acerto em ataque surpresa.
+- Brutal: Acerto Crítico (dobro de dano) no dado 19 e 20.
+- Anti-Sintético: Triplo de dano contra Drones, Robôs e Escudos de Energia.
+- Atordoante: Se rolar dano máximo no dado (ex: 6 num 1d6), o alvo perde o movimento no próximo turno.
+- Sangramento: Alvo sofre 1 dano inesquivável/turno até curar.
+- Perfurante: Ignora 2 pontos da Armadura Física (CD) do inimigo.
 
-## LEVEL UP (DL + XP)
-Dado nível: d10(Marte/Plutão), d8(Terra/Vênus/Júpiter/Urano), d6(Netuno/Saturno/Mercúrio).
-PV ganho=dado+Mod.Con(mín 1). +1 Atrib(máx+6), +1 perícia, +1RAM ímpares(3,5,7,9).
+## TECNOMANCIA (Hackear a Realidade)
+- Teste de Conjuração: 1d20 + Mod. Inteligência + Perícia Tecnomancia.
+- Capacidade de RAM Max: 1 + Mod. Inteligência + Metade da Perícia Tecnomancia + (+1 para cada nível ÍMPAR alcançado).
+- Deck / Scripts Conhecidos: Igual ao (Nível + Tecnomancia), mínimo de 3.
+- OVERCLOCK NEURAL (Sem RAM): Pode forçar uso pagando vida (Sofre 1d6 Dano Psíquico inevitável por Ponto de RAM faltante). 
+- Falha Crítica de Overclock (1 no d20): Sofre o dano psíquico, magia falha e fica Atordoado por 1 turno.
+- Leigos (sem perícia Tecnomancia): Só podem usar Scripts Nível 1. RAM = 1+Int. Não podem fazer Overclock.
 
-## MUNIÇÃO: 1 pente=3 turnos. Rajada=2t. Recarregar=Movimento.
+## IMPLANTES E REJEIÇÃO CIBERNÉTICA
+- Tolerância Segura = 2 + Mod. Constituição.
+- 1º Acima do Limite (Perda de Humanidade): -1d6 Pontos de Vida Máximo permanentemente. Desvantagem em Persuasão.
+- 2º Acima do Limite (Curto-Circuito): Se rolar "1" ou "2" natural em combate, sofre 1d6 Dano Elétrico inevitável e fica Atordoado.
+- 3º Acima do Limite (Morte do Eu): Colapso e morte (ou vira NPC zumbi).
+- O Implante de Expansão de RAM conta para limite de rejeição biológica.
 
 ## COMBATE ESPACIAL
-CD Nave: 10+Man+Piloto. Energia=normal. EMP=2x escudo ½casco. Balístico=+1d casco.
-Estações: Leme(evasiva/alinhamento), Artilharia(fogo/precisão), Engenharia(escudo/reparo), Sensores(hackear/fraqueza).
-Dobra: 200CG, vizinhos=1d4h, sistema=1d4d. Cego=Pilotagem CD20 ou 3d10.
-
-## BESTIÁRIO RESUMO
-Terra: Pirata(15,12,1d6) Mercenário(45,15,1d8) Comodoro(110,16,2x1d8)
-Marte: Recruta(25,13,1d8) Legionário(55,16,1d12) Senhor Guerra(140,17,3atk)
-Vênus: Batedor(20,13,1d8) Xamã(50,14,1d8) Predador(120,14,2x2d6)
-Mercúrio: Corredor(18,14,1d4) Assassino(40,15,2x1d6) Ancião(90,17)
-Júpiter: Operário(30,14,2d6) Eng(65,16,2d6) Barão(150,18,2d10)
-Saturno: Acólito(20,12,cura) Inquisidor(55,15,2d4) Sacerdote(100,16)
-Urano: Ecoador(22,13,1d6) Tecelão(50,14,2d6) Maestro(115,15)
-Netuno: Guarda(15,12,1d6) Telepata(45,14,2d6) Juiz(105,16,3d10)
-Plutão: Catador(35,11,1d6) Esmagador(70,13,2d6) Titã(150,14,2d8)
-Fauna: Cão-Cego(18) Parasita(8) Rastejador(22) Urso-Tanque(65) Morcego-Bomba(15) Leviatã(120) Quimera(85)
-Vazio: Sanguessuga(30) Enxame(15) Falso Aliado(50) Espectro(45) Tecelão(50) Terror(70) Olho(60) Silenciador(65) Bocarra(55) Devorador(80) Colecionador(110) Soberana(180)
-
-## PERIGOS AMBIENTAIS
-Zero-G: recuo armas, desvantagem melee. Descompressão: For CD15. Asfixia: Con turnos, 1d6/t. Radiação: Con CD12-18/h, falha=-1d4 PV máx.
+- CD de Nave: 10 + Manobrabilidade + Bônus Piloto. 
+- Energia: Dano normal casco/escudo. EMP: Dano Duplo no escudo, metade no casco. Balístico: +1 dado extra no casco sem escudos.
+- Dobra: Custa 200CG. Saltos cegos sem monólitos = 3d10 dano na nave. Viagens curtas (1d4 h), Viagens Sistema (1d4 dias).
