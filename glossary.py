@@ -1,686 +1,220 @@
 """
-📚 Glossário completo do Passagem Sombria — RPG Espacial
-Dados estáticos exibidos por botões, sem consumir tokens da IA.
+📚 Glossário + Dados Mecânicos do Passagem Sombria
+Tudo estático — nenhum token de IA gasto aqui.
 """
 
 # ══════════════════════════════════════════════════════════
-# RAÇAS
+# DADOS MECÂNICOS PARA CRIAÇÃO DE PERSONAGEM
 # ══════════════════════════════════════════════════════════
+
+ATTR_KEYS = ["forca","destreza","constituicao","inteligencia","sabedoria","carisma"]
+ATTR_LABELS = ["💪 Força","⚡ Destreza","🩸 Constituição","🧠 Inteligência","🦉 Sabedoria","🗣️ Carisma"]
+ATTR_SHORT = ["For","Des","Con","Int","Sab","Car"]
+
+def calc_mod(val):
+    """Calcula modificador de atributo."""
+    if val<=3: return -3
+    if val<=5: return -2
+    if val<=7: return -1
+    if val<=9: return 0
+    if val<=11: return 1
+    if val<=13: return 2
+    if val<=15: return 3
+    return 4
+
+RACAS_STATS = {
+    "mercusys":    {"nome":"Mercusys","planeta":"Mercúrio","mods":[0,3,0,1,-1,1],"vida_ajuste":-2,"dado_nv":"1d8","desloc":18},
+    "veny":        {"nome":"Ven'y","planeta":"Vênus","mods":[1,2,1,-1,1,0],"vida_ajuste":-1,"dado_nv":"1d8","desloc":9},
+    "terraqueo":   {"nome":"Terráqueo","planeta":"Terra","mods":[0,0,0,0,0,0],"vida_ajuste":0,"dado_nv":"1d8","desloc":9,
+                    "bonus_attr":4,"bonus_attr_max":2,"bonus_per":3},
+    "marciano":    {"nome":"Marciano","planeta":"Marte","mods":[3,-1,3,0,-1,0],"vida_ajuste":2,"dado_nv":"1d10","desloc":9},
+    "conjupitero": {"nome":"Conjupitero","planeta":"Júpiter","mods":[2,-2,2,2,1,-1],"vida_ajuste":-3,"dado_nv":"1d8","desloc":6,
+                    "bonus_per_fixo":{"pilotagem":2,"mecanica":2}},
+    "sata":        {"nome":"Sata","planeta":"Saturno","mods":[-1,1,0,2,2,0],"vida_ajuste":-1,"dado_nv":"1d6","desloc":9},
+    "urak":        {"nome":"Urak","planeta":"Urano","mods":[0,-1,2,0,0,3],"vida_ajuste":-1,"dado_nv":"1d8","desloc":9},
+    "proturno":    {"nome":"Proturno","planeta":"Netuno","mods":[-1,0,-1,2,3,1],"vida_ajuste":-3,"dado_nv":"1d6","desloc":9},
+    "infimor":     {"nome":"Infimor","planeta":"Plutão","mods":[3,-1,2,0,0,0],"vida_ajuste":3,"dado_nv":"1d10","desloc":6},
+}
+
+CLASSES_STATS = {
+    "estudioso":{"nome":"Estudioso","pv":4,"pericias":{"conhecimentos":4,"investigacao":3,"mecanica":2,"tecnomancia":2,"persuasao":1},
+        "equip_fixo":["Datapad Pesquisa","Bateria Fantasma","Kit Sobrevivência Base"],"equip_escolha":[("Pistola EMP (1d4 Anti-Sintético)","Pistola Laser (1d6 Saque Rápido)")],
+        "armadura":{"nome":"Roupas Civis","cd":0,"tipo":"leve"}},
+    "mecanico":{"nome":"Mecânico","pv":6,"pericias":{"mecanica":5,"pilotagem":2,"armas_brancas":2,"tecnomancia":1,"persuasao":1,"sobrevivencia":1},
+        "equip_fixo":["Garras Combate (1d4)","Ferramentas Mecânicas","Kit Sobrevivência Base"],"equip_escolha":[("Revólver Íons (1d8 Brutal)","Escopeta Sônica (2d6 Curto Alcance)")],
+        "armadura":{"nome":"Traje Bordo Atmosférico","cd":2,"tipo":"media"}},
+    "assassino":{"nome":"Assassino","pv":8,"pericias":{"furtividade":4,"armas_brancas":2,"armas_fogo":2,"espionagem":2,"medicina":1,"persuasao":1},
+        "equip_fixo":["Faca Plasma (1d4 Oculta/Ágil)","Granada Fumaça","Kit Sobrevivência Base"],"equip_escolha":[("Besta Phobos (1d10 Silenciosa)","SubMetra Flechetes (2d4 Sangramento)")],
+        "armadura":{"nome":"Traje Furtivo Nanofibra","cd":1,"tipo":"leve"}},
+    "soldado":{"nome":"Soldado","pv":10,"pericias":{"armas_fogo":4,"armas_brancas":3,"explosivos":2,"pilotagem":1,"sobrevivencia":1,"furtividade":1},
+        "equip_fixo":["Faca Plasma (1d4)","Kit Médico Batalha","Kit Sobrevivência Base"],"equip_escolha":[("Rifle Assalto (1d8 Rajada)","Escopeta Sônica (2d6 Curto Alcance)")],
+        "armadura":{"nome":"Colete Tático","cd":2,"tipo":"media"}},
+    "starlord":{"nome":"Starlord","pv":8,"pericias":{"persuasao":5,"armas_fogo":2,"tecnomancia":2,"pilotagem":2,"furtividade":1},
+        "equip_fixo":["Pistola Laser (1d6)","Faca Plasma (1d4)","Kit Sobrevivência Base"],
+        "armadura":{"nome":"Roupas Elegantes","cd":0,"tipo":"leve"}},
+    "franco_atirador":{"nome":"Franco-Atirador","pv":6,"pericias":{"armas_fogo":5,"sobrevivencia":3,"furtividade":2,"investigacao":2},
+        "equip_fixo":["Rifle Precisão (1d12 Telescópica/Brutal)","Bastão Choque (1d6)","Binóculos Termais","Kit Sobrevivência Base"],
+        "armadura":{"nome":"Colete Tático","cd":2,"tipo":"media"}},
+    "musico":{"nome":"Músico","pv":4,"pericias":{"tecnomancia":5,"performance":4,"persuasao":2,"armas_brancas":1},
+        "equip_fixo":["Pistola Laser (1d6)","Instrumento Musical Digital","Bateria Fantasma","Kit Sobrevivência Base"],
+        "armadura":{"nome":"Roupas Civis","cd":0,"tipo":"leve"}},
+    "espiao":{"nome":"Espião","pv":4,"pericias":{"espionagem":4,"persuasao":4,"furtividade":2,"acrobacia":1,"intimidacao":1},
+        "equip_fixo":["Pistola Laser (1d6)","Faca Plasma (1d4 Oculta)","2 IDs Falsas","Kit Sobrevivência Base"],
+        "armadura":{"nome":"Roupas Civis","cd":0,"tipo":"leve"}},
+    "catador":{"nome":"Catador","pv":6,"pericias":{"persuasao":3,"investigacao":2,"sobrevivencia":2,"mecanica":2,"pilotagem":2,"armas_fogo":1},
+        "equip_fixo":["Revólver Íons (1d8)","Bastão Choque (1d6)","Maçarico Laser","Kit Sobrevivência Base"],
+        "armadura":{"nome":"Traje Bordo Atmosférico","cd":2,"tipo":"media"}},
+    "piloto":{"nome":"Piloto","pv":6,"pericias":{"pilotagem":5,"mecanica":2,"persuasao":2,"sobrevivencia":2,"armas_fogo":1},
+        "equip_fixo":["Chave Inglesa (1d4)","Kit Sobrevivência Base"],"equip_escolha":[("Revólver Íons (1d8 Brutal)","Escopeta Sônica (2d6 Curto Alcance)")],
+        "armadura":{"nome":"Traje Bordo Atmosférico","cd":2,"tipo":"media"}},
+    "batedor":{"nome":"Batedor","pv":8,"pericias":{"sobrevivencia":4,"armas_fogo":3,"investigacao":3,"furtividade":1,"explosivos":1},
+        "equip_fixo":["SubMetra Flechetes (2d4)","Faca Plasma (1d4)","Granada Fumaça","Kit Sobrevivência Base"],
+        "armadura":{"nome":"Traje Furtivo Nanofibra","cd":1,"tipo":"leve"}},
+    "explorador":{"nome":"Explorador","pv":6,"pericias":{"investigacao":4,"sobrevivencia":4,"conhecimentos":3,"persuasao":1},
+        "equip_fixo":["Rifle Assalto (1d8)","Faca Plasma (1d4)","Scanner Ambiental","Corda Nanofibra 15m","Kit Sobrevivência Base"],
+        "armadura":{"nome":"Colete Tático","cd":2,"tipo":"media"}},
+    "cinetico":{"nome":"Cinético","pv":4,"pericias":{"tecnomancia":5,"medicina":3,"resistencia":2,"acrobacia":2},
+        "equip_fixo":["Pistola EMP (1d4)","Deck Pulso","Bateria Fantasma","Kit Médico Batalha","Kit Sobrevivência Base"],
+        "armadura":{"nome":"Roupas Civis","cd":0,"tipo":"leve"}},
+    "prospector":{"nome":"Prospector","pv":4,"pericias":{"persuasao":5,"lideranca":4,"tecnomancia":3},
+        "equip_fixo":["Pistola Laser (1d6)","Datapad Corporativo","Contratos + Caneta Digital","Kit Sobrevivência Base"],
+        "armadura":{"nome":"Roupas Luxo","cd":0,"tipo":"leve"},"creditos_extra":100},
+    "pirata":{"nome":"Pirata","pv":10,"pericias":{"armas_fogo":3,"armas_brancas":3,"intimidacao":3,"sobrevivencia":2,"pilotagem":1},
+        "equip_fixo":["Escopeta Sônica (2d6)","Arpéu Magnético","Granada Fumaça","Kit Sobrevivência Base"],
+        "equip_escolha_melee":[("Bastão Choque (1d6 Atordoante)","Faca Plasma (1d4 Oculta)")],
+        "armadura":{"nome":"Colete Tático","cd":2,"tipo":"media"}},
+}
+
+FILOS_STATS = {
+    "cam_voz":("🗣️ Caminho da Voz","1x/DL: desvantagem no teste do alvo (Car) ou finge-se de morto"),
+    "cam_ressonancia":("🌀 Caminho da Ressonância","1x/DC: ignora escuridão, sente vivos 10m por 1 turno"),
+    "cam_engrenagem":("⚙️ Caminho da Engrenagem","1x/DL: transforma falha crítica em falha comum"),
+    "cam_espiral":("🧬 Caminho da Espiral","Toda cura (kit/DC) rola com Vantagem"),
+    "cam_anel":("💍 Caminho do Anel","1x/DL: ao chegar a 0PV, fica com 1PV até próximo turno"),
+    "cam_ocaso":("🌑 Caminho do Ocaso","1x/combate: sofre 1d4 dano verdadeiro, soma 1d4 em qualquer rolagem"),
+    "cod_sobrevivente":("🏕️ Código do Sobrevivente","+2 Iniciativa permanente. 1x/DL age na rodada surpresa"),
+    "cod_corporativo":("💰 Código Corporativo","Vantagem em avaliar itens, achar loot oculto, negociar"),
+    "cod_cetico":("🧊 Código do Cético","+2CD vs psíquico/controle/intimidação"),
+    "cod_fronteira":("🐺 Código da Fronteira","+1 ataque se sem aliado em 5m"),
+    "cod_caserna":("🛡️ Código da Caserna","1x/DC: reação leva dano por aliado adjacente"),
+    "cod_viralata":("🃏 Código do Vira-Lata","1x/combate: distrai 3m, ataca com vantagem"),
+}
+
+# Perícias com atributos possíveis (primeiro = padrão)
+PERICIAS_ATTR = {
+    "acrobacia":["destreza","forca"],"armas_brancas":["forca","destreza"],"armas_fogo":["destreza"],
+    "resistencia":["constituicao"],"espionagem":["inteligencia","carisma"],"furtividade":["destreza"],
+    "investigacao":["inteligencia","sabedoria"],"sobrevivencia":["sabedoria"],"conhecimentos":["inteligencia"],
+    "explosivos":["inteligencia"],"mecanica":["inteligencia","destreza"],"medicina":["inteligencia"],
+    "pilotagem":["destreza","inteligencia"],"tecnomancia":["inteligencia"],"intimidacao":["carisma","forca"],
+    "lideranca":["carisma"],"performance":["carisma"],"persuasao":["carisma"],
+}
+
+PERICIAS_NOMES = {
+    "acrobacia":"Acrobacia","armas_brancas":"Armas Brancas","armas_fogo":"Armas de Fogo",
+    "resistencia":"Resistência","espionagem":"Espionagem","furtividade":"Furtividade",
+    "investigacao":"Investigação","sobrevivencia":"Sobrevivência","conhecimentos":"Conhecimentos",
+    "explosivos":"Explosivos","mecanica":"Mecânica","medicina":"Medicina",
+    "pilotagem":"Pilotagem","tecnomancia":"Tecnomancia","intimidacao":"Intimidação",
+    "lideranca":"Liderança","performance":"Performance","persuasao":"Persuasão",
+}
+
+# ══════════════════════════════════════════════════════════
+# BOTÕES (labels curtos para criação)
+# ══════════════════════════════════════════════════════════
+
+RACAS_BTN = {"mercusys":"🔥 Mercusys","veny":"🌿 Ven'y","terraqueo":"🌍 Terráqueo",
+    "marciano":"⚔️ Marciano","conjupitero":"⚙️ Conjupitero","sata":"💫 Sata",
+    "urak":"❄️ Urak","proturno":"🧠 Proturno","infimor":"🪐 Infimor"}
+CLASSES_BTN = {"estudioso":"📚 Estudioso","mecanico":"🔧 Mecânico","assassino":"🗡️ Assassino",
+    "soldado":"🎖️ Soldado","starlord":"🌟 Starlord","franco_atirador":"🎯 Franco-At.",
+    "musico":"🎵 Músico","espiao":"🕵️ Espião","catador":"♻️ Catador",
+    "piloto":"✈️ Piloto","batedor":"👁️ Batedor","explorador":"🗺️ Explorador",
+    "cinetico":"⚡ Cinético","prospector":"💼 Prospector","pirata":"☠️ Pirata"}
+FILOS_BTN = {"cam_voz":"🗣️ Voz","cam_ressonancia":"🌀 Ressonância","cam_engrenagem":"⚙️ Engrenagem",
+    "cam_espiral":"🧬 Espiral","cam_anel":"💍 Anel","cam_ocaso":"🌑 Ocaso",
+    "cod_sobrevivente":"🏕️ Sobrevivente","cod_corporativo":"💰 Corporativo",
+    "cod_cetico":"🧊 Cético","cod_fronteira":"🐺 Fronteira",
+    "cod_caserna":"🛡️ Caserna","cod_viralata":"🃏 Vira-Lata"}
+
+# ══════════════════════════════════════════════════════════
+# TEXTOS DE DISPLAY DO GLOSSÁRIO (raças, classes, etc.)
+# Mesmo conteúdo de antes — mantido para brevidade
+# ══════════════════════════════════════════════════════════
+
+# Reutiliza os textos longos do glossary anterior
+# (RACAS_DETAIL, CLASSES_DETAIL, ARMAS_BRANCAS_TEXT, etc.)
+# Importados aqui para manter o arquivo gerenciável
 
 RACAS_DETAIL = {
-    "mercusys": (
-        "🔥 *MERCUSYS — Os Nômades da Velocidade*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🌍 Planeta: Mercúrio (A Fornalha dos Condenados)\n\n"
-        "Humanoides altos, esguios, de pele avermelhada e *quatro pernas*. "
-        "Metabolismo alucinante — tudo neles é rápido: movimento, raciocínio, "
-        "regeneração e, tragicamente, o esquecimento. Vivem no eterno \"agora\".\n\n"
-        "📊 *Atributos:* Vida 4d6(tira menor)-2\n"
-        "For+0 | Des+3 | Con+0 | Int+1 | Sab-1 | Car+1\n\n"
-        "⚡ *Habilidades:*\n"
-        "🏃 Alta Velocidade: deslocamento DOBRADO, regenera 1d4 extra em descanso curto "
-        "(precisa dobro de rações ou +1 exaustão)\n"
-        "👆 Leitura Sensitiva: ao tocar superfície, identifica composição e detecta venenos\n"
-        "🔥 Resistência ao Calor: imune a fogo ambiental (desvantagem abaixo de 25°C)\n\n"
-        "🌟 *Nv10 — Aceleração Relativística:* 1x/DL, ganha 2 turnos completos antes de qualquer "
-        "inimigo reagir. Permanentemente imune a ataques de oportunidade."
-    ),
-    "veny": (
-        "🌿 *VEN'Y — Os Predadores da Bruma*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🌍 Planeta: Vênus (O Éden Ácido)\n\n"
-        "Pele azul-esverdeada para camuflagem nas florestas de gás. Múltiplos pulmões "
-        "processam quase qualquer gás. Sociedade tribal de caçadores implacáveis.\n\n"
-        "📊 *Atributos:* Vida 4d6(tira menor)-1\n"
-        "For+1 | Des+2 | Con+1 | Int-1 | Sab+1 | Car+0\n\n"
-        "⚡ *Habilidades:*\n"
-        "🌬️ Air Shifter (respira gás 6min = efeito):\n"
-        "  O₂=asas de voo | He=flutua, imune queda | H₂=+2 Força\n"
-        "  N₂=resist fogo | Ar=-2 dano físico | Kr=-2 tudo | Rn=vantagem audição\n\n"
-        "🌟 *Nv10 — Pulmão Alquímico:* 2 efeitos simultâneos + exala nuvem 4d6 dano área 3x3m."
-    ),
-    "terraqueo": (
-        "🌍 *TERRÁQUEO — A Força da Adaptação*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🌍 Planeta: Terra (A Velha Mãe Sucateada)\n\n"
-        "Sem a força dos Marcianos ou a telepatia dos Proturnos, os humanos compensam "
-        "com resiliência absoluta. Mestres da sobrevivência, gambiarras e diplomacia.\n\n"
-        "📊 *Atributos:* Vida 4d6(tira menor)\n"
-        "+4 pontos livres em atributos (máx +2 num único) | +3 pontos livres em perícias\n\n"
-        "⚡ *Habilidades:*\n"
-        "🔧 Alta Adaptabilidade: +2 atributos + 3 perícias livres extras na criação\n"
-        "🛠️ Gambiarra: 1x/dia, transforma 3 sucatas em item funcional temporário\n\n"
-        "🌟 *Nv10 — Espírito Indomável:* 1x/DL, sobrevive golpe letal com 1PV, "
-        "cura 3d8+Con e ganha turno extra imediato."
-    ),
-    "marciano": (
-        "⚔️ *MARCIANO — O Conclave da Guerra*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🌍 Planeta: Marte (A Máquina de Moer)\n\n"
-        "2,3m de altura, pele negro/vermelho-ferrugem, *QUATRO BRAÇOS*. Dois frontais "
-        "precisos, dois traseiros pesados. Facções: Phobos (corpo a corpo honrado) e "
-        "Deimos (rifles e táticas frias).\n\n"
-        "📊 *Atributos:* Vida 4d6(tira menor)+2\n"
-        "For+3 | Des-1 | Con+3 | Int+0 | Sab-1 | Car+0\n\n"
-        "⚡ *Habilidades:*\n"
-        "🔥 Êxtase da Batalha (1d6): 1-3 Phobos (+2 dano, +3m desloc) | "
-        "4-6 Deimos (+2 ataque distância, ignora cobertura). Dura 4 turnos.\n"
-        "🛡️ Endurecer: -2 dano físico recebido por 4 turnos\n\n"
-        "🌟 *Nv10 — Senhor da Guerra:* Armas pesadas com 1 mão. Êxtase dá AMBOS os bônus."
-    ),
-    "conjupitero": (
-        "⚙️ *CONJUPITERO — Titãs da Engenharia*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🌍 Planeta: Júpiter (O Poço Oligárquico)\n\n"
-        "80cm de altura, 120kg de puro músculo denso. Evoluíram sob gravidade esmagadora. "
-        "Mentes que enxergam a realidade como uma engine de física ajustável.\n\n"
-        "📊 *Atributos:* Vida 4d6(tira menor)-3\n"
-        "For+2 | Des-2 | Con+2 | Int+2 | Sab+1 | Car-1\n\n"
-        "⚡ *Habilidades:*\n"
-        "🏋️ Física de Motor: +2CD vs empurrão, carga TRIPLA\n"
-        "🔧 Engenharia de Bordo: +2 permanente em Pilotagem e Mecânica\n"
-        "💎 Conta da Confederação: 10% desconto em todas as lojas\n\n"
-        "🌟 *Nv10 — Singularidade:* 1x/dia, poço gravitacional 10m. 4d10 esmagamento, "
-        "inimigos perdem Ação de Movimento."
-    ),
-    "sata": (
-        "💫 *SATA — Cultistas do Anel*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🌍 Planeta: Saturno (O Berço da Espera)\n\n"
-        "1,90m, serenos, profundamente religiosos. Cultuam os anéis como estilhaços do "
-        "núcleo primordial. Medicina e manipulação genética mais avançadas do sistema.\n\n"
-        "📊 *Atributos:* Vida 4d6(tira menor)-1\n"
-        "For-1 | Des+1 | Con+0 | Int+2 | Sab+2 | Car+0\n\n"
-        "⚡ *Habilidades:*\n"
-        "💚 Cura Genética: 1x/dia, cura 1d8+Sab PV (rolar 8=duplica, rolar 1=2 dano próprio)\n"
-        "🫥 Camuflagem Cromática: +5 Furtividade imóvel ou ½ velocidade\n"
-        "❤️ Emprestar Vitalidade: transfere até metade dos seus PV atuais para aliado\n\n"
-        "🌟 *Nv10 — Milagre Primordial:* Pulso cura 5d8+Sab todos aliados 10m. "
-        "Remove venenos/sangramentos. Pode gastar turno + ½ vida para ressuscitar aliado."
-    ),
-    "urak": (
-        "❄️ *URAK — A Voz do Zero Absoluto*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🌍 Planeta: Urano (O Cofre Congelado)\n\n"
-        "Ninguém sabe como é o rosto de um Urak — cobertos por pelagens e trajes térmicos. "
-        "150 cordas vocais replicam qualquer frequência. Reprodução assexuada.\n\n"
-        "📊 *Atributos:* Vida 4d6(tira menor)-1\n"
-        "For+0 | Des-1 | Con+2 | Int+0 | Sab+0 | Car+3\n\n"
-        "⚡ *Habilidades:*\n"
-        "🎵 Mímica Sonora: imita qualquer voz/som. Vantagem em enganação por voz.\n"
-        "🧊 Criogênese: cria objeto de gelo médio (chave, escudo, martelo). Derrete em 6 turnos.\n"
-        "❄️ Resistência ao Frio: sobrevive no vácuo gelado. Stress acima 15°C, dano acima 40°C.\n\n"
-        "🌟 *Nv10 — Sinfonia do Inverno:* Grito 4d8 gélido 15m. Falha Con = paralisa 2 turnos. "
-        "Cria barricadas de gelo permanentes."
-    ),
-    "proturno": (
-        "🧠 *PROTURNO — Domínio da Sombra*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🌍 Planeta: Netuno (O Xadrez)\n\n"
-        "Pele azulada, crânios alongados, cérebros como supercomputadores quânticos. "
-        "Confrontam a \"Sombra\" da mente — medos e impulsos — para subjugá-la e "
-        "projetar sua vontade sobre os outros.\n\n"
-        "📊 *Atributos:* Vida 4d6(tira menor)-3\n"
-        "For-1 | Des+0 | Con-1 | Int+2 | Sab+3 | Car+1\n\n"
-        "⚡ *Habilidades:*\n"
-        "🧠 Levantamento Mental: usa Int para mover/arremessar objetos até 50kg a 10m\n"
-        "💀 Invasão da Sombra: 1d20+Sab vs alvo. Sucesso = controla próxima ação. "
-        "Falha = 2 dano próprio por hemorragia.\n\n"
-        "🌟 *Nv10 — Soberania Telepática:* Sem dano ao falhar controle. "
-        "1x/DL, esmaga 3 inimigos simultaneamente: 5d10 dano inesquivável."
-    ),
-    "infimor": (
-        "🪐 *INFIMOR — Titãs Esquecidos do Vácuo*\n"
-        "━━━━━━━━━━━━━━━━━━━━\n"
-        "🌍 Planeta: Plutão (A Sentinela Ressentida)\n\n"
-        "Quase 3 metros, membros de cartilagem hiperelástica que esticam até 10m. "
-        "Não respiram, sobrevivem perfeitamente no vácuo. Vivem milhares de anos. "
-        "Ressentimento profundo pelo rebaixamento a \"planeta anão\".\n\n"
-        "📊 *Atributos:* Vida 4d6(tira menor)+3\n"
-        "For+3 | Des-1 | Con+2 | Int+0 | Sab+0 | Car+0\n\n"
-        "⚡ *Habilidades:*\n"
-        "🌌 Imune ao Vácuo e asfixia\n"
-        "🤏 Encolher: ½ altura, ½ desloc, vantagem absoluta em furtividade\n"
-        "💪 Braços Telescópicos: ataques melee a 10m de alcance\n"
-        "😡 Fúria dos Desclassificados: se ouvir que Plutão não é planeta → +2 tudo, "
-        "+3 ataque/dano, mas não distingue aliado de inimigo por 5 turnos!\n\n"
-        "🌟 *Nv10 — Colosso do Vácuo:* 5m altura, Fúria COM controle mental, "
-        "+20PV temporários, ataques arremessam inimigos."
-    ),
+    "mercusys":"🔥 *MERCUSYS — Nômades da Velocidade*\n━━━━━━━━━━━━━━━━━━━━\n🌍 Mercúrio | Des+3 Int+1 Sab-1 | Vida-2 | 🏃 18m\n\n⚡ Deslocamento DOBRADO, regenera 1d4 extra DC (dobro rações)\n👆 Leitura Sensitiva (toque=composição)\n🔥 Resist Calor (desvantagem <25°C)\n🌟 Nv10: 2 turnos extras, imune ataque oportunidade",
+    "veny":"🌿 *VEN'Y — Predadores da Bruma*\n━━━━━━━━━━━━━━━━━━━━\n🌍 Vênus | For+1 Des+2 Con+1 Int-1 Sab+1 | Vida-1\n\n🌬️ Air Shifter: O₂=asas He=flutua H₂=+2For N₂=resist fogo Ar=-2dano\n🌟 Nv10: 2 efeitos simultâneos + nuvem 4d6",
+    "terraqueo":"🌍 *TERRÁQUEO — Força da Adaptação*\n━━━━━━━━━━━━━━━━━━━━\n🌍 Terra | +4 atributos livres | +3 perícias livres | Vida+0\n\n🔧 Gambiarra: 1x/dia, 3 sucatas→item funcional\n🌟 Nv10: Sobrevive golpe letal 1PV, cura 3d8+Con, turno extra",
+    "marciano":"⚔️ *MARCIANO — Conclave da Guerra*\n━━━━━━━━━━━━━━━━━━━━\n🌍 Marte | For+3 Con+3 Des-1 Sab-1 | Vida+2 | 4 BRAÇOS\n\n🔥 Êxtase: 1-3=+2dano/+3m 4-6=+2ataque dist (4t)\n🛡️ Endurecer: -2 dano (4t)\n🌟 Nv10: Armas pesadas 1 mão, ambos Êxtases",
+    "conjupitero":"⚙️ *CONJUPITERO — Titãs da Engenharia*\n━━━━━━━━━━━━━━━━━━━━\n🌍 Júpiter | For+2 Con+2 Int+2 Des-2 Sab+1 Car-1 | Vida-3 | 80cm 120kg\n\n🏋️ +2CD vs empurrão, carga TRIPLA\n🔧 +2 Pilotagem/Mecânica permanente | 💎 10% desconto\n🌟 Nv10: Singularidade 10m, 4d10 esmagamento",
+    "sata":"💫 *SATA — Cultistas do Anel*\n━━━━━━━━━━━━━━━━━━━━\n🌍 Saturno | Int+2 Sab+2 For-1 Des+1 | Vida-1\n\n💚 Cura Genética 1x/dia: 1d8+Sab\n🫥 Camuflagem: +5 Furtividade imóvel\n❤️ Emprestar Vitalidade (transfere PV)\n🌟 Nv10: Pulso 5d8+Sab 10m, remove condições, ressuscita",
+    "urak":"❄️ *URAK — Voz do Zero Absoluto*\n━━━━━━━━━━━━━━━━━━━━\n🌍 Urano | Car+3 Con+2 Des-1 | Vida-1 | 150 cordas vocais\n\n🎵 Mímica Sonora: imita qualquer voz, vantagem enganação\n🧊 Criogênese: cria objeto de gelo (6t)\n❄️ Resist Frio (stress >15°C)\n🌟 Nv10: Grito 4d8 gélido 15m, paralisa 2t",
+    "proturno":"🧠 *PROTURNO — Domínio da Sombra*\n━━━━━━━━━━━━━━━━━━━━\n🌍 Netuno | Int+2 Sab+3 Car+1 For-1 Con-1 | Vida-3\n\n🧠 Levantamento Mental: Int para mover 50kg a 10m\n💀 Invasão Sombra: controle mental (Sab vs alvo, falha=2dano)\n🌟 Nv10: Sem dano falha, esmaga 3 inimigos 5d10",
+    "infimor":"🪐 *INFIMOR — Titãs do Vácuo*\n━━━━━━━━━━━━━━━━━━━━\n🌍 Plutão | For+3 Con+2 Des-1 | Vida+3 | ~3m, imune vácuo\n\n🤏 Encolher: ½ altura, vantagem furtividade\n💪 Braços Telescópicos: melee a 10m\n😡 Fúria Desclassificados: +2 tudo mas perde controle 5t\n🌟 Nv10: Colosso 5m, Fúria COM controle, +20PV temp",
 }
-
-# ══════════════════════════════════════════════════════════
-# CLASSES
-# ══════════════════════════════════════════════════════════
 
 CLASSES_DETAIL = {
-    "estudioso": (
-        "📚 *ESTUDIOSO — O Cofre de Conhecimento*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +4 | 🎯 Papel: perito em fraquezas e quebra-cabeças\n\n"
-        "🎯 *Perícias:* Conhecimentos+4, Investigação+3, Mecânica+2, Tecnomancia+2, Persuasão+1\n\n"
-        "🔹 *Mapa Mental (Passiva):* 1x/sessão, Mestre DEVE fornecer info sobre criatura/tech\n"
-        "🔹 *Ponto Estrutural Crítico (1RAM):* próximo ataque = dano MÁXIMO dos dados\n\n"
-        "🎒 *Equip:* Roupas Civis, Pistola EMP(1d4) ou Laser(1d6), Datapad, Bateria Fantasma"
-    ),
-    "mecanico": (
-        "🔧 *MECÂNICO — Arquiteto da Sobrevivência*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +6 | 🎯 Papel: suporte defensivo, mestre de naves\n\n"
-        "🎯 *Perícias:* Mecânica+5, Pilotagem+2, ArmBrancas+2, Tecnomancia+1, Persuasão+1, Sobrevivência+1\n\n"
-        "🔹 *Operador Pesado (Passiva):* ignora penalidades de armaduras pesadas\n"
-        "🔹 *Reparo Tático (Ativa):* aliado ganha 1d6+Mecânica PV temporários\n\n"
-        "🎒 *Equip:* Traje Bordo(CD+2), Revólver Íons(1d8) ou Escopeta(2d6), Garras(1d4), Ferramentas"
-    ),
-    "assassino": (
-        "🗡️ *ASSASSINO — A Sombra Silenciosa*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +8 | 🎯 Papel: dano explosivo, eliminação cirúrgica\n\n"
-        "🎯 *Perícias:* Furtividade+4, ArmBrancas+2, ArmFogo+2, Espionagem+2, Medicina+1, Persuasão+1\n\n"
-        "🔹 *Primeiro Corte (Passiva):* +2 acerto e DANO DOBRADO vs desprevenidos\n"
-        "🔹 *Desaparecer (Ativa):* ao matar, rola furtividade grátis para se esconder\n\n"
-        "🎒 *Equip:* Traje Furtivo(CD+1,+2Furt), Besta Phobos(1d8) ou SubMetra(2d4), Faca Plasma(1d4), Granada Fumaça"
-    ),
-    "soldado": (
-        "🎖️ *SOLDADO — Baluarte de Fogo e Aço*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +10 | 🎯 Papel: linha de frente, tanque de fogo\n\n"
-        "🎯 *Perícias:* ArmFogo+4, ArmBrancas+3, Explosivos+2, Pilotagem+1, Sobrevivência+1, Furtividade+1\n\n"
-        "🔹 *Memória Muscular (Passiva):* sem penalidade de armas Pesadas\n"
-        "🔹 *Fogo de Supressão (Ativa):* inimigo testa Sab ou desvantagem em tudo\n\n"
-        "🎒 *Equip:* Colete(CD+2), Rifle Assalto(1d8) ou Escopeta(2d6), Faca Plasma(1d4), Kit Médico"
-    ),
-    "starlord": (
-        "🌟 *STARLORD — A Voz de Comando*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +8 | 🎯 Papel: líder, inspirador, negociador\n\n"
-        "🎯 *Perícias:* Persuasão+5, ArmFogo+2, Tecnomancia+2, Pilotagem+2, Furtividade+1\n\n"
-        "🔹 *Charme Malandro (Passiva):* re-rola persuasão falhada 1x por encontro\n"
-        "🔹 *\"Deixem comigo!\" (Ativa):* próximo aliado a atacar ganha Vantagem\n\n"
-        "🎒 *Equip:* Roupas Elegantes, Pistola Laser(1d6), Faca Plasma(1d4)"
-    ),
-    "franco_atirador": (
-        "🎯 *FRANCO-ATIRADOR — O Observador Letal*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +6 | 🎯 Papel: controle de campo à distância\n\n"
-        "🎯 *Perícias:* ArmFogo+5, Sobrevivência+3, Furtividade+2, Investigação+2\n\n"
-        "🔹 *Foco à Distância (Passiva):* +5 ataque >30m | apenas +2 se ≤30m\n"
-        "🔹 *Tiro Incapacitante (Ativa):* ½ dano mas imobiliza 1 turno\n\n"
-        "🎒 *Equip:* Colete(CD+2), Rifle Precisão(1d10), Bastão Choque(1d6), Binóculos Termais"
-    ),
-    "musico": (
-        "🎵 *MÚSICO — Arquiteto de Frequências*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +4 | 🎯 Papel: buff/debuff via som, hacker psicológico\n\n"
-        "🎯 *Perícias:* Tecnomancia+5, Performance+4, Persuasão+2, ArmBrancas+1\n\n"
-        "🔹 *Ouvido Absoluto (Passiva):* +2CD vs controle mental e dano sônico\n"
-        "🔹 *Frequência (Ativa):* aliados 10m ganham +2 dano OU inimigos 10m sofrem -2CD\n\n"
-        "🎒 *Equip:* Roupas Civis, Pistola Laser(1d6), Instrumento Digital, Bateria Fantasma"
-    ),
-    "espiao": (
-        "🕵️ *ESPIÃO — O Fantasma de Mil Rostos*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +4 | 🎯 Papel: infiltração social, extração de info\n\n"
-        "🎯 *Perícias:* Espionagem+4, Persuasão+4, Furtividade+2, Acrobacia+1, Intimidação+1\n\n"
-        "🔹 *Rosto na Multidão (Passiva):* Vantagem em persuasão/enganação com disfarce\n"
-        "🔹 *Ponto Cego (Ativa):* mistura-se no ambiente, inimigos o ignoram\n\n"
-        "🎒 *Equip:* Roupas Civis, Pistola Laser(1d6), Faca Plasma(1d4), 2 IDs Falsas"
-    ),
-    "catador": (
-        "♻️ *CATADOR — Rei da Sucata*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +6 | 🎯 Papel: encontrar loot, reparar com pouco\n\n"
-        "🎯 *Perícias:* Persuasão+3, Investigação+2, Sobrevivência+2, Mecânica+2, Pilotagem+2, ArmFogo+1\n\n"
-        "🔹 *Olho para Ouro (Passiva):* 1d6, resultado 4-6 = item extra ao vasculhar\n"
-        "🔹 *Desmanche Rápido (Ativa):* 1d8 dano + reduz CD permanente de robô/mecânico\n\n"
-        "🎒 *Equip:* Traje Bordo(CD+2), Revólver Íons(1d8), Bastão Choque(1d6), Maçarico"
-    ),
-    "piloto": (
-        "✈️ *PILOTO — O Coração da Nave*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +6 | 🎯 Papel: salvação em combate espacial\n\n"
-        "🎯 *Perícias:* Pilotagem+5, Mecânica+2, Persuasão+2, Sobrevivência+2, ArmFogo+1\n\n"
-        "🔹 *Instinto Evasivo (Passiva):* +2CD do veículo que pilota\n"
-        "🔹 *Sobrecarga Propulsores (Ativa):* vantagem pilotagem evasiva, nave toma 1d4 dano\n\n"
-        "🎒 *Equip:* Traje Bordo(CD+2), Revólver Íons(1d8) ou Escopeta(2d6), Chave Inglesa(1d4)"
-    ),
-    "batedor": (
-        "👁️ *BATEDOR — A Vanguarda do Perigo*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +8 | 🎯 Papel: detetar ameaças, marca alvos\n\n"
-        "🎯 *Perícias:* Sobrevivência+4, ArmFogo+3, Investigação+3, Furtividade+1, Explosivos+1\n\n"
-        "🔹 *Sentidos Alertas (Passiva):* nunca surpreendido, +2 Iniciativa\n"
-        "🔹 *Marca do Caçador (Ativa):* aliados sabem posição do alvo, ignoram cobertura\n\n"
-        "🎒 *Equip:* Traje Furtivo(CD+1), SubMetra Flechetes(2d4), Faca Plasma(1d4), Granada Fumaça"
-    ),
-    "explorador": (
-        "🗺️ *EXPLORADOR — Navegador das Rotas*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +6 | 🎯 Papel: guia de terreno, analista biológico\n\n"
-        "🎯 *Perícias:* Investigação+4, Sobrevivência+4, Conhecimentos+3, Persuasão+1\n\n"
-        "🔹 *Mapeamento Tático (Passiva):* grupo ignora terreno difícil em 10m\n"
-        "🔹 *Vulnerabilidade Exposta (Ativa):* descobre fraqueza, +1d6 dano do grupo\n\n"
-        "🎒 *Equip:* Colete(CD+2), Rifle Assalto(1d8), Scanner Ambiental, Corda 15m"
-    ),
-    "cinetico": (
-        "⚡ *CINÉTICO — Ponte Mente-Máquina*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +4 | 🎯 Papel: tecnomante curador, manipulador cinético\n\n"
-        "🎯 *Perícias:* Tecnomancia+5, Medicina+3, Resistência+2, Acrobacia+2\n\n"
-        "🔹 *Bio-feedback (Passiva):* ao curar aliado com script, recupera 2PV próprio\n"
-        "🔹 *Repulsão Cinética (1RAM):* empurra todos inimigos adjacentes 3m\n\n"
-        "🎒 *Equip:* Roupas Civis, Pistola EMP(1d4), Deck Pulso, Bateria Fantasma, Kit Médico"
-    ),
-    "prospector": (
-        "💼 *PROSPECTOR — O Rosto da Tripulação*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +4 | 🎯 Papel: negociador, gestor de créditos\n\n"
-        "🎯 *Perícias:* Persuasão+5, Liderança+4, Tecnomancia+3\n\n"
-        "🔹 *Contrato Lucrativo (Passiva):* +20% créditos em recompensas\n"
-        "🔹 *\"Espere, podemos resolver!\" (Ativa):* inimigo hesita, perde Ação Principal 1 turno\n\n"
-        "🎒 *Equip:* Roupas Luxo, Pistola Laser(1d6), Datapad, +100 CG extras (200 total)"
-    ),
-    "pirata": (
-        "☠️ *PIRATA — O Terror do Vácuo*\n━━━━━━━━━━━━━━━━━━━━\n"
-        "❤️ PV Base: +10 | 🎯 Papel: combate brutal curta distância, boarding\n\n"
-        "🎯 *Perícias:* ArmFogo+3, ArmBrancas+3, Intimidação+3, Sobrevivência+2, Pilotagem+1\n\n"
-        "🔹 *Brutalidade de Abordagem (Passiva):* sem penalidade espaço confinado, +1 dano em naves\n"
-        "🔹 *Grito Saqueador (Ativa):* 5m, inimigos testam Sab ou Amedrontados 2 turnos\n\n"
-        "🎒 *Equip:* Colete(CD+2), Escopeta Sônica(2d6), Bastão Choque(1d6), Arpéu, Granada Fumaça"
-    ),
+    "estudioso":"📚 *ESTUDIOSO* — Cofre de Conhecimento\n━━━━━━━━━━━━━━━━━━━━\n❤️+4 PV | 🎯 Perito fraquezas/puzzles\nPerícias: Conhecimentos+4 Investigação+3 Mecânica+2 Tecnomancia+2 Persuasão+1\n🔹 Mapa Mental: 1x/sessão, Mestre dá info sobre criatura/tech\n🔹 Ponto Estrutural (1RAM): próximo ataque=dano MÁXIMO\n🎒 Roupas Civis | EMP ou Laser | Datapad | Bateria",
+    "mecanico":"🔧 *MECÂNICO* — Arquiteto da Sobrevivência\n━━━━━━━━━━━━━━━━━━━━\n❤️+6 PV | 🎯 Suporte/reparos/naves\nPerícias: Mecânica+5 Pilotagem+2 ArmBrancas+2 Tecnomancia+1 Persuasão+1 Sobrevivência+1\n🔹 Ignora penalidade armaduras pesadas\n🔹 Reparo Tático: 1d6+Mec PV temporários aliado\n🎒 Traje Bordo | Íons ou Escopeta | Garras | Ferramentas",
+    "assassino":"🗡️ *ASSASSINO* — Sombra Silenciosa\n━━━━━━━━━━━━━━━━━━━━\n❤️+8 PV | 🎯 Dano explosivo furtivo\nPerícias: Furtividade+4 ArmBrancas+2 ArmFogo+2 Espionagem+2 Medicina+1 Persuasão+1\n🔹 Primeiro Corte: +2 acerto, DOBRA dano vs desprevenido\n🔹 Desaparecer: ao matar, furtividade grátis\n🎒 Traje Furtivo | Besta Phobos ou SubMetra | Faca Plasma | Granada",
+    "soldado":"🎖️ *SOLDADO* — Baluarte de Fogo\n━━━━━━━━━━━━━━━━━━━━\n❤️+10 PV | 🎯 Linha de frente, tanque\nPerícias: ArmFogo+4 ArmBrancas+3 Explosivos+2 Pilotagem+1 Sobrevivência+1 Furtividade+1\n🔹 Sem penalidade armas Pesadas\n🔹 Fogo Supressão: inimigo testa Sab ou desvantagem\n🎒 Colete | Rifle ou Escopeta | Faca Plasma | Kit Médico",
+    "starlord":"🌟 *STARLORD* — Voz de Comando\n━━━━━━━━━━━━━━━━━━━━\n❤️+8 PV | 🎯 Líder/inspirador\nPerícias: Persuasão+5 ArmFogo+2 Tecnomancia+2 Pilotagem+2 Furtividade+1\n🔹 Charme: re-rola persuasão falhada 1x\n🔹 \"Deixem comigo!\": aliado ganha Vantagem\n🎒 Roupas Elegantes | Pistola Laser | Faca Plasma",
+    "franco_atirador":"🎯 *FRANCO-ATIRADOR* — Observador Letal\n━━━━━━━━━━━━━━━━━━━━\n❤️+6 PV | 🎯 Controle à distância\nPerícias: ArmFogo+5 Sobrevivência+3 Furtividade+2 Investigação+2\n🔹 +5 ataque >30m (só +2 ≤30m)\n🔹 Tiro Incapacitante: ½ dano, imobiliza 1t\n🎒 Colete | Rifle Precisão | Bastão Choque | Binóculos",
+    "musico":"🎵 *MÚSICO* — Arquiteto de Frequências\n━━━━━━━━━━━━━━━━━━━━\n❤️+4 PV | 🎯 Buff/debuff via som\nPerícias: Tecnomancia+5 Performance+4 Persuasão+2 ArmBrancas+1\n🔹 +2CD vs controle mental/sônico\n🔹 Frequência: +2 dano aliados OU -2CD inimigos 10m\n🎒 Roupas Civis | Pistola Laser | Instrumento | Bateria",
+    "espiao":"🕵️ *ESPIÃO* — Fantasma de Mil Rostos\n━━━━━━━━━━━━━━━━━━━━\n❤️+4 PV | 🎯 Infiltração social\nPerícias: Espionagem+4 Persuasão+4 Furtividade+2 Acrobacia+1 Intimidação+1\n🔹 Vantagem persuasão/enganação com disfarce\n🔹 Ponto Cego: inimigos o ignoram\n🎒 Roupas Civis | Pistola Laser | Faca Plasma | 2 IDs",
+    "catador":"♻️ *CATADOR* — Rei da Sucata\n━━━━━━━━━━━━━━━━━━━━\n❤️+6 PV | 🎯 Loot/reparos com pouco\nPerícias: Persuasão+3 Investigação+2 Sobrevivência+2 Mecânica+2 Pilotagem+2 ArmFogo+1\n🔹 Olho para Ouro: 1d6, 4-6=item extra\n🔹 Desmanche: 1d8 dano + reduz CD robô\n🎒 Traje Bordo | Revólver Íons | Bastão Choque | Maçarico",
+    "piloto":"✈️ *PILOTO* — Coração da Nave\n━━━━━━━━━━━━━━━━━━━━\n❤️+6 PV | 🎯 Salvação em combate espacial\nPerícias: Pilotagem+5 Mecânica+2 Persuasão+2 Sobrevivência+2 ArmFogo+1\n🔹 +2CD veículo pilotado\n🔹 Sobrecarga Propulsores: vantagem evasiva, nave toma 1d4\n🎒 Traje Bordo | Íons ou Escopeta | Chave Inglesa",
+    "batedor":"👁️ *BATEDOR* — Vanguarda do Perigo\n━━━━━━━━━━━━━━━━━━━━\n❤️+8 PV | 🎯 Detectar/marcar ameaças\nPerícias: Sobrevivência+4 ArmFogo+3 Investigação+3 Furtividade+1 Explosivos+1\n🔹 Nunca surpreendido, +2 Iniciativa\n🔹 Marca: aliados ignoram cobertura do alvo\n🎒 Traje Furtivo | SubMetra | Faca Plasma | Granada",
+    "explorador":"🗺️ *EXPLORADOR* — Navegador das Rotas\n━━━━━━━━━━━━━━━━━━━━\n❤️+6 PV | 🎯 Guia/analista biológico\nPerícias: Investigação+4 Sobrevivência+4 Conhecimentos+3 Persuasão+1\n🔹 Grupo ignora terreno difícil 10m\n🔹 Vulnerabilidade: descobre fraqueza, +1d6 dano\n🎒 Colete | Rifle Assalto | Scanner | Corda 15m",
+    "cinetico":"⚡ *CINÉTICO* — Ponte Mente-Máquina\n━━━━━━━━━━━━━━━━━━━━\n❤️+4 PV | 🎯 Tecnomante curador\nPerícias: Tecnomancia+5 Medicina+3 Resistência+2 Acrobacia+2\n🔹 Bio-feedback: ao curar aliado, recupera 2PV próprio\n🔹 Repulsão (1RAM): empurra inimigos 3m\n🎒 Roupas Civis | EMP | Deck Pulso | Bateria | Kit Médico",
+    "prospector":"💼 *PROSPECTOR* — Rosto da Tripulação\n━━━━━━━━━━━━━━━━━━━━\n❤️+4 PV | 🎯 Negociador/créditos\nPerícias: Persuasão+5 Liderança+4 Tecnomancia+3\n🔹 +20% créditos em recompensas\n🔹 \"Espere!\": inimigo perde ação 1t\n🎒 Roupas Luxo | Pistola Laser | Datapad | +100CG extras",
+    "pirata":"☠️ *PIRATA* — Terror do Vácuo\n━━━━━━━━━━━━━━━━━━━━\n❤️+10 PV | 🎯 Combate brutal/boarding\nPerícias: ArmFogo+3 ArmBrancas+3 Intimidação+3 Sobrevivência+2 Pilotagem+1\n🔹 Sem penalidade espaço confinado, +1 dano em nave\n🔹 Grito: 5m, Sab ou Amedrontado 2t\n🎒 Colete | Escopeta Sônica | Bastão ou Faca | Arpéu | Granada",
 }
 
-# ══════════════════════════════════════════════════════════
-# ARSENAL — ARMAS BRANCAS
-# ══════════════════════════════════════════════════════════
+# Arsenal, Armaduras, Ferramentas, Implantes, Tecnomancia, Naves, Bestiário, Filosofias
+# (Textos longos para o glossário — mesmos de antes)
 
 ARMAS_BRANCAS_TEXT = (
-    "🗡️ *ARSENAL — ARMAS BRANCAS*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Ataque: 1d20 + For + Perícia | Dano: dado + For\n"
-    "Armas *Ágeis* podem usar Des em vez de For.\n\n"
-    "💀 *LEVES (1d4):*\n"
-    "• Faca de Plasma — 40CG | Oculta, Ágil\n"
-    "• Garras de Combate — 45CG | Aderência (+2 de cima), Ágil\n"
-    "• Maçarico Laser — 60CG | Derretimento (ignora metal)\n"
-    "• Soco Inglês — 35CG | Concussão (crítico=atordoa)\n\n"
-    "⚔️ *MÉDIAS (1d6):*\n"
-    "• Bastão de Choque — 50CG | Atordoante (max=perde mov)\n"
-    "• Chicote Mono — 250CG | Alcance 3m, Ágil\n"
-    "• Manopla Grav — 200CG | Impacto (empurra 2m)\n"
-    "• Chave Inglesa — 20CG | Ferramenta (+2 vs robôs)\n"
-    "• Arpéu Magnético — 90CG | Puxão 5m\n"
-    "• Bastão Telescópico — 40CG | Oculta, Rápida\n"
-    "• Katar Ven'y — 120CG | Tóxica (Con CD13, 1d6 2t)\n"
-    "• Escudo-Lâmina — 100CG | Defensiva (+1CD vs tiros)\n\n"
-    "🔥 *PESADAS (1d8):*\n"
-    "• Espada Térmica — 150CG | Confiável\n"
-    "• Lança Ven'y — 80CG | Ágil, arremessável 15m\n"
-    "• Lâmina Marciana — 110CG | Aparar (+1CD 2 mãos)\n"
-    "• Nunchaku Mono — 95CG | Ágil\n"
-    "• Machado Sucata — 30CG | Despedaçador (supera 5CD=quebra)\n"
-    "• Foice Deimos — 130CG | Sangramento\n\n"
-    "💎 *RARAS (1d10+):*\n"
-    "• Foice Diamante — 800CG | 1d10 Perfurante (-2CD armadura)\n"
-    "• Alabarda Proturno — 350CG | 1d10 Alcance 3m\n"
-    "• Lança Choque — 220CG | 1d10 Investida (vantagem)\n"
-    "• Martelo Demolição — 180CG | 2d6 Destruidora (2x vs objetos)\n"
-    "• Machado Cinético — 400CG | 2d8 Pesada (-2 acerto)\n"
-    "• Martelo Sísmico — 1500CG | 1d20 Derrubar\n"
-    "• Espadão Fusão — 2000CG | 2d12 Pesada, Queimadura"
-)
-
-# ══════════════════════════════════════════════════════════
-# ARSENAL — ARMAS DE FOGO
-# ══════════════════════════════════════════════════════════
+    "🗡️ *ARSENAL — ARMAS BRANCAS*\n━━━━━━━━━━━━━━━━━━━━\n"
+    "Ataque: 1d20+For+Per | Dano: dado+For | Ágeis: podem usar Des\n\n"
+    "💀 *1d4:* Faca Plasma 40CG (Oculta/Ágil) | Garras 45CG (Aderência/Ágil) | Maçarico 60CG (Derrete metal) | Soco Inglês 35CG (Crítico=atordoa)\n\n"
+    "⚔️ *1d6:* Bastão Choque 50CG (Max=perde mov) | Chicote Mono 250CG (3m/Ágil) | Manopla Grav 200CG (Empurra 2m) | Chave Inglesa 20CG (+2 vs robôs) | Arpéu 90CG (Puxa 5m) | Bastão Telescópico 40CG (Oculta) | Katar Ven'y 120CG (Veneno) | Escudo-Lâmina 100CG (+1CD tiros)\n\n"
+    "🔥 *1d8:* Espada Térmica 150CG | Lança Ven'y 80CG (Arremessável/Ágil) | Lâmina Marciana 110CG (Aparar +1CD) | Nunchaku 95CG (Ágil) | Machado Sucata 30CG (Quebra armadura) | Foice Deimos 130CG (Sangra)\n\n"
+    "💎 *1d10+:* Foice Diamante 800CG 1d10 (-2CD arm) | Alabarda 350CG 1d10 (3m) | Lança Choque 220CG 1d10 (Investida) | Martelo Demolição 180CG 2d6 (2x objetos) | Machado Cinético 400CG 2d8 (Pesada) | Martelo Sísmico 1500CG 1d20 (Derrubar) | Espadão Fusão 2000CG 2d12 (Pesada/Queima)")
 
 ARMAS_FOGO_TEXT = (
-    "🔫 *ARSENAL — ARMAS DE FOGO*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Ataque: 1d20 + Des + Perícia | Dano: dado + Des\n"
-    "🔋 Pentes: 3 turnos de tiro. Rajada=2t. Recarregar=Ação Movimento.\n\n"
-    "💀 *LEVES (1d4):*\n"
-    "• Pistola EMP — 100CG | Anti-Sintético (3d4 vs robôs)\n"
-    "• Lança-Chamas — 250CG | Área 3x3m\n"
-    "• Sinalizadora — 25CG | Marcador (aliado=vantagem)\n"
-    "• Dardos Tóxicos — 150CG | Silenciosa +1d6 veneno\n"
-    "• Derringer — 120CG | Ultra-Oculta, 1º tiro=vantagem\n\n"
-    "⚔️ *MÉDIAS (1d6-2d4):*\n"
-    "• Pistola Laser — 60CG | 1d6 Saque Rápido\n"
-    "• Besta Repetição — 180CG | 1d6 Rajada Silenciosa\n"
-    "• Lança-Granadas — 300CG | 1d6 Explosão Área 3x3\n"
-    "• Emissor Micro-ondas — 450CG | 1d6 Inesquivável (+1d6/t)\n"
-    "• SubMetra Flechetes — 220CG | 2d4 Sangramento\n"
-    "• Fuzil Estilhaços — 140CG | 2d4 Sangra cone 5m\n\n"
-    "🔥 *PESADAS (1d8-1d12):*\n"
-    "• Revólver Íons — 160CG | 1d8 Brutal (19-20 crítico)\n"
-    "• Rifle Assalto — 200CG | 1d8 Rajada (2 alvos)\n"
-    "• Carabina Terráquea — 130CG | 1d8 Confiável (sem falha)\n"
-    "• Besta Phobos — 350CG | 1d10 Silenciosa\n"
-    "• Rifle Laser — 280CG | 1d10 Perfurante (-1CD)\n"
-    "• Rifle Precisão — 500CG | 1d12 Telescópica, Brutal\n"
-    "• Arco Phobos — 300CG | 1d12 Usa FORÇA\n"
-    "• Canhão Plasma — 650CG | 1d12 Sobreaquecimento\n\n"
-    "💎 *ARTILHARIA (2d6+):*\n"
-    "• Escopeta Sônica — 260CG | 2d6 Curto Alcance\n"
-    "• Escopeta Rust — 300CG | 2d8 Descarregar (4d8)\n"
-    "• Canhão Sônico — 800CG | 2d8 Cone 10m\n"
-    "• Minigun — 900CG | 3d6 Pesada, Supressão\n"
-    "• Canhão Antimatéria — 3500CG | 1d20 Artilharia\n"
-    "• Rifle Gauss — 4500CG | 2d20 Atravessa Paredes"
-)
-
-# ══════════════════════════════════════════════════════════
-# ARMADURAS
-# ══════════════════════════════════════════════════════════
+    "🔫 *ARSENAL — ARMAS DE FOGO*\n━━━━━━━━━━━━━━━━━━━━\n"
+    "Ataque: 1d20+Des+Per | Dano: dado+Des | 🔋 Pente: 3t | Rajada: 2t\n\n"
+    "💀 *1d4:* EMP 100CG (3d4 vs robôs) | Lança-Chamas 250CG (Área 3x3) | Sinalizadora 25CG (Marca) | Dardos Tóxicos 150CG (Silenciosa+1d6 veneno) | Derringer 120CG (Oculta/1º=vantagem)\n\n"
+    "⚔️ *1d6-2d4:* Pistola Laser 60CG 1d6 (Saque Rápido) | Besta Repetição 180CG 1d6 (Rajada Silenciosa) | Lança-Granadas 300CG 1d6 (Área) | Micro-ondas 450CG 1d6 (Contínuo +1d6/t) | SubMetra 220CG 2d4 (Sangra) | Fuzil Estilhaços 140CG 2d4 (Cone 5m)\n\n"
+    "🔥 *1d8-1d12:* Revólver Íons 160CG 1d8 (Brutal 19-20) | Rifle Assalto 200CG 1d8 (Rajada) | Carabina 130CG 1d8 (Sem falha) | Besta Phobos 350CG 1d10 (Silenciosa) | Rifle Laser 280CG 1d10 (-1CD) | Rifle Precisão 500CG 1d12 (Telescópica/Brutal) | Arco Phobos 300CG 1d12 (Usa FOR) | Canhão Plasma 650CG 1d12\n\n"
+    "💎 *2d6+:* Escopeta Sônica 260CG 2d6 (-4 >10m) | Rust 300CG 2d8 (Descarregar=4d8) | Canhão Sônico 800CG 2d8 (Cone 10m) | Minigun 900CG 3d6 (Pesada) | Antimatéria 3500CG 1d20 | Gauss 4500CG 2d20 (Atravessa paredes)")
 
 ARMADURAS_TEXT = (
-    "🛡️ *ARMADURAS E TRAJES*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "CD = 10 + Mod.Des + Bônus Armadura\n\n"
-    "👕 *LEVES* (soma toda Des):\n"
-    "• Roupas Civis — 20CG | +0CD\n"
-    "• Roupas Elegantes — 80CG | +0CD (status social)\n"
-    "• Traje Furtivo Nanofibra — 250CG | +1CD, +2 Furtividade\n"
-    "• Escudo Energia Pessoal — 800CG | +0CD, absorve 10 dano (recarrega DL)\n\n"
-    "🦺 *MÉDIAS* (Des máx +2):\n"
-    "• Colete Tático — 150CG | +2CD, bolsos magnéticos\n"
-    "• Traje Bordo Atmosférico — 180CG | +2CD, imune vácuo/gases, O₂ 12h\n"
-    "• Exoesqueleto Leve — 300CG | +4CD, -2 Furt/Acro, +50kg carga\n\n"
-    "🏋️ *PESADAS* (NÃO soma Des):\n"
-    "• Armadura Reativa Urak — 450CG | +3CD, reflete 1d4 térmico em melee\n"
-    "• Armadura Eng. Conjupitera — 500CG | +4CD, -2 Furt, +2 Mecânica\n"
-    "• Armadura Marciana — 650CG | +6CD, -4 Furt, exige For+2\n"
-    "• Mecha-Suit Assalto — 3500CG | +8CD, sem esquiva, ignora queda"
-)
+    "🛡️ *ARMADURAS*\n━━━━━━━━━━━━━━━━━━━━\nCD = 10 + Des + Armadura\n\n"
+    "👕 *Leves* (toda Des): Civis 20CG +0 | Elegantes 80CG +0 | Furtivo 250CG +1(+2Furt) | Escudo Energia 800CG absorve 10dano\n\n"
+    "🦺 *Médias* (Des máx+2): Colete 150CG +2 | Traje Bordo 180CG +2(imune vácuo) | Exoesqueleto 300CG +4(-2Furt)\n\n"
+    "🏋️ *Pesadas* (sem Des): Urak 450CG +3(reflete 1d4) | Conjupitera 500CG +4(+2Mec) | Marciana 650CG +6(-4Furt) | Mecha 3500CG +8")
 
-# ══════════════════════════════════════════════════════════
-# FERRAMENTAS E UTILITÁRIOS
-# ══════════════════════════════════════════════════════════
+FERRAMENTAS_TEXT = "🛠️ *FERRAMENTAS E UTILITÁRIOS*\n━━━━━━━━━━━━━━━━━━━━\n🏕️ Kit Base 50CG | Rações 3d 15CG | Luzes 5CG | Comunicador 25CG | Corda 20CG | Fita 5CG\n💊 Kit Médico 30CG (1d8) | Primeiros Socorros 20CG\n💣 Granada Fumaça 35CG | Granada Luz 40CG | Scanner 60CG | Binóculos 80CG\n🧠 Bateria Fantasma 30CG (+1RAM) | Deck Pulso 100CG | Datapad 120CG | Instrumento 100CG\n🕵️ IDs Falsas 150CG | Contratos 15CG\n🍷 Módulo Som 25CG | Garrafa 40CG"
 
-FERRAMENTAS_TEXT = (
-    "🛠️ *FERRAMENTAS E UTILITÁRIOS*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n\n"
-    "🏕️ *SOBREVIVÊNCIA:*\n"
-    "• Kit Sobrevivência Base — 50CG (Comunicador, 3 rações, 2 luzes)\n"
-    "• Tubo de Rações (3 dias) — 15CG\n"
-    "• Luzes Químicas — 5CG\n"
-    "• Comunicador de Pulso — 25CG\n"
-    "• Corda Nanofibra (150m) — 20CG\n"
-    "• Fita Isolante Espacial — 5CG\n\n"
-    "💊 *MÉDICO:*\n"
-    "• Kit Médico Batalha — 30CG (cura 1d8 PV)\n"
-    "• Kit Primeiros Socorros — 20CG (estanca sangramento)\n\n"
-    "💣 *TÁTICO:*\n"
-    "• Granada de Fumaça — 35CG\n"
-    "• Granada de Luz — 40CG (cega área 3x3m)\n"
-    "• Scanner Ambiental — 60CG (venenos/radiação)\n"
-    "• Binóculos Termais — 80CG\n\n"
-    "🧠 *TECNOLOGIA:*\n"
-    "• Bateria Fantasma — 30CG (recupera 1 RAM)\n"
-    "• Deck Digital de Pulso — 100CG (interface Tecnomancia)\n"
-    "• Datapad Pesquisa — 120CG (Estudiosos)\n"
-    "• Datapad Corporativo — 80CG (logística)\n"
-    "• Instrumento Musical Digital — 100CG (Músicos)\n\n"
-    "🕵️ *INFILTRAÇÃO:*\n"
-    "• Identidades Falsas — 150CG\n"
-    "• Contratos + Caneta Digital — 15CG\n\n"
-    "🍷 *DIVERSOS:*\n"
-    "• Módulo Som Portátil — 25CG\n"
-    "• Garrafa Contrabandista — 40CG (suborno/moral)"
-)
+IMPLANTES_TEXT = "🦾 *IMPLANTES*\n━━━━━━━━━━━━━━━━━━━━\n⚠️ Limite: 2+Mod.Con | 1º extra=-1d6PV | 2º=curto 1-2nat | 3º=morte\n\n🧠 Chip RAM 1500CG +2RAM | Olho 800CG +2dist | Interface Nav 1200CG vantagem evasiva | Tradutor 600CG +2Pers | Mira 950CG\n🫀 Placas 1100CG +1CD | Coração 2500CG +5PV | Filtro 750CG imune gás | Adrenalina 3000CG ação extra | Bateria Int 2000CG PV→RAM\n🦿 Braço 850CG +2dano | Estabilizador 500CG sem pesada | Mantis 1000CG 1d8 dobra furtivo | Pernas 1500CG 2x desloc | Âncoras 700CG imune derrubar"
 
-# ══════════════════════════════════════════════════════════
-# IMPLANTES CIBERNÉTICOS
-# ══════════════════════════════════════════════════════════
+NAVES_TEXT = "🚀 *FROTA ESTELAR*\n━━━━━━━━━━━━━━━━━━━━\nCD: 10+Man+Piloto | ⚡Energia=normal | ⚡EMP=2x escudo ½casco | 💥Balístico=+1d casco\n\n✈️ Caça 15k C30 E10 M+4 Plasma3d6 | Interceptador 45k C40 E15 M+3 EMP2d10 | Veleiro Sata C40 E25 M+5 Micro3d8\n🚀 Cargueiro 60k C60 E30 M+1 Torreta3d8 ⭐NAVE INICIAL | Prospecção 90k C80 E20 M-1 Laser4d8\n⚔️ Cruzador Proturno C70 E80 M0 Íon8d10 | Corveta 190k C100 E50 M-1 Mísseis6d10 | Bombardeiro Urak C120 E30 M-3 Sísmico8d12 | Fragata Marciana 300k C150 E40 M-2 Railgun5d12\n💀 Encouraçado C300 E150 M-4 Plasma10d20 — CHEFE"
 
-IMPLANTES_TEXT = (
-    "🦾 *IMPLANTES CIBERNÉTICOS*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "⚠️ Limite seguro: 2 + Mod.Con\n"
-    "1º extra: -1d6 PV máx + desvantagem social\n"
-    "2º extra: curto-circuito em 1-2 natural\n"
-    "3º extra: MORTE na cirurgia\n\n"
-    "🧠 *CABEÇA:*\n"
-    "• Chip Expansão RAM — 1500CG | +2 Slots RAM\n"
-    "• Olho Biônico — 800CG | +2 ataque distância, ignora fumo/escuro\n"
-    "• Interface Navegação — 1200CG | Vantagem manobras evasivas (Piloto)\n"
-    "• Tradutor Universal — 600CG | +2 Persuasão, traduz qualquer idioma\n"
-    "• Mira Preditiva — 950CG | Reduz penalidade sniper perto\n\n"
-    "🫀 *TORSO:*\n"
-    "• Placas Subdérmicas — 1100CG | +1CD permanente\n"
-    "• Coração Sintético — 2500CG | +5PV máx, +2 vs venenos\n"
-    "• Filtro Pulmonar — 750CG | Imune gases venenosos\n"
-    "• Reator Adrenalina — 3000CG | 1x/dia Ação Principal extra\n"
-    "• Bateria Interna — 2000CG | Gasta PV para conjurar sem RAM\n\n"
-    "🦿 *MEMBROS:*\n"
-    "• Braço Hidráulico — 850CG | +2 dano melee, Vantagem For\n"
-    "• Estabilizador Pulso — 500CG | Sem penalidade armas pesadas\n"
-    "• Lâmina Mantis — 1000CG | 1d8 oculta, dobra dano furtivo\n"
-    "• Pernas Pneumáticas — 1500CG | 2x deslocamento, ignora queda 15m\n"
-    "• Âncoras Magnéticas — 700CG | Imune derrubar, anda no teto"
-)
+MODIFICACOES_TEXT = "🔧 *MODIFICAÇÕES*\n━━━━━━━━━━━━━━━━━━━━\nSlots: Simples=1 | Primária=2 (máx 1 tecno) | CD13 para instalar\n\n🗡️ Mec: Nanofibra 150(Ágil) | Fio 200(Sangra) | Cabo 120(Oculta) | Haste 160(+3m) | Injetor 100(veneno)\n🗡️ Tec: Motor 250(Impacto) | Choque 300(Atordoa) | Núcleo 400(½fogo) | Matriz 450(2x escudo) | Cristal 600(cura crítico)\n🔫 Mec: Pente 150(4t) | Silenciador 200 | Cano Serrado 100(+2/-4) | Coronha 200(anula Pesada) | Granadas 350\n🔫 Tec: SmartLink 500(re-rola) | Térmico 400(fogo) | EMP 350(Anti-Sint) | Biométrica 250 | Magnética 500(-1CD)"
 
-# ══════════════════════════════════════════════════════════
-# TECNOMANCIA
-# ══════════════════════════════════════════════════════════
+FILOSOFIAS_TEXT = "📜 *FILOSOFIAS DE VIDA*\n━━━━━━━━━━━━━━━━━━━━\n🌌 *Caminhos:* Voz (desvantagem alvo) | Ressonância (sente 10m escuro) | Engrenagem (falha→comum) | Espiral (cura vantagem) | Anel (1PV letal) | Ocaso (1d4 dano=+1d4 rolagem)\n⚙️ *Códigos:* Sobrevivente (+2 Init) | Corporativo (vantagem negociar) | Cético (+2CD psi) | Fronteira (+1 sozinho) | Caserna (tanka aliado) | Vira-Lata (distrai+vantagem)"
 
-TECNO_BASICAS = (
-    "🟢 *ROTINAS BÁSICAS (Nível 1)*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Requisito: Tecnomancia +1 ou +2\n\n"
-    "⚡ *Custo 0 (cantrips):*\n"
-    "1. *Ping* (livre) — interage com eletrônico a 10m. Apagar luzes, abrir portas.\n"
-    "2. *Choque Estático* (principal) — 1d6 dano elétrico.\n"
-    "3. *Query Neural* (principal) — lê último pensamento de cibernético (Int vs alvo).\n"
-    "4. *Bateria Fantasma* (principal) — recarrega lanterna/comunicador por 1h.\n"
-    "5. *Scanner de Frequência* (livre) — vê emissões Wi-Fi/rádio/Bluetooth em 50m.\n\n"
-    "🔋 *Custo 1 RAM:*\n"
-    "6. *Jammer Pessoal* (movimento) — bolha 10m, sem comunicação por 3 turnos.\n"
-    "7. *Glitch Visual* (principal) — enche visor do alvo de pop-ups: -2 próximo ataque.\n"
-    "8. *Trava Biométrica* (movimento) — tranca porta com seu DNA.\n"
-    "9. *Rollback Celular* (principal) — cura 1d8+Int PV. Fecha cortes visualmente.\n"
-    "10. *Firewall Ativo* (reação) — barreira hexagonal bloqueia 1d10+Int dano."
-)
+TECNO_BASICAS = "🟢 *ROTINAS BÁSICAS (Nv1, Tecno+1/+2)*\n━━━━━━━━━━━━━━━━━━━━\n⚡0RAM: Ping(livre,interage 10m) | Choque(1d6) | Query(lê pensamento) | Bateria(recarrega) | Scanner(vê emissões 50m)\n🔋1RAM: Jammer(10m sem comun 3t) | Glitch(-2 ataque alvo) | Trava Biométrica(tranca porta) | Rollback(cura 1d8+Int) | Firewall(reação, bloqueia 1d10+Int)"
+TECNO_INJECOES = "🟡 *INJEÇÕES MALICIOSAS (Nv2, Tecno+3/+4)*\n━━━━━━━━━━━━━━━━━━━━\n🔋1: Ejetar Pente(reação,força recarga)\n🔋🔋2: Travar Arma(1t) | Curto Armadura(-3CD 2t) | Hackear Motor(½desloc 3t) | Cegueira(cego 2t) | Drenar Escudo(→PV temp) | Sobrecarga(2d6 área) | Desativar Vida(desliga O₂) | Loop(anula script)\n🔋🔋🔋3: Torreta Sentinela(drone aliado 3t)"
+TECNO_PROTOCOLOS = "🔴 *PROTOCOLOS SOBRESCRITA (Nv3, Tecno+5+)*\n━━━━━━━━━━━━━━━━━━━━\n🔋🔋🔋3: Hackear Nav(controla nave 1t) | Inverter Prop(3d8 casco) | Ejetar Piloto\n🔋🔋🔋🔋4: Apagão Motor(à deriva 1t) | EMP Local(10m desliga tudo 2t) | Reparo Nave(4d10PV) | Gravidade Zero(5x5m)\n🔋🔋🔋🔋🔋5: Sobrecarga Reator(6d10 explosão) | Marionete(controla 3t) | Formatar Mente(5d8 psi)"
 
-TECNO_INJECOES = (
-    "🟡 *INJEÇÕES MALICIOSAS (Nível 2)*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Requisito: Tecnomancia +3 ou +4\n\n"
-    "🔋 *Custo 1 RAM:*\n"
-    "14. *Ejetar Pente* (reação) — força recarga do inimigo em pleno tiroteio.\n\n"
-    "🔋🔋 *Custo 2 RAM:*\n"
-    "11. *Travar Armamento* (principal) — trava arma inimiga por 1 turno.\n"
-    "12. *Curto em Armadura* (principal) — -3CD por 2 turnos + 1d4 queimadura.\n"
-    "13. *Hackear Implante Motor* (principal) — ½ desloc, sem esquivar por 3 turnos.\n"
-    "15. *Cegueira Cibernética* (principal) — desliga olhos: cego 2t, desvantagem.\n"
-    "16. *Drenar Escudos* (principal) — suga escudo inimigo → PV temporários próprios.\n"
-    "17. *Sobrecarga Sistema* (principal) — 2d6 elétrico em área 3x3m.\n"
-    "18. *Desativar Suporte Vida* (principal) — desliga O₂/aquecedores do traje.\n"
-    "19. *Loop de Feedback* (reação) — anula script inimigo, gasta RAM dele.\n\n"
-    "🔋🔋🔋 *Custo 3 RAM:*\n"
-    "20. *Torreta Sentinela* (principal) — drone/torreta vira aliado por 3 turnos."
-)
-
-TECNO_PROTOCOLOS = (
-    "🔴 *PROTOCOLOS DE SOBRESCRITA (Nível 3)*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Requisito: Tecnomancia +5 ou mais\n\n"
-    "🔋🔋🔋 *Custo 3 RAM:*\n"
-    "21. *Hackear Navegação* (principal) — controla nave inimiga por 1 turno.\n"
-    "23. *Inverter Propulsores* (reação) — 3d8 dano estrutural ao casco inimigo.\n"
-    "27. *Ejetar Piloto* (principal) — ejeta piloto de caça/mecha com explosão.\n\n"
-    "🔋🔋🔋🔋 *Custo 4 RAM:*\n"
-    "22. *Apagão do Motor* (principal) — desliga motor de nave, à deriva 1 turno.\n"
-    "26. *EMP Localizado* (principal) — 10m desliga TUDO por 2t (só biologia funciona).\n"
-    "28. *Reparo Estrutural* (principal) — 4d10 PV de cura para a NAVE.\n"
-    "30. *Gravidade Zero Local* (principal) — 5x5m sem gravidade, desvantagem ataques.\n\n"
-    "🔋🔋🔋🔋🔋 *Custo 5 RAM:*\n"
-    "24. *Sobrecarga de Reator* (principal) — 2 turnos de contagem → 6d10 EXPLOSÃO.\n"
-    "25. *Marionete Sintética* (principal) — controla ciborgue/androide por 3 turnos.\n"
-    "29. *Formatar Mente* (principal) — 5d8 psíquico + apaga 24h de memória."
-)
-
-# ══════════════════════════════════════════════════════════
-# NAVES
-# ══════════════════════════════════════════════════════════
-
-NAVES_TEXT = (
-    "🚀 *FROTA ESTELAR*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "CD Nave: 10 + Manobrabilidade + Piloto\n"
-    "⚡ Energia: dano normal | ⚡ EMP: 2x vs escudo, ½ vs casco | 💥 Balístico: +1 dado vs casco\n\n"
-    "✈️ *CLASSE LIGEIRA:*\n"
-    "• Caça Ligeiro — 15.000CG | Casco 30, Escudo 10, Man+4 | Plasma 3d6\n"
-    "• Interceptador Furtivo — 45.000CG | Casco 40, Escudo 15, Man+3 | EMP 2d10\n"
-    "• Veleiro Solar Sata — Raro | Casco 40, Escudo 25, Man+5 | Micro-ondas 3d8\n\n"
-    "🚀 *CLASSE MÉDIA:*\n"
-    "• Cargueiro Modificado — 60.000CG | Casco 60, Escudo 30, Man+1 | Torreta 3d8\n"
-    "  _→ Nave inicial perfeita para o grupo!_\n"
-    "• Nave de Prospecção — 90.000CG | Casco 80, Escudo 20, Man-1 | Laser 4d8\n\n"
-    "⚔️ *CLASSE PESADA:*\n"
-    "• Cruzador Proturno — Raro | Casco 70, Escudo 80, Man+0 | Íon 8d10\n"
-    "• Corveta Militar — 190.000CG | Casco 100, Escudo 50, Man-1 | Mísseis 6d10\n"
-    "• Bombardeiro Urak — Raro | Casco 120, Escudo 30, Man-3 | Sísmico 8d12\n"
-    "• Fragata Marciana — 300.000CG | Casco 150, Escudo 40, Man-2 | Railgun 5d12\n\n"
-    "💀 *CLASSE COLOSSAL:*\n"
-    "• Encouraçado — INCOMPRÁVEL | Casco 300, Escudo 150, Man-4 | Plasma 10d20\n"
-    "  _→ Inimigo de nível Chefe. O grupo invade, não enfrenta._"
-)
-
-# ══════════════════════════════════════════════════════════
-# MODIFICAÇÕES DE ARMAS
-# ══════════════════════════════════════════════════════════
-
-MODIFICACOES_TEXT = (
-    "🔧 *MODIFICAÇÕES DE ARMAS*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Slots: Simples=1 mod | Primárias=2 mods (máx 1 tecnomágica)\n"
-    "Instalação: 1h (Descanso Curto) + teste Mecânica/Tecnomancia CD13\n\n"
-    "🗡️ *CORPO A CORPO — Mecânica:*\n"
-    "• Empunhadura Nanofibra — 150CG | Torna arma Ágil\n"
-    "• Fio Serrilhado — 200CG | Adiciona Sangramento\n"
-    "• Cabo Retrátil — 120CG | Torna Oculta\n"
-    "• Haste Telescópica — 160CG | +3m Alcance\n"
-    "• Injetor Fluídos — 100CG | Aplica veneno direto\n\n"
-    "🗡️ *CORPO A CORPO — Tecnomancia:*\n"
-    "• Motor Cinético — 250CG | Empurra 2m (Impacto)\n"
-    "• Célula Choque — 300CG | Atordoa 1x/combate\n"
-    "• Núcleo Superaquecido — 400CG | ½ dano vira fogo\n"
-    "• Matriz Desestabilizadora — 450CG | 2x dano vs escudos\n"
-    "• Cristal Sata — 600CG | Crítico = cura 1d4 PV\n\n"
-    "🔫 *ARMAS DE FOGO — Mecânica:*\n"
-    "• Pente Estendido — 150CG | Pente dura 4 turnos\n"
-    "• Silenciador — 200CG | Torna Silenciosa\n"
-    "• Cano Serrado — 100CG | +2 dano perto, -4 longe\n"
-    "• Coronha Contrapeso — 200CG | Anula Pesada\n"
-    "• Lança-Granadas Acoplado — 350CG | Dispara granadas\n\n"
-    "🔫 *ARMAS DE FOGO — Tecnomancia:*\n"
-    "• Mira Smart-Link — 500CG | Re-rola erro 1x\n"
-    "• Conversor Térmico — 400CG | Dano vira fogo + queimadura\n"
-    "• Capacitor EMP — 350CG | Anti-Sintético\n"
-    "• Trava Biométrica — 250CG | Anti-roubo (choque no ladrão)\n"
-    "• Câmara Magnética — 500CG | Perfurante (-1CD)"
-)
-
-# ══════════════════════════════════════════════════════════
-# BESTIÁRIO
-# ══════════════════════════════════════════════════════════
-
-BESTIARIO_PLANETAS = (
-    "👾 *BESTIÁRIO — CRIATURAS POR PLANETA*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Formato: Nome (HP, CD, Dano) — Habilidade\n\n"
-    "🌍 *TERRA:*\n"
-    "• Pirata Saqueador (15, 12, 1d6) — Matilha, foge com HP5\n"
-    "• Mercenário Corp (45, 15, 1d8) — Granada de Luz\n"
-    "• Comodoro Renegado (110, 16, 2x1d8) — Chama 1d4 reforços\n\n"
-    "⚔️ *MARTE:*\n"
-    "• Recruta Phobos (25, 13, 1d8) — Último ataque ao morrer\n"
-    "• Legionário Deimos (55, 16, 1d12) — Endurecer -2 dano\n"
-    "• Senhor da Guerra (140, 17, 3 ataques) — Cura 10PV em crítico\n\n"
-    "🌿 *VÊNUS:*\n"
-    "• Batedor Bruma (20, 13, 1d8) — Salto 6m com Hélio\n"
-    "• Xamã de Gases (50, 14, 1d8) — Nuvem Argônio -2 dano\n"
-    "• Predador Ápice (120, 14, 2x2d6) — Sopro veneno 3d6\n\n"
-    "🔥 *MERCÚRIO:*\n"
-    "• Corredor Deserto (18, 14, 1d4) — 18m desloc, fuga sem oportunidade\n"
-    "• Assassino Poeira (40, 15, 2x1d6) — Regenera 5PV/turno\n"
-    "• Ancião Relativístico (90, 17, 1d6+4) — 2 turnos antes de todos\n\n"
-    "⚙️ *JÚPITER:*\n"
-    "• Operário Mineração (30, 14, 2d6) — Imune empurrão\n"
-    "• Eng. Combate (65, 16, 2d6) — Monta torreta 1d8\n"
-    "• Barão Diamantes (150, 18, 2d10) — Singularidade 4d10\n\n"
-    "💫 *SATURNO:*\n"
-    "• Acólito Anel (20, 12, 1d4) — Cura 1d8 aliado\n"
-    "• Inquisidor Genético (55, 15, 2d4) — Bloqueia cura 2t\n"
-    "• Sacerdote Primordial (100, 16, dreno 2d8) — Ressuscita aliado\n\n"
-    "❄️ *URANO:*\n"
-    "• Ecoador (22, 13, 1d6) — Mímica voz (desvantagem 1º ataque)\n"
-    "• Tecelão Frio (50, 14, 2d6) — Barricada gelo CD15 HP20\n"
-    "• Maestro Zero (115, 15, elétrico) — Sinfonia 4d8 gélido 15m\n\n"
-    "🧠 *NETUNO:*\n"
-    "• Guarda Sombra (15, 12, 1d6) — 1d4 psíquico\n"
-    "• Inquisidor Telepata (45, 14, 2d6) — Controle mental\n"
-    "• Juiz Quântico (105, 16, 3d10) — Bloqueia RAM/ações extras 10m\n\n"
-    "🪐 *PLUTÃO:*\n"
-    "• Catador Exilado (35, 11, 1d6) — Ataque 10m furtivo\n"
-    "• Esmagador (70, 13, 2d6) — Fúria abaixo 50%HP\n"
-    "• Titã Esquecido (150, 14, 2d8) — Fase2 a 50%: cresce, +20PV"
-)
-
-BESTIARIO_FAUNA = (
-    "🦎 *FAUNA ALIENÍGENA E QUIMERAS*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Espécies trazidas de sistemas vizinhos, mutadas pelo Caminho da Espiral.\n\n"
-    "• Cão-Cego Eridani (18, 12, 1d6) — Matilha vantagem, sangramento, imune cegueira\n"
-    "• Parasita Neural Tau Ceti (8, 14, 1d4) — Controla hospedeiro (Sab CD16)\n"
-    "• Rastejador de Vidro (22, 15, 1d8) — Invisível, perfurante -2CD\n"
-    "• Urso-Tanque Kepler (65, 16, 2d8) — Derruba, resiste armas leves\n"
-    "• Morcego-Bomba Proxima (15, 11, voo) — Explode ao morrer: 2d6 fogo 3x3m\n"
-    "• Sanguessuga Vácuo (10, 10, agarrar) — Drena bateria de implante/1d4 escudo\n"
-    "• Mímico Carnal (40, 13, 1d10) — Disfarça-se de cano/painel, 1º ataque=crítico\n"
-    "• Enxame Ferrugem (35, 12, auto) — Corrói metal: -1CD permanente\n"
-    "• Devorador Fósforo (45, 14, 2d6) — Luz cegante, desvantagem ranged\n"
-    "• Leviatã de Fosso (120, 18, 3d10) — Emerge, engole inteiro (Des CD16)\n"
-    "• Quimera Alfa (85, 17, 2d8) — Brutal 19-20, regenera 1d8 (não com fogo/ácido)\n\n"
-    "🌿 *FLORA PERIGOSA (Armadilhas):*\n"
-    "• Musgo Necrótico — 1d4 ácido/turno ao tocar\n"
-    "• Lírio-Ímã — EMP natural, desativa implantes 1d4 turnos\n"
-    "• Árvore-Pulmão — Ar alucinógeno (Con CD14 ou atordoado)\n"
-    "• Vinhas Tungstênio — Presa (Des CD15), só Derretimento/Despedaçador corta\n"
-    "• Orquídea de Sangue — Droga: +2 For/Des 1h, perde 1PV máx permanente"
-)
-
-BESTIARIO_VAZIO = (
-    "👾 *CRIAS DO VAZIO — PASSAGEM SOMBRIA*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Seres de outra dimensão. Desafiam biologia e tecnologia.\n\n"
-    "💀 *COMUNS E LACAIOS:*\n"
-    "• Sanguessuga Estelar (30, 12, 1d6) — Drena 2PV + 1RAM a 5m\n"
-    "• Enxame Adaptativo (15 cada, 12, 1d4) — Evolui: -3 do tipo de dano recebido\n\n"
-    "⚔️ *ELITES:*\n"
-    "• Falso Aliado/Mímico (50, 13, 1d8) — Absorve aparência ao matar. Só Investigação detecta.\n"
-    "• Espectro do Vácuo (45, 16, 1d10 psi) — IMUNE a dano físico. Só energia/tecnomancia.\n"
-    "• Tecelão de Fendas (50, 14, portais) — Redireciona tiros para aliados via portal\n"
-    "• Terror Subterrâneo (70, 14, 2d6) — Emerge sob jogador, derruba\n\n"
-    "🔥 *FORTES:*\n"
-    "• Olho do Abismo (60, 13, 3d8 linha) — Imóvel, escudo frontal ½ dano\n"
-    "• Silenciador Cósmico (65, 15, 1d8) — Desliga TODA tecnomancia/implantes em 15m\n"
-    "• Bocarra Corrosiva (55, 12, 2d8 ácido) — Sangue cáustico (-1CD melee), explode ao morrer\n\n"
-    "💀 *CHEFES:*\n"
-    "• Devorador de Mundos (80→∞, 14, 2d6) — Cresce ao comer: +10HP +1dano cada\n"
-    "• Colecionador de Matrizes (110, 15, 2d8) — Absorve perícias/armas ao matar\n"
-    "• Soberana da Ruína (180, 17, 2d8 psi) — Invoca 1d4 enxames/turno, controle mental CD16"
-)
-
-# ══════════════════════════════════════════════════════════
-# FILOSOFIAS
-# ══════════════════════════════════════════════════════════
-
-FILOSOFIAS_TEXT = (
-    "📜 *FILOSOFIAS DE VIDA*\n"
-    "━━━━━━━━━━━━━━━━━━━━\n"
-    "Escolhida no Nível 1. Define a bússola moral e concede 1 habilidade.\n\n"
-    "🌌 *CAMINHOS (Místicos):*\n"
-    "🗣️ *Voz:* 1x/DL, impõe desvantagem no teste de resistência do alvo em Car. "
-    "Ou finge-se de morto enganando scanners.\n"
-    "🌀 *Ressonância:* 1x/DC, ignora escuridão total, sente vivos em 10m por 1 turno.\n"
-    "⚙️ *Engrenagem:* 1x/DL, transforma falha crítica (1 natural) em falha comum.\n"
-    "🧬 *Espiral:* Toda cura (kit/DC) rola com Vantagem.\n"
-    "💍 *Anel:* 1x/DL, ao chegar a 0PV, fica com 1PV até próximo turno.\n"
-    "🌑 *Ocaso:* 1x/combate, sofre 1d4 dano verdadeiro, soma 1d4 em qualquer rolagem.\n\n"
-    "⚙️ *CÓDIGOS (Seculares):*\n"
-    "🏕️ *Sobrevivente:* +2 Iniciativa permanente. 1x/DL age na rodada surpresa.\n"
-    "💰 *Corporativo:* Vantagem em avaliar itens, achar loot oculto, negociar.\n"
-    "🧊 *Cético:* +2CD vs psíquico/controle/intimidação.\n"
-    "🐺 *Fronteira:* +1 ataque se sem aliado em 5m.\n"
-    "🛡️ *Caserna:* 1x/DC, reação: leva dano no lugar de aliado adjacente.\n"
-    "🃏 *Vira-Lata:* 1x/combate, distrai inimigo 3m, ataca com vantagem."
-)
+BESTIARIO_PLANETAS = "👾 *BESTIÁRIO POR PLANETA*\n━━━━━━━━━━━━━━━━━━━━\n🌍Terra: Pirata(15,12,1d6) Mercenário(45,15,1d8) Comodoro(110,16,2x1d8)\n⚔️Marte: Recruta(25,13,1d8) Legionário(55,16,1d12) Senhor Guerra(140,17,3atk)\n🌿Vênus: Batedor(20,13,1d8) Xamã(50,14,1d8) Predador(120,14,2x2d6)\n🔥Mercúrio: Corredor(18,14,1d4) Assassino(40,15,2x1d6) Ancião(90,17)\n⚙️Júpiter: Operário(30,14,2d6) Eng(65,16,2d6) Barão(150,18,2d10)\n💫Saturno: Acólito(20,12,cura) Inquisidor(55,15,2d4) Sacerdote(100,16)\n❄️Urano: Ecoador(22,13,1d6) Tecelão(50,14,2d6) Maestro(115,15)\n🧠Netuno: Guarda(15,12,1d6) Telepata(45,14,2d6) Juiz(105,16,3d10)\n🪐Plutão: Catador(35,11,1d6) Esmagador(70,13,2d6) Titã(150,14,2d8)"
+BESTIARIO_FAUNA = "🦎 *FAUNA ALIENÍGENA*\n━━━━━━━━━━━━━━━━━━━━\nCão-Cego(18,12,1d6 matilha sangra) | Parasita Neural(8,14,controle) | Rastejador Vidro(22,15,1d8 invisível) | Urso-Tanque(65,16,2d8) | Morcego-Bomba(15,11,explode 2d6) | Sanguessuga Vácuo(10,10,drena) | Mímico Carnal(40,13,1d10) | Enxame Ferrugem(35,12,corrói) | Devorador Fósforo(45,14,2d6) | Leviatã(120,18,3d10 engole) | Quimera Alfa(85,17,2d8 regen)\n🌿 Flora: Musgo(1d4 ácido) | Lírio-Ímã(EMP) | Árvore-Pulmão(alucinógeno) | Vinhas Tungstênio(prende) | Orquídea Sangue(+2For/Des, -1PV máx)"
+BESTIARIO_VAZIO = "👾 *CRIAS DO VAZIO*\n━━━━━━━━━━━━━━━━━━━━\n💀Comuns: Sanguessuga(30,12,drena PV+RAM) | Enxame Adaptativo(15cada,evolui)\n⚔️Elites: Falso Aliado(50,13,assimila) | Espectro(45,16,1d10psi IMUNE físico) | Tecelão Fendas(50,14,portais) | Terror(70,14,emerge)\n🔥Fortes: Olho Abismo(60,13,3d8 linha) | Silenciador(65,15,desliga tecno 15m) | Bocarra(55,12,2d8 ácido explode)\n💀Chefes: Devorador(80→∞,cresce) | Colecionador(110,15,absorve) | Soberana(180,17,2d8psi invoca controla)"
