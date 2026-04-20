@@ -1,414 +1,51 @@
-# PASSAGEM SOMBRIA - RPG ESPACIAL (Referência Completa do Mestre)
-
-## LORE RESUMIDA
-Sistema Solar, futuro distante. Expedições a 10 sistemas vizinhos não encontraram vida inteligente. Espécimes de fauna/flora alienígena foram trazidos e cultivados em labs clandestinos. Cada planeta desenvolveu cultura própria. Uma fenda no espaço-tempo abriu perto de Plutão: a Passagem Sombria, de onde vazam criaturas do Vazio. Os Monólitos Silenciosos (âncoras gravitacionais usadas para viagem) começaram a emitir sinais — nunca foram naturais. Cultistas do Vazio sabotam defesas por dentro.
-
-Planetas: Mercúrio (colônia penal/fornalhas solares), Vênus (selvas tribais/caçadores), Terra (megacorps/comércio), Marte (militarizado/Phobos e Deimos), Júpiter (oligarcas/combustível dobra), Saturno (espirituais/genética), Urano (isolacionistas/arquivistas), Netuno (telepatas manipuladores), Plutão (gigantes ressentidos/linha de frente).
+# PASSAGEM SOMBRIA - RPG ESPACIAL (Referência do Mestre v2.0)
 
 ## REGRAS BÁSICAS (Sistema d20)
 - Teste: 1d20 + Mod.Atributo + Perícia ≥ CD
 - CD: 10 Fácil, 15 Médio, 20 Difícil, 25 Formidável, 30 Quase Impossível
 - Vantagem: 2d20 pega maior. Desvantagem: pega menor. Ambas: anulam-se.
-- 20 Natural: Crítico (acerta auto, dobra dados de dano). 1 Natural: Falha Crítica.
-- Testes Resistidos: ambos rolam, maior vence. Empate = Defensor.
+- 20 Natural: Crítico (dobra dados dano). 1 Natural: Falha Crítica.
+- Testes Resistidos: maior vence. Empate = Defensor.
+- Modificadores: 2-3=-3|4-5=-2|6-7=-1|8-9=0|10-11=+1|12-13=+2|14-15=+3|16+=+4
 
-## TABELA DE MODIFICADORES DE ATRIBUTO
-2-3=-3 | 4-5=-2 | 6-7=-1 | 8-9=+0 | 10-11=+1 | 12-13=+2 | 14-15=+3 | 16+=+4
-
-## ECONOMIA DO TURNO (6 segundos)
-- Iniciativa: 1d20 + Mod.Des
-- Ação Principal: atacar, usar script, kit médico, ação de fuga
-- Ação de Movimento: mover até 9m, recarregar, levantar-se
-- Ação Livre: falar, largar item, apertar botão (1 por turno)
-- Reação: ataque de oportunidade, Firewall Ativo, etc.
+## ECONOMIA DO TURNO (6s)
+Iniciativa: 1d20+Des. Principal: atacar/script/kit. Movimento: 9m/recarregar. Livre: falar/botão. Reação: oportunidade/firewall.
 
 ## VIDA E MORTE
-- 0 PV = Inconsciente. Salvaguardas: 1d20 puro, 10+ sucesso, 9- falha. 3 sucessos=estabiliza. 3 falhas=morre.
-- Dano a 0 PV = 1 falha automática.
-- Descanso Curto (1h): usar kits, recuperar habilidades Caminho/Código. NÃO recupera RAM. NÃO permite level up.
-- Descanso Longo (8h + comida + local seguro): recupera TUDO. PERMITE level up se XP suficiente.
+0PV=Inconsciente. Salvaguardas: 1d20, 10+=sucesso, 9-=falha. 3 suces=estabiliza. 3 falhas=morre. Dano a 0PV=1 falha auto.
 
-## PROGRESSÃO (Nível 1 a 10)
-- Nv1: Recruta. Nv2-8: Veterano. Nv9-10: Lenda.
-- A cada nível: +1 Atributo (máx +6), dado de vida + Con para PV, +1 ponto de perícia.
-- Níveis ímpares (3,5,7,9): +1 Slot RAM.
-- Limite perícia: +5 até nv4, +7 do nv5 em diante.
-- Início: 100 CG + Kit Sobrevivência Base.
+## DESCANSOS
+Curto(1h): kits, habilidades Caminho/Código. NÃO RAM/level.
+Longo(8h+comida+seguro): TUDO. PERMITE level up. Consome 1 ração.
 
-### CÁLCULO DE PV INICIAL (Nível 1):
-1. Role 4d6 (cada dado 1-6). Descarte o MENOR. Some os 3 restantes.
-2. Ajuste racial: Mercusys -2, Ven'y -1, Terráqueo 0, Marciano +2, Conjupitero -3, Sata -1, Urak -1, Proturno -3, Infimor +3
-3. Bônus PV da classe: Estudioso/Músico/Espião/Cinético/Prospector +4, Mecânico/FrancoAtirador/Catador/Piloto/Explorador +6, Assassino/Starlord/Batedor +8, Soldado/Pirata +10
-4. PV Final = dados + ajuste racial + bônus classe
+## XP
+Nv1→2:100|2→3:250|3→4:450|4→5:700|5→6:1000|6→7:1400|7→8:1900|8→9:2500|9→10:3200
+Combate(dividido): Lacaio 15-25, Elite 40-60, Chefe 100-150, Super 200-300, Vazio +50%
+História: Decisão 25-50, Missão 50-100, Puzzle 20-40, Criativo 10-20, RP 10-25, Lore 30-50
 
-### PV AO SUBIR DE NÍVEL:
-Dado: Pesado 1d10 (Marcianos, Infimor's), Médio 1d8 (Terráqueos, Ven'y, Conjupiteros, Urak's), Leve 1d6 (Proturnos, Satas, Mercusys)
-PV ganho = dado + Mod.Con (mínimo 1)
+## LEVEL UP (DL + XP)
+Dado nível: d10(Marte/Plutão), d8(Terra/Vênus/Júpiter/Urano), d6(Netuno/Saturno/Mercúrio).
+PV ganho=dado+Mod.Con(mín 1). +1 Atrib(máx+6), +1 perícia, +1RAM ímpares(3,5,7,9).
 
-## SISTEMA DE XP
-Nv1→2: 100 | Nv2→3: 250 | Nv3→4: 450 | Nv4→5: 700 | Nv5→6: 1000 | Nv6→7: 1400 | Nv7→8: 1900 | Nv8→9: 2500 | Nv9→10: 3200
-Combate (dividido): Lacaio 15-25, Elite 40-60, Chefe 100-150, Super Chefe 200-300, Crias +50%
-História: Decisão 25-50, Missão 50-100, Puzzle 20-40, Uso criativo 10-20, Roleplay 10-25, Catástrofe 15-30, Lore 30-50
-Level up SÓ em Descanso Longo.
+## MUNIÇÃO: 1 pente=3 turnos. Rajada=2t. Recarregar=Movimento.
 
-## RAÇAS
-### Mercusys (Mercúrio)
-Vida 4d6(tira menor)-2 | For+0 Des+3 Con+0 Int+1 Sab-1 Car+1
-Hab: Deslocamento dobro, regenera 1d4 extra descanso curto (dobro rações). Leitura Sensitiva (toque=composição). Resist Calor (desvantagem <25°C). Nv10: 2 turnos extras 1x/DL.
+## COMBATE ESPACIAL
+CD Nave: 10+Man+Piloto. Energia=normal. EMP=2x escudo ½casco. Balístico=+1d casco.
+Estações: Leme(evasiva/alinhamento), Artilharia(fogo/precisão), Engenharia(escudo/reparo), Sensores(hackear/fraqueza).
+Dobra: 200CG, vizinhos=1d4h, sistema=1d4d. Cego=Pilotagem CD20 ou 3d10.
 
-### Ven'y (Vênus)
-Vida 4d6(tira menor)-1 | For+1 Des+2 Con+1 Int-1 Sab+1 Car+0
-Hab: Air Shifter (gás 6min): O2=asas, He=flutua, H2=+2For, N2=resist fogo, Ar=-2dano, Kr=-2tudo, Rn=vantagem audição. Nv10: 2 efeitos + nuvem 4d6.
-
-### Terráqueos (Terra)
-Vida 4d6(tira menor) | +4 atributos livres (+2 máx em um), +3 perícias
-Hab: Adaptabilidade (+2 atributos, +3 perícias extras). Gambiarra (1x/dia, 3 sucatas→item). Nv10: Sobrevive golpe letal 1PV, cura 3d8+Con, turno extra.
-
-### Marcianos (Marte)
-Vida 4d6(tira menor)+2 | For+3 Des-1 Con+3 Int+0 Sab-1 Car+0
-4 braços. Hab: Êxtase (1d6: 1-3=+2dano/+3m, 4-6=+2ataque dist, 4t). Endurecer (-2dano, 4t). Nv10: armas pesadas 1 mão, ambos Êxtases.
-
-### Conjupiteros (Júpiter)
-Vida 4d6(tira menor)-3 | For+2 Des-2 Con+2 Int+2 Sab+1 Car-1
-80cm, 120kg. Hab: +2CD vs empurrão, carga tripla. +2 Pilotagem/Mecânica permanente. Desconto 10% lojas. Nv10: Singularidade (10m, 4d10).
-
-### Satas (Saturno)
-Vida 4d6(tira menor)-1 | For-1 Des+1 Con+0 Int+2 Sab+2 Car+0
-Hab: Cura Genética 1x/dia (1d8+Sab). Camuflagem (+5 Furtividade imóvel). Emprestar Vitalidade. Nv10: pulso 5d8+Sab 10m.
-
-### Urak's (Urano)
-Vida 4d6(tira menor)-1 | For+0 Des-1 Con+2 Int+0 Sab+0 Car+3
-150 cordas vocais. Hab: Mímica Sonora (vantagem enganação voz). Criogênese (objeto gelo 6t). Resist Frio (stress >15°C). Nv10: grito 4d8 15m paralisa.
-
-### Proturnos (Netuno)
-Vida 4d6(tira menor)-3 | For-1 Des+0 Con-1 Int+2 Sab+3 Car+1
-Hab: Levantamento Mental (Int mover 50kg/10m). Invasão Sombra (1d20+Sab vs alvo, falha=2dano). Nv10: sem dano falha, esmaga 3 inimigos 5d10.
-
-### Infimor's (Plutão)
-Vida 4d6(tira menor)+3 | For+3 Des-1 Con+2 Int+0 Sab+0 Car+0
-~3m, imunes vácuo. Hab: Encolher (vantagem furtividade). Braços 10m. Fúria Desclassificados. Nv10: Colosso 5m +20PV temp.
-
-## CLASSES (Perícias Iniciais e Equipamento)
-### Estudioso — PV+4
-Perícias: Conhecimentos+4, Investigação+3, Mecânica+2, Tecnomancia+2, Persuasão+1
-Passiva: Mapa Mental (1x/sessão, info sobre criatura/tech). Ativa: Ponto Estrutural (1RAM, próximo ataque=dano máx)
-Equip: Roupas Civis(CD+0), Pistola EMP(1d4) ou Laser(1d6), Datapad, 1 Bateria Fantasma
-
-### Mecânico — PV+6
-Perícias: Mecânica+5, Pilotagem+2, ArmBrancas+2, Tecnomancia+1, Persuasão+1, Sobrevivência+1
-Passiva: ignora penalidade armaduras pesadas. Ativa: Reparo Tático (1d6+Mec PV temp aliado)
-Equip: Traje Bordo(CD+2), Revólver Íons(1d8) ou Escopeta Sônica(2d6), Garras(1d4), Ferramentas
-
-### Assassino — PV+8
-Perícias: Furtividade+4, ArmBrancas+2, ArmFogo+2, Espionagem+2, Medicina+1, Persuasão+1
-Passiva: Primeiro Corte (+2 acerto, dano dobrado furtivo). Ativa: Desaparecer ao matar
-Equip: Traje Furtivo(CD+1,+2Furt), Besta Phobos(1d8) ou SubMetra(2d4), Faca Plasma(1d4), Granada Fumaça
-
-### Soldado — PV+10
-Perícias: ArmFogo+4, ArmBrancas+3, Explosivos+2, Pilotagem+1, Sobrevivência+1, Furtividade+1
-Passiva: sem penalidade armas Pesadas. Ativa: Fogo Supressão (Sab ou desvantagem)
-Equip: Colete(CD+2), Rifle Assalto(1d8) ou Escopeta(2d6), Faca Plasma(1d4), Kit Médico
-
-### Starlord — PV+8
-Perícias: Persuasão+5, ArmFogo+2, Tecnomancia+2, Pilotagem+2, Furtividade+1
-Passiva: Charme (re-rola persuasão 1x). Ativa: "Deixem comigo!" (aliado vantagem)
-Equip: Roupas Elegantes, Pistola Laser(1d6), Faca Plasma(1d4)
-
-### Franco-Atirador — PV+6
-Perícias: ArmFogo+5, Sobrevivência+3, Furtividade+2, Investigação+2
-Passiva: +5 ataque >30m (só +2 ≤30m). Ativa: Tiro Incapacitante (½dano, imobiliza 1t)
-Equip: Colete(CD+2), Rifle Precisão(1d10), Bastão Choque(1d6), Binóculos
-
-### Músico — PV+4
-Perícias: Tecnomancia+5, Performance+4, Persuasão+2, ArmBrancas+1
-Passiva: +2CD vs controle mental/sônico. Ativa: Frequência (+2dano aliados OU -2CD inimigos 10m)
-Equip: Roupas Civis, Pistola Laser(1d6), Instrumento Digital, Bateria Fantasma
-
-### Espião — PV+4
-Perícias: Espionagem+4, Persuasão+4, Furtividade+2, Acrobacia+1, Intimidação+1
-Passiva: Vantagem persuasão com disfarce. Ativa: Ponto Cego (inimigos o ignoram)
-Equip: Roupas Civis, Pistola Laser(1d6), Faca Plasma(1d4), 2 IDs Falsas
-
-### Catador — PV+6
-Perícias: Persuasão+3, Investigação+2, Sobrevivência+2, Mecânica+2, Pilotagem+2, ArmFogo+1
-Passiva: Olho para Ouro (1d6, 4-6=item extra). Ativa: Desmanche Rápido (1d8+reduz CD robô)
-Equip: Traje Bordo(CD+2), Revólver Íons(1d8), Bastão Choque(1d6), Maçarico
-
-### Piloto — PV+6
-Perícias: Pilotagem+5, Mecânica+2, Persuasão+2, Sobrevivência+2, ArmFogo+1
-Passiva: +2CD veículo. Ativa: Sobrecarga Propulsores (vantagem evasiva, nave toma 1d4)
-Equip: Traje Bordo(CD+2), Revólver Íons(1d8) ou Escopeta(2d6), Chave Inglesa(1d4)
-
-### Batedor — PV+8
-Perícias: Sobrevivência+4, ArmFogo+3, Investigação+3, Furtividade+1, Explosivos+1
-Passiva: não surpreendido, +2 Iniciativa. Ativa: Marca Caçador (aliados ignoram cobertura alvo)
-Equip: Traje Furtivo(CD+1), SubMetra(2d4), Faca Plasma(1d4), Granada Fumaça
-
-### Explorador — PV+6
-Perícias: Investigação+4, Sobrevivência+4, Conhecimentos+3, Persuasão+1
-Passiva: grupo ignora terreno difícil 10m. Ativa: Vulnerabilidade Exposta (+1d6 dano)
-Equip: Colete(CD+2), Rifle Assalto(1d8), Scanner, Corda 15m
-
-### Cinético — PV+4
-Perícias: Tecnomancia+5, Medicina+3, Resistência+2, Acrobacia+2
-Passiva: Bio-feedback (cura aliado→2PV próprio). Ativa: Repulsão (1RAM, empurra 3m)
-Equip: Roupas Civis, Pistola EMP(1d4), Deck Pulso, Bateria, Kit Médico
-
-### Prospector — PV+4
-Perícias: Persuasão+5, Liderança+4, Tecnomancia+3
-Passiva: +20% créditos. Ativa: "Espere" (inimigo perde ação 1t)
-Equip: Roupas Luxo, Pistola Laser(1d6), Datapad, +100 CG extras
-
-### Pirata — PV+10
-Perícias: ArmFogo+3, ArmBrancas+3, Intimidação+3, Sobrevivência+2, Pilotagem+1
-Passiva: sem penalidade espaço confinado, +1 dano em nave. Ativa: Grito Saqueador (5m, Sab ou amedrontado 2t)
-Equip: Colete(CD+2), Escopeta Sônica(2d6), Bastão Choque(1d6), Arpéu, Granada Fumaça
-
-## SISTEMA DE PERÍCIAS
-As perícias listadas acima são FIXAS da classe no Nível 1. O jogador NÃO escolhe perícias na criação.
-Ao subir de nível, o +1 ponto de perícia pode ir para QUALQUER perícia (inclusive novas).
-Perícias com dois atributos (ex: Acrobacia Des/For): o jogador escolhe qual usar A CADA ROLAGEM, mas na ficha mostra o que tiver maior bônus.
-
-### Lista completa de perícias:
-- Acrobacia (Des/For): esquivar área, escalar, desarmar. Armaduras pesadas penalizam.
-- Armas Brancas (For/Des): ataques corpo a corpo. Armas Ágeis podem usar Des.
-- Armas de Fogo (Des): toda arma de longo alcance.
-- Resistência (Con): suportar dor, marchar, resistir toxinas.
-- Espionagem (Int/Car): disfarce, falsificação, engenharia social.
-- Furtividade (Des): silêncio, esconder. Traje Nanofibra +2, armaduras pesadas penalizam.
-- Investigação (Int/Sab): pistas, detalhes, analisar inimigos, detectar Mímicos.
-- Sobrevivência (Sab): rastrear, rotas, gerenciar recursos.
-- Conhecimentos (Int): história, geografia, facções, lore.
-- Explosivos (Int): armar, desarmar, fabricar. Sem perícia = Desvantagem.
-- Mecânica (Int/Des): reparos, gambiarras, desmontar robôs. Conjupiteros +2.
-- Medicina (Int): kits, diagnóstico, cirurgia, venenos.
-- Pilotagem (Des/Int): veículos e naves. Manobras evasivas.
-- Tecnomancia (Int): hackear, scripts, invasão. Define RAM e deck.
-- Intimidação (Car/For): medo, ameaças, força bruta.
-- Liderança (Car): moral, ordens táticas, coordenar grupo.
-- Performance (Car): instrumentos, shows, hackear psicologia via som.
-- Persuasão (Car): lábia, negociar, mentir, diplomacia. Tradutor Universal +2.
-
-## FILOSOFIAS DE VIDA
-### Caminhos (Místicos)
-- Voz: 1x/DL, desvantagem no teste do alvo em Car. Ou finge-se de morto.
-- Ressonância: 1x/DC, ignora escuridão, sente vivos 10m, 1 turno.
-- Engrenagem: 1x/DL, transforma falha crítica em falha comum.
-- Espiral: Kit médico/DC rola cura com vantagem.
-- Anel: 1x/DL, sobrevive a 0PV com 1PV até próximo turno.
-- Ocaso: 1x/combate, sofre 1d4 verdadeiro, soma 1d4 em qualquer rolagem.
-### Códigos (Seculares)
-- Sobrevivente: +2 Iniciativa permanente. 1x/DL age na surpresa.
-- Corporativo: Vantagem em avaliar itens, achar loot, negociar.
-- Cético: +2CD vs psíquico/controle/intimidação.
-- Fronteira: +1 ataque se sem aliado em 5m.
-- Caserna: 1x/DC, reação leva dano por aliado adjacente.
-- Vira-Lata: 1x/combate, distrai 3m, ataca com vantagem.
-
-## CATÁLOGO DE ARMAS BRANCAS (Ataque: 1d20+For+Perícia, Dano: dado+For)
-| Arma | Preço | Dano | Efeito |
-|---|---|---|---|
-| Faca de Plasma | 40 | 1d4 | Oculta, Ágil (pode usar Des) |
-| Garras de Combate | 45 | 1d4 | Aderência (vantagem escalar, +2 de cima), Ágil |
-| Maçarico Laser | 60 | 1d4 | Derretimento (ignora CD metal) |
-| Soco Inglês Energizado | 35 | 1d4 | Concussão (crítico=atordoa 1t) |
-| Bastão de Choque | 50 | 1d6 | Atordoante (dano máx=perde movimento) |
-| Chicote Monomolecular | 250 | 1d6 | Alcance 3m, Ágil, sem ataque oportunidade |
-| Manopla Gravitacional | 200 | 1d6 | Impacto (empurra 2m) |
-| Chave Inglesa Pesada | 20 | 1d6 | Ferramenta (+2 dano vs robôs) |
-| Arpéu Magnético | 90 | 1d6 | Puxão (5m, puxa inimigo) |
-| Bastão Telescópico | 40 | 1d6 | Oculta, Rápida (vantagem desarmar) |
-| Katar Ven'y | 120 | 1d6 | Tóxica (1x/combate, Con CD13 ou 1d6 2t) |
-| Escudo-Lâmina | 100 | 1d6 | Defensiva (+1CD vs tiros) |
-| Espada Térmica | 150 | 1d8 | Confiável |
-| Lança de Caça Ven'y | 80 | 1d8 | Ágil (arremessável 15m com Des) |
-| Lâmina Marciana | 110 | 1d8 | Aparar (+1CD 2 mãos) |
-| Nunchaku Monofibra | 95 | 1d8 | Ágil |
-| Machado Sucata | 30 | 1d8 | Despedaçador (supera CD por 5+=quebra armadura -1CD) |
-| Foice de Deimos | 130 | 1d8 | Sangramento (1/turno até curar) |
-| Foice Diamante | 800 | 1d10 | Perfurante (ignora 2CD armadura) |
-| Alabarda Proturno | 350 | 1d10 | Alcance 3m (ataque oportunidade ao entrar) |
-| Lança de Choque | 220 | 1d10 | Investida (6m corrida=vantagem dano) |
-| Martelo Demolição | 180 | 2d6 | Destruidora (dobro vs objetos/robôs) |
-| Machado Cinético | 400 | 2d8 | Pesada (-2 acerto) |
-| Martelo Sísmico | 1500 | 1d20 | Derrubar (For CD14 ou cai 3m) |
-| Espadão Fusão | 2000 | 2d12 | Pesada, Queimadura (metade=fogo) |
-
-## CATÁLOGO DE ARMAS DE FOGO (Ataque: 1d20+Des+Perícia, Dano: dado+Des)
-| Arma | Preço | Dano | Efeito |
-|---|---|---|---|
-| Pistola EMP | 100 | 1d4 | Anti-Sintético (3d4 vs robôs/escudos) |
-| Lança-Chamas | 250 | 1d4 | Área 3x3m (Con teste) |
-| Sinalizadora | 25 | 1d4 | Marcador (próximo aliado=vantagem) |
-| Dardos Tóxicos Ven'y | 150 | 1d4 | Silenciosa, Toxina (+1d6 ignora armadura) |
-| Derringer Magnética | 120 | 1d4 | Ultra-Oculta, Surpresa (1º tiro=vantagem) |
-| Pistola Laser | 60 | 1d6 | Saque Rápido (sacar=ação livre) |
-| Besta Repetição | 180 | 1d6 | Rajada Silenciosa (2 alvos, desvantagem) |
-| Lança-Granadas | 300 | 1d6 | Explosão Área 3x3 (ignora cobertura) |
-| Emissor Micro-ondas | 450 | 1d6 | Inesquivável, Contínuo (+1d6/turno até 3d6) |
-| SubMetra Flechetes | 220 | 2d4 | Sangramento (1/turno) |
-| Fuzil Estilhaços | 140 | 2d4 | Sangramento Área cone 5m |
-| Revólver Íons | 160 | 1d8 | Brutal (crítico 19-20) |
-| Rifle Assalto | 200 | 1d8 | Rajada (2 alvos, desvantagem) |
-| Carabina Terráquea | 130 | 1d8 | Confiável (sem falha crítica) |
-| Besta Phobos | 350 | 1d10 | Silenciosa (recupera munição) |
-| Rifle Laser Infantaria | 280 | 1d10 | Perfurante (-1CD armadura) |
-| Rifle Precisão | 500 | 1d12 | Telescópica, Brutal (19-20) |
-| Arco Phobos | 300 | 1d12 | Usa Força (não Des) |
-| Canhão Plasma | 650 | 1d12 | Sobreaquecimento (pente 2t) |
-| Escopeta Sônica | 260 | 2d6 | Curto Alcance (-4 >10m) |
-| Escopeta Dupla "Rust" | 300 | 2d8 | Curto, Descarregar (2 tiros=4d8) |
-| Canhão Sônico | 800 | 2d8 | Cone Repulsão 10m |
-| Minigun | 900 | 3d6 | Pesada, Supressão |
-| Canhão Antimatéria | 3500 | 1d20 | Artilharia (fixar antes) |
-| Rifle Gauss | 4500 | 2d20 | Atravessa Paredes |
-
-## MUNIÇÃO: 1 pente = 3 turnos. Rajada = 2 turnos. Recarregar = Ação Movimento.
-
-## CATÁLOGO DE ARMADURAS
-| Armadura | Preço | CD | Tipo | Efeito |
-|---|---|---|---|---|
-| Roupas Civis | 20 | +0 | Leve (soma toda Des) | — |
-| Roupas Elegantes | 80 | +0 | Leve | Status social |
-| Traje Furtivo Nanofibra | 250 | +1 | Leve | +2 Furtividade |
-| Escudo Energia Pessoal | 800 | +0 | Leve | Absorve 10 dano, recarrega DL |
-| Colete Tático | 150 | +2 | Média (Des máx +2) | Bolsos magnéticos |
-| Traje Bordo Atmosférico | 180 | +2 | Média | Imune vácuo/gases, O2 12h |
-| Exoesqueleto Leve | 300 | +4 | Média | -2 Furt/Acro, +50kg carga |
-| Armadura Reativa Urak | 450 | +3 | Pesada (sem Des) | Reflete 1d4 térmico melee |
-| Armadura Eng. Conjupitera | 500 | +4 | Pesada | -2 Furt, +2 Mecânica |
-| Armadura Marciana | 650 | +6 | Pesada | -4 Furt, exige For+2 |
-| Mecha-Suit Assalto | 3500 | +8 | Pesada | Sem esquiva, ignora queda |
-
-## CATÁLOGO DE ITENS E UTILITÁRIOS
-| Item | Preço | Efeito |
-|---|---|---|
-| Kit Sobrevivência Base | 50 | Comunicador, 3 rações, 2 luzes químicas |
-| Tubo de Rações (3 dias) | 15 | Alimenta 1 pessoa 3 dias |
-| Luzes Químicas | 5 | Iluminação emergência |
-| Comunicador de Pulso | 25 | Comunicação padrão |
-| Bateria Fantasma | 30 | Recupera 1 RAM |
-| Kit Médico Batalha | 30 | Cura 1d8 PV |
-| Kit Primeiros Socorros | 20 | Estancar sangramento |
-| Granada de Fumaça | 35 | Cobertura visual/fuga |
-| Granada de Luz | 40 | Cega área 3x3m |
-| Corda Nanofibra (150m) | 20 | Escalada/exploração |
-| Scanner Ambiental | 60 | Detecta venenos/radiação |
-| Binóculos Termais | 80 | Assinaturas calor |
-| Ferramentas Mecânicas | 45 | Reparos e modificações |
-| Fita Isolante Espacial | 5 | Reparo cascos |
-| Datapad Pesquisa | 120 | Essencial Estudioso |
-| Datapad Corporativo | 80 | Logística/mercado |
-| Contratos + Caneta Digital | 15 | Prospectores |
-| Identidades Falsas | 150 | Kit infiltração Espiões |
-| Instrumento Musical Digital | 100 | Deck para Músico |
-| Deck Digital de Pulso | 100 | Interface Tecnomancia |
-| Módulo Som Portátil | 25 | Lúdico Starlords |
-| Garrafa Contrabandista | 40 | Suborno/moral |
-
-## MODIFICAÇÕES DE ARMAS
-Slots: Simples=1 mod, Primárias=2 mods (máx 1 tecnomágica). Instalação: Descanso Curto + Mecânica/Tecnomancia CD13.
-### Mecânica (corpo a corpo):
-Empunhadura Nanofibra 150CG (Ágil), Fio Serrilhado 200CG (Sangramento), Cabo Retrátil 120CG (Oculta), Haste Telescópica 160CG (Alcance 3m), Injetor Fluídos 100CG (aplica veneno)
-### Tecnomancia (corpo a corpo):
-Motor Cinético 250CG (Impacto), Célula Choque 300CG (Atordoa), Núcleo Superaquecido 400CG (½ dano=fogo), Matriz Desestabilizadora 450CG (dobro vs escudos), Cristal Sata 600CG (crítico=cura 1d4)
-### Mecânica (fogo):
-Pente Estendido 150CG (4 turnos), Silenciador 200CG (Silenciosa), Cano Serrado 100CG (+2 perto -4 longe), Coronha Contrapeso 200CG (anula Pesada), Lança-Granadas Acoplado 350CG
-### Tecnomancia (fogo):
-Mira Smart-Link 500CG (re-rola erro 1x), Conversor Térmico 400CG (dano=fogo+queimadura), Capacitor EMP 350CG (Anti-Sintético), Trava Biométrica 250CG (anti-roubo), Câmara Magnética 500CG (Perfurante -1CD)
-
-## IMPLANTES CIBERNÉTICOS
-Limite: 2 + Mod.Con. 1º extra=-1d6PV+desvantagem social. 2º=curto em 1-2 natural. 3º=morte.
-### Cabeça:
-Chip RAM 1500CG (+2RAM), Olho Biônico 800CG (+2 distância, ignora fumo), Interface Nav 1200CG (vantagem evasiva piloto), Tradutor 600CG (+2Persuasão, traduz tudo), Mira Preditiva 950CG (reduz penalidade perto sniper)
-### Torso:
-Placas Subdérmicas 1100CG (+1CD permanente), Coração Sintético 2500CG (+5PV +2 vs veneno), Filtro Pulmonar 750CG (imune gases), Reator Adrenalina 3000CG (1x/dia ação extra), Bateria Interna 2000CG (PV→RAM)
-### Membros:
-Braço Hidráulico 850CG (+2dano melee, vantagem For), Estabilizador Pulso 500CG (sem penalidade pesada), Lâmina Mantis 1000CG (1d8 oculta, dobra furtivo), Pernas Pneumáticas 1500CG (2x desloc, ignora queda 15m), Âncoras Magnéticas 700CG (imune derrubar, anda teto)
-
-## TECNOMANCIA COMPLETA
-RAM: 1 + Mod.Int + ½Tecnomancia (+1 ímpares). Scripts: Nível + Perícia (mín 3). Rolagem: 1d20+Int+Tecnomancia.
-Overclock: sem RAM, 1d6 psíquico por ponto. Leigos: só Básicas, sem Overclock.
-
-### 🟢 ROTINAS BÁSICAS (Nível 1, Tecnomancia +1/+2)
-1. Ping (0RAM, livre): interage eletrônico 10m — apagar luzes, abrir portas
-2. Choque Estático (0RAM, principal): 1d6 dano elétrico
-3. Query Neural (0RAM, principal): lê último pensamento de cibernético (Int vs alvo)
-4. Bateria Fantasma (0RAM, principal): recarrega device 1h
-5. Scanner Frequência (0RAM, livre): vê emissões Wi-Fi/rádio 50m
-6. Jammer (1RAM, movimento): bolha 10m, sem comunicação 3t
-7. Glitch Visual (1RAM, principal): -2 próximo ataque do alvo
-8. Trava Biométrica (1RAM, movimento): tranca porta com seu DNA
-9. Rollback Celular (1RAM, principal): cura 1d8+Int
-10. Firewall Ativo (1RAM, reação): bloqueia 1d10+Int dano
-
-### 🟡 INJEÇÕES MALICIOSAS (Nível 2, Tecnomancia +3/+4)
-11. Travar Arma (2RAM, principal): trava arma inimiga 1 turno
-12. Curto em Armadura (2RAM, principal): -3CD 2t + 1d4 queimadura
-13. Hackear Implante Motor (2RAM, principal): ½ desloc, sem esquivar 3t
-14. Ejetar Pente (1RAM, reação): força recarga inimigo
-15. Cegueira Cibernética (2RAM, principal): cego 2t, desvantagem ataques
-16. Drenar Escudos (2RAM, principal): drena escudo → PV temp próprio
-17. Sobrecarga Sistema (2RAM, principal): 2d6 elétrico área 3x3m
-18. Desativar Suporte Vida (2RAM, principal): desliga O2/aquecimento traje
-19. Loop Feedback (2RAM, reação): anula script inimigo, gasta RAM dele
-20. Torreta Sentinela (3RAM, principal): drone/torreta vira aliado 3t
-
-### 🔴 PROTOCOLOS SOBRESCRITA (Nível 3, Tecnomancia +5+)
-21. Hackear Navegação (3RAM, principal): controla nave inimiga 1t
-22. Apagão Motor (4RAM, principal): desliga motor nave, à deriva 1t
-23. Inverter Propulsores (3RAM, reação): 3d8 dano casco inimigo
-24. Sobrecarga Reator (5RAM, principal): 2t contagem → 6d10 explosão
-25. Marionete Sintética (4RAM, principal): controla ciborgue/androide 3t
-26. EMP Localizado (4RAM, principal): 10m desliga tudo 2t (só biologia funciona)
-27. Ejetar Piloto (3RAM, principal): ejeta piloto de caça/mecha
-28. Reparo Estrutural (4RAM, principal): 4d10 PV nave
-29. Formatar Mente (5RAM, principal): 5d8 psíquico + apaga 24h memória
-30. Gravidade Zero Local (4RAM, principal): 5x5m sem gravidade, desvantagem ataques
-
-## NAVES E COMBATE ESPACIAL
-CD Nave: 10 + Manobrabilidade + Piloto. Dano: Energia=normal. EMP=dobro escudos/metade casco. Balístico=+1 dado vs casco.
-
-### Frota Estelar
-| Nave | Preço | Casco | Escudo | Man | Arma | Dano |
-|---|---|---|---|---|---|---|
-| Caça Ligeiro | 15000 | 30 | 10 | +4 | Canhões Plasma | 3d6 |
-| Interceptador Furtivo | 45000 | 40 | 15 | +3 | Torpedos EMP | 2d10 |
-| Veleiro Solar Sata | — | 40 | 25 | +5 | Micro-ondas | 3d8 |
-| Cargueiro Modificado | 60000 | 60 | 30 | +1 | Torreta Balística | 3d8 |
-| Nave Prospecção | 90000 | 80 | 20 | -1 | Laser Mineração | 4d8 |
-| Cruzador Proturno | — | 70 | 80 | 0 | Bateria Íon | 8d10(esc) |
-| Corveta Militar | 190000 | 100 | 50 | -1 | Mísseis | 6d10 |
-| Bombardeiro Urak | — | 120 | 30 | -3 | Torpedo Sísmico | 8d12 |
-| Fragata Marciana | 300000 | 150 | 40 | -2 | Railgun | 5d12 |
-| Encouraçado | Incomprável | 300 | 150 | -4 | Baterias Plasma | 10d20 |
-
-### Estações de Batalha (cada tripulante opera uma):
-- Leme (Piloto): Manobra Evasiva, Alinhamento (aliado vantagem), Fuga Dobra (2t)
-- Artilharia: Fogo Concentrado, Tiro Precisão (desvantagem, desativa subsistema)
-- Engenharia: Redirecionar Energia (1d8+nv escudo), Reparos (1d4 casco), Sobrecarga (+2 Man)
-- Sensores: Guerra Eletrônica (desliga escudos 1t), Rastrear Fraqueza (+1d6 dano)
-
-### Salto de Dobra:
-Custo: 1 Célula Matéria (200CG). Vizinhos=1d4h, cruzar sistema=1d4 dias. Cego=Pilotagem CD20 ou 3d10 dano.
-
-## BESTIÁRIO (HP/CD/Ataque principal)
-### Por Planeta
-Terra: Pirata(15,12,1d6), Mercenário(45,15,1d8+granada), Comodoro(110,16,2x1d8+reforços)
-Marte: Recruta Phobos(25,13,1d8), Legionário(55,16,1d12), Senhor Guerra(140,17,3 ataques)
-Vênus: Batedor(20,13,1d8), Xamã Gases(50,14,1d8+nuvem), Predador(120,14,2x2d6+sopro3d6)
-Mercúrio: Corredor(18,14,1d4,18m), Assassino Poeira(40,15,2x1d6,regen5), Ancião(90,17,2turnos)
-Júpiter: Operário(30,14,2d6), Eng Combate(65,16,2d6+torreta), Barão(150,18,2d10+singularidade)
-Saturno: Acólito(20,12,cura1d8), Inquisidor(55,15,2d4+anti-cura), Sacerdote(100,16,dreno+ressuscita)
-Urano: Ecoador(22,13,1d6+mímica), Tecelão(50,14,2d6+barricada), Maestro(115,15,sinfonia4d8)
-Netuno: Guarda(15,12,1d6+1d4psi), Telepata(45,14,2d6+controle), Juiz(105,16,3d10telecinese)
-Plutão: Catador(35,11,1d6 10m), Esmagador(70,13,2d6 10m), Titã(150,14,2d8+fase2)
-
-### Fauna Alienígena
-Cão-Cego(18,12,1d6sangra,matilha), Parasita Neural(8,14,controle), Rastejador Vidro(22,15,1d8perf), Urso-Tanque(65,16,2d8derrubar), Morcego-Bomba(15,11,2d6fogo explode), Sanguessuga Vácuo(10,10,drena implante), Mímico Carnal(40,13,1d10,crítico auto), Enxame Ferrugem(35,12,corrói metal), Devorador Fósforo(45,14,2d6cegante), Leviatã Fosso(120,18,3d10engolir), Quimera Alfa(85,17,2d8brutal+regen)
-
-### Crias do Vazio
-Falso Aliado(50,13,1d8,assimila), Sanguessuga Estelar(30,12,drena PV+RAM), Enxame Adaptativo(15cada,evolução), Tecelão Fendas(50,14,portais+redireciona), Olho Abismo(60,13,3d8 linha), Silenciador(65,15,desliga tecnomancia 15m), Terror Subterrâneo(70,14,2d6 emerge), Espectro(45,16,1d10psi,imune físico), Bocarra(55,12,2d8ácido+explode), Devorador(80,14,cresce ao comer), Colecionador(110,15,2d8+absorve), Soberana Ruína(180,17,2d8psi+invoca+controle)
+## BESTIÁRIO RESUMO
+Terra: Pirata(15,12,1d6) Mercenário(45,15,1d8) Comodoro(110,16,2x1d8)
+Marte: Recruta(25,13,1d8) Legionário(55,16,1d12) Senhor Guerra(140,17,3atk)
+Vênus: Batedor(20,13,1d8) Xamã(50,14,1d8) Predador(120,14,2x2d6)
+Mercúrio: Corredor(18,14,1d4) Assassino(40,15,2x1d6) Ancião(90,17)
+Júpiter: Operário(30,14,2d6) Eng(65,16,2d6) Barão(150,18,2d10)
+Saturno: Acólito(20,12,cura) Inquisidor(55,15,2d4) Sacerdote(100,16)
+Urano: Ecoador(22,13,1d6) Tecelão(50,14,2d6) Maestro(115,15)
+Netuno: Guarda(15,12,1d6) Telepata(45,14,2d6) Juiz(105,16,3d10)
+Plutão: Catador(35,11,1d6) Esmagador(70,13,2d6) Titã(150,14,2d8)
+Fauna: Cão-Cego(18) Parasita(8) Rastejador(22) Urso-Tanque(65) Morcego-Bomba(15) Leviatã(120) Quimera(85)
+Vazio: Sanguessuga(30) Enxame(15) Falso Aliado(50) Espectro(45) Tecelão(50) Terror(70) Olho(60) Silenciador(65) Bocarra(55) Devorador(80) Colecionador(110) Soberana(180)
 
 ## PERIGOS AMBIENTAIS
-Gravidade Zero: sem botas→recuo armas, desvantagem melee. Descompressão: For CD15 ou sugado. Asfixia: Con turnos depois 1d6/turno. Radiação: Con CD12-18/hora, falha=-1d4 PV máx.
+Zero-G: recuo armas, desvantagem melee. Descompressão: For CD15. Asfixia: Con turnos, 1d6/t. Radiação: Con CD12-18/h, falha=-1d4 PV máx.
