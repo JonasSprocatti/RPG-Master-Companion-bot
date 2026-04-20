@@ -366,12 +366,18 @@ async def cmd_iniciar(u,c):
     await u.message.reply_text("🧑‍🚀 *Selecione personagem:*",reply_markup=KBD([[b] for b in btns]),parse_mode="Markdown")
 
 async def cmd_novojogo(u,c):
-    cid=u.effective_chat.id;chats.pop(cid,None);ch=gc(cid)
-    actives=db_get_all_active(cid)
-    ctx=inject_fichas_prompt(actives)
-    if ctx: await ask(ch,ctx)
-    await u.message.reply_text("🌌 _Inicializando..._",parse_mode="Markdown")
-    await rp(u.message,await ask(ch,"Novo jogo. Cena épica no Sistema Solar. Opções. Conciso.",m=u.message))
+    cid = u.effective_chat.id
+    actives = db_get_all_active(cid)
+    
+    if not actives:
+        await u.message.reply_text("❌ Nenhum personagem ativo no grupo. Por favor, usem /iniciar e selecionem as fichas primeiro.")
+        return
+        
+    kb = KBD([
+        [Btn("🆕 Nova Aventura (Do Zero)", callback_data="play:new")],
+        [Btn("📜 Continuar História (Com Contexto)", callback_data="play:context")]
+    ])
+    await u.message.reply_text("🌌 *As fichas estão sincronizadas com o Terminal.* Como desejam iniciar a sessão?", reply_markup=kb, parse_mode="Markdown")
 
 async def cmd_criar(u,c):
     cstate[u.message.from_user.id]={"step":"raca","chat_id":u.effective_chat.id}
@@ -482,6 +488,20 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             # Injeta na IA
             ch=gc(cid)
             await ask(ch,f"FICHAS_ATIVAS:\n{inject_fichas_prompt([f])}\nPersonagem ativo. Aguarde.",m=m)
+    # === NOVOS FLUXOS DE JOGO ===
+    elif d == "play:new":
+        chats.pop(cid,None); ch=gc(cid)
+        actives=db_get_all_active(cid)
+        ctx=inject_fichas_prompt(actives)
+        if ctx: await ask(ch,ctx)
+        
+        await q.edit_message_text("🌌 _Inicializando um novo universo..._", parse_mode="Markdown")
+        await rp(m, await ask(ch,"SISTEMA: Início de uma NOVA aventura. Crie uma cena épica e introdutória no Sistema Solar com os personagens ativos. Apresente o cenário, o gancho da missão e dê opções de ação. Seja conciso.", m=m))
+
+    elif d == "play:context":
+        cstate.setdefault(uid, {})
+        cstate[uid].update({"step": "wait_context", "chat_id": cid})
+        await q.edit_message_text("📜 *Envio de Contexto Necessário*\nPor favor, digite ou cole abaixo o resumo do que aconteceu na aventura anterior para que a IA possa continuar a narração a partir daquele ponto exato:", parse_mode="Markdown")
     elif d=="m:criar":
         cstate[uid]={"step":"raca","chat_id":cid}
         await m.reply_text("🧑‍🚀 *RECRUTAMENTO*\n━━━━━━━━━━━━━━━━━━━━\n📋 Etapa 1/5: *Origem*",reply_markup=kb(RACAS_BTN,"r",2),parse_mode="Markdown")
@@ -623,7 +643,24 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         cstate.pop(uid,None)
         await u.message.reply_text("🚀 Pronto! /iniciar para sessão ou /novojogo para aventura.",reply_markup=MAIN_KB)
         return
+    # Jogo: esperando contexto prévio
+    st = cstate.get(uid)
+    if st and st.get("step") == "wait_context" and st.get("chat_id") == cid:
+        chats.pop(cid,None); ch=gc(cid)
+        actives=db_get_all_active(cid)
+        ctx = inject_fichas_prompt(actives)
+        if ctx: await ask(ch, ctx)
 
+        await u.message.reply_text("🔄 _Sincronizando memórias passadas com o núcleo narrativo..._", parse_mode="Markdown")
+        
+        prompt_contexto = f"CONTEXTO_SESSAO: Nós estamos retomando uma aventura já em andamento. Aqui está o resumo do que aconteceu até agora:\n\n{txt}\n\nSISTEMA: Baseado nesse contexto, recapitule brevemente a situação atual, insira os personagens ativos na cena e pergunte qual será a próxima ação deles."
+        
+        resp = await ask(ch, prompt_contexto, m=u.message)
+        await rp(u.message, resp)
+        
+        # Limpa o estado para voltar ao fluxo normal de mensagens
+        cstate.pop(uid, None)
+        return
     # Jogo normal — com interceptor
     ch=gc(cid)
     try:
