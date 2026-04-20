@@ -488,20 +488,6 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             # Injeta na IA
             ch=gc(cid)
             await ask(ch,f"FICHAS_ATIVAS:\n{inject_fichas_prompt([f])}\nPersonagem ativo. Aguarde.",m=m)
-    # === NOVOS FLUXOS DE JOGO ===
-    elif d == "play:new":
-        chats.pop(cid,None); ch=gc(cid)
-        actives=db_get_all_active(cid)
-        ctx=inject_fichas_prompt(actives)
-        if ctx: await ask(ch,ctx)
-        
-        await q.edit_message_text("🌌 _Inicializando um novo universo..._", parse_mode="Markdown")
-        await rp(m, await ask(ch,"SISTEMA: Início de uma NOVA aventura. Crie uma cena épica e introdutória no Sistema Solar com os personagens ativos. Apresente o cenário, o gancho da missão e dê opções de ação. Seja conciso.", m=m))
-
-    elif d == "play:context":
-        cstate.setdefault(uid, {})
-        cstate[uid].update({"step": "wait_context", "chat_id": cid})
-        await q.edit_message_text("📜 *Envio de Contexto Necessário*\nPor favor, digite ou cole abaixo o resumo do que aconteceu na aventura anterior para que a IA possa continuar a narração a partir daquele ponto exato:", parse_mode="Markdown")
     elif d=="m:criar":
         cstate[uid]={"step":"raca","chat_id":cid}
         await m.reply_text("🧑‍🚀 *RECRUTAMENTO*\n━━━━━━━━━━━━━━━━━━━━\n📋 Etapa 1/5: *Origem*",reply_markup=kb(RACAS_BTN,"r",2),parse_mode="Markdown")
@@ -516,6 +502,21 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         await rp(m,"📚 *MISSÕES:*\n"+"\n".join(f"• ID *{s['id']}* — {s.get('title','?')}" for s in sl)+"\n/cargarsessao ID")
     elif d=="m:gloss": await m.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
     elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /rolar /regras /ficha /fichas /deletarficha /levelup /salvarsessao /sessoes /cargarsessao /contexto /glossario /reset")
+
+    # Novos fluxos de Jogo (Nova Aventura vs Continuação)
+    elif d == "play:new":
+        chats.pop(cid,None); ch=gc(cid)
+        actives=db_get_all_active(cid)
+        ctx=inject_fichas_prompt(actives)
+        if ctx: await ask(ch,ctx)
+        
+        await q.edit_message_text("🌌 _Inicializando um novo universo..._", parse_mode="Markdown")
+        await rp(m, await ask(ch,"SISTEMA: Início de uma NOVA aventura. Crie uma cena épica e introdutória no Sistema Solar com os personagens ativos. Apresente o cenário, o gancho da missão e dê opções de ação. Seja conciso.", m=m))
+
+    elif d == "play:context":
+        cstate.setdefault(uid, {})
+        cstate[uid].update({"step": "wait_context", "chat_id": cid})
+        await q.edit_message_text("📜 *Envio de Contexto Necessário*\nPor favor, digite ou cole abaixo o resumo do que aconteceu na aventura anterior para que a IA possa continuar a narração a partir daquele ponto exato:", parse_mode="Markdown")
 
     # Glossário
     elif d=="g:racas": await m.reply_text("🌌 *RAÇAS:*",reply_markup=kb(RACAS_BTN,"gr",2),parse_mode="Markdown")
@@ -625,24 +626,6 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
     uid=u.message.from_user.id
     if not txt:return
 
-    # Criação: esperando nome
-    st=cstate.get(uid)
-    if st and st.get("step")=="nome" and st.get("chat_id")==cid:
-        st["nome"]=txt.strip()[:30]
-        ficha=build_ficha(st)
-        fid=db_create_ficha(uid,un,cid,ficha)
-        if fid:
-            db_set_active(uid,cid,fid)
-            ficha["id"]=fid
-            await rp(u.message,f"✅ *{ficha['nome']}* registrado! (ID:{fid})")
-            await rp(u.message,ff(ficha))
-            ch=gc(cid)
-            await ask(ch,f"FICHAS_ATIVAS:\n{inject_fichas_prompt([ficha])}\nPersonagem criado. Aguarde.",m=u.message)
-        else:
-            await u.message.reply_text("⚠️ Erro ao salvar.")
-        cstate.pop(uid,None)
-        await u.message.reply_text("🚀 Pronto! /iniciar para sessão ou /novojogo para aventura.",reply_markup=MAIN_KB)
-        return
     # Jogo: esperando contexto prévio
     st = cstate.get(uid)
     if st and st.get("step") == "wait_context" and st.get("chat_id") == cid:
@@ -661,6 +644,25 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         # Limpa o estado para voltar ao fluxo normal de mensagens
         cstate.pop(uid, None)
         return
+
+    # Criação: esperando nome
+    if st and st.get("step")=="nome" and st.get("chat_id")==cid:
+        st["nome"]=txt.strip()[:30]
+        ficha=build_ficha(st)
+        fid=db_create_ficha(uid,un,cid,ficha)
+        if fid:
+            db_set_active(uid,cid,fid)
+            ficha["id"]=fid
+            await rp(u.message,f"✅ *{ficha['nome']}* registrado! (ID:{fid})")
+            await rp(u.message,ff(ficha))
+            ch=gc(cid)
+            await ask(ch,f"FICHAS_ATIVAS:\n{inject_fichas_prompt([ficha])}\nPersonagem criado. Aguarde.",m=u.message)
+        else:
+            await u.message.reply_text("⚠️ Erro ao salvar.")
+        cstate.pop(uid,None)
+        await u.message.reply_text("🚀 Pronto! /iniciar para sessão ou /novojogo para aventura.",reply_markup=MAIN_KB)
+        return
+
     # Jogo normal — com interceptor
     ch=gc(cid)
     try:
