@@ -513,8 +513,11 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             ])
             await m.reply_text("🌌 *As fichas estão sincronizadas com o Terminal.* Como desejam iniciar a sessão?", reply_markup=kb, parse_mode="Markdown")
     elif d=="m:criar":
-        cstate[uid]={"step":"raca","chat_id":cid}
-        await m.reply_text("🧑‍🚀 *RECRUTAMENTO*\n━━━━━━━━━━━━━━━━━━━━\n📋 Etapa 1/5: *Origem*",reply_markup=kb(RACAS_BTN,"r",2),parse_mode="Markdown")
+        try:
+            cstate[uid]={"step":"raca","chat_id":cid}
+            await m.reply_text("🧑‍🚀 *RECRUTAMENTO*\n━━━━━━━━━━━━━━━━━━━━\n📋 Etapa 1/5: *Origem*",reply_markup=kb(RACAS_BTN,"r",2),parse_mode="Markdown")
+        except Exception as e:
+            await m.reply_text(f"⚠️ **Erro no sistema:** {e}\nVerifique o seu arquivo glossary.py!")
     elif d=="m:mfichas":
         fs=db_list_fichas(uid,cid)
         if not fs: await m.reply_text("📋 Sem personagens.");return
