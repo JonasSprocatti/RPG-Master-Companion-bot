@@ -506,12 +506,12 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             ch=gc(cid)
             await ask(ch,f"FICHAS_ATIVAS:\n{inject_fichas_prompt([f])}\nPersonagem ativo. Aguarde.",m=m)
             
-            # --- ADICIONADO: Pergunta automática após selecionar a ficha ---
-            kb = KBD([
+            # --- CORRIGIDO: Nome da variável alterado para kb_novo ---
+            kb_novo = KBD([
                 [Btn("🆕 Nova Aventura (Do Zero)", callback_data="play:new")],
                 [Btn("📜 Continuar História (Com Contexto)", callback_data="play:context")]
             ])
-            await m.reply_text("🌌 *As fichas estão sincronizadas com o Terminal.* Como desejam iniciar a sessão?", reply_markup=kb, parse_mode="Markdown")
+            await m.reply_text("🌌 *As fichas estão sincronizadas com o Terminal.* Como desejam iniciar a sessão?", reply_markup=kb_novo, parse_mode="Markdown")
     elif d=="m:criar":
         try:
             cstate[uid]={"step":"raca","chat_id":cid}
