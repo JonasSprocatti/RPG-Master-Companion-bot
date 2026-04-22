@@ -1,5 +1,5 @@
 """
-📦 Data Loader v3.1 — Fallback Inteligente
+📦 Data Loader v3.2 — Leitura Segura de JSON
 Carrega a base do glossary.py PRIMEIRO, e depois sobrepõe com os dados do Supabase.
 """
 import os, json, logging
@@ -23,6 +23,14 @@ REGRAS_TEXT = ""
 
 _loaded = False
 
+def parse_db_data(d):
+    """Tenta converter de JSON. Se falhar (pois já é texto puro), devolve o próprio texto de forma segura."""
+    if isinstance(d, (dict, list)): return d
+    if isinstance(d, str):
+        try: return json.loads(d)
+        except json.JSONDecodeError: return d
+    return d
+
 def load_from_db():
     global RACAS_STATS,CLASSES_STATS,FILOS_STATS,TECNO_SCRIPTS,IMPLANTES_DATA,DISPLAY,REGRAS_TEXT,_loaded
     su=os.environ.get("SUPABASE_URL",""); sk=os.environ.get("SUPABASE_KEY","")
@@ -32,9 +40,10 @@ def load_from_db():
         r=db.table("dados_rpg").select("chave,dados").execute()
         if not r.data: return False
         
-        lk={row["chave"]:(row["dados"] if isinstance(row["dados"],dict) else json.loads(row["dados"])) for row in r.data if row.get("dados")}
+        # 2. Usa a função segura para ler os dados sem causar falhas no bot
+        lk = {row["chave"]: parse_db_data(row["dados"]) for row in r.data if row.get("dados")}
         
-        # 2. Atualiza apenas as categorias que de fato existirem no Banco de Dados
+        # 3. Atualiza apenas as categorias que de fato existirem no Banco de Dados
         if "racas_stats" in lk: RACAS_STATS.update(lk["racas_stats"])
         if "classes_stats" in lk: CLASSES_STATS.update(lk["classes_stats"])
         if "filosofias_stats" in lk:
@@ -59,7 +68,6 @@ def load_from_db():
 
 def load_fallback():
     global _loaded
-    # As variáveis já foram preenchidas no topo do arquivo, só marcamos como loaded.
     _loaded=True; log.info("📁 Dados RPG: usando apenas fallback local")
 
 def ensure_loaded():
