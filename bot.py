@@ -478,6 +478,31 @@ async def cmd_reset(u,c):
     await u.message.reply_text("🔄 _Memória neural purgada. Mestre silenciado._",reply_markup=MAIN_KB,parse_mode="Markdown")
 async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens diretas: /1d20 /2d8+4\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
+async def cmd_debug(u,c):
+    """Ferramenta de Troubleshooting para limpar o Cache e testar o DB."""
+    # 1. Limpa a memória Cache do bot
+    if hasattr(DL, "_CACHE"):
+        DL._CACHE.clear()
+    
+    txt = "⚙️ *DIAGNÓSTICO DO SISTEMA*\n━━━━━━━━━━━━━━━━━━━━\n"
+    txt += "✅ Cache da memória interna purgado.\n\n"
+    
+    # 2. Testa um Dicionário (Submenus de Raças)
+    r = DL.get_display("display_racas", {})
+    if isinstance(r, dict) and r:
+        txt += f"🟢 *Raças (Dicionário):* OK! Encontrou {len(r)} raças.\n"
+    else:
+        txt += f"🔴 *Raças (Dicionário):* ERRO. Retornou: `{type(r)}`\n"
+        
+    # 3. Testa um Texto Direto (Naves)
+    n = DL.get_display("display_naves", "")
+    if isinstance(n, str) and len(n) > 10:
+        txt += f"🟢 *Naves (Texto):* OK! Carregou {len(n)} caracteres.\n"
+    else:
+        txt += f"🔴 *Naves (Texto):* ERRO. Retornou: `{type(n)}`\n"
+        
+    await u.message.reply_text(txt, parse_mode="Markdown")
+
 async def cmd_regras(u,c):
     """Diretriz 5: busca regras do banco."""
     DL.ensure_loaded()
@@ -860,6 +885,8 @@ async def _fin_attrs(m,uid):
     per=dict(c["pericias"])
     if "bonus_per_fixo" in r:
         for pk,pv2 in r["bonus_per_fixo"].items(): per[pk]=per.get(pk,0)+pv2
+    if st.get("bonus_pericias"):
+        for pk,pv2 in st["bonus_pericias"].items(): per[pk]=per.get(pk,0)+pv2
     tec=per.get("tecnomancia",0);im=calc_mod(attrs["inteligencia"]);ram=max(1+im+tec//2,0)
     lines.append(f"🛡️ CD:{cd} | 🧠 RAM:{ram}")
     lines.append(f"🎯 {', '.join(f'{PERICIAS_NOMES.get(pk,pk)}+{pv2}' for pk,pv2 in sorted(per.items(),key=lambda x:-x[1]))}")
@@ -964,7 +991,7 @@ async def on_err(u,c): log.error(f"Err:{c.error}")
 def main():
     DL.ensure_loaded()
     app=Application.builder().token(TG).build()
-    for cmd,fn in[("start",cmd_start),("reset",cmd_reset),("ajuda",cmd_help),("help",cmd_help),
+    for cmd,fn in[("start",cmd_start),("reset",cmd_reset),("ajuda",cmd_help),("help",cmd_help),("debug",cmd_debug),
         ("iniciar",cmd_iniciar),("novojogo",cmd_novojogo),("criarpersonagem",cmd_criar),
         ("regras",cmd_regras),("glossario",cmd_glossario),
         ("ficha",cmd_ficha),("fichas",cmd_fichas),("deletarficha",cmd_deletar),
