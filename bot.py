@@ -152,9 +152,13 @@ def db_get_ficha(fid):
     except: pass
     return None
 
-def db_list_fichas(uid,cid):
+def db_list_fichas(uid, cid):
     if not db: return []
-    try: return db.table("fichas").select("id,nome,raca,classe,nivel,xp").eq("user_id",str(uid)).eq("chat_id",str(cid)).execute().data or []
+    try: 
+        # ATENÇÃO AQUI: Removemos o filtro .eq("chat_id", str(cid)) que existia no final desta linha!
+        # Agora o bot busca todas as fichas que pertencem a você (uid), em qualquer mesa do multiverso.
+        r=db.table("fichas").select("id,nome,raca,classe,nivel,xp").eq("user_id",str(uid)).execute()
+        return r.data or []
     except: return []
 
 def db_delete_ficha(fid):
