@@ -480,26 +480,27 @@ async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━�
 
 async def cmd_debug(u,c):
     """Ferramenta de Troubleshooting para limpar o Cache e testar o DB."""
-    # 1. Limpa a memória Cache do bot
-    if hasattr(DL, "_CACHE"):
-        DL._CACHE.clear()
+    # 1. Limpa a memória REAL do bot (reinicia o Data Loader)
+    DL._loaded = False
+    DL.DISPLAY.clear()
+    DL.ensure_loaded() # Força o bot a ir ler o Supabase AGORA
     
     txt = "⚙️ *DIAGNÓSTICO DO SISTEMA*\n━━━━━━━━━━━━━━━━━━━━\n"
-    txt += "✅ Cache da memória interna purgado.\n\n"
+    txt += "✅ Memória limpa e recarregada do Supabase.\n\n"
     
     # 2. Testa um Dicionário (Submenus de Raças)
     r = DL.get_display("display_racas", {})
     if isinstance(r, dict) and r:
         txt += f"🟢 *Raças (Dicionário):* OK! Encontrou {len(r)} raças.\n"
     else:
-        txt += f"🔴 *Raças (Dicionário):* ERRO. Retornou: `{type(r)}`\n"
+        txt += f"🔴 *Raças (Dicionário):* ERRO. Retornou vazio ou formato incorreto.\n"
         
     # 3. Testa um Texto Direto (Naves)
     n = DL.get_display("display_naves", "")
     if isinstance(n, str) and len(n) > 10:
         txt += f"🟢 *Naves (Texto):* OK! Carregou {len(n)} caracteres.\n"
     else:
-        txt += f"🔴 *Naves (Texto):* ERRO. Retornou: `{type(n)}`\n"
+        txt += f"🔴 *Naves (Texto):* ERRO. Retornou vazio ou formato incorreto.\n"
         
     await u.message.reply_text(txt, parse_mode="Markdown")
 
