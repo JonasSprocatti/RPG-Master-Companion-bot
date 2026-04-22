@@ -706,6 +706,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         ai=int(st.get("step","attr_0").split("_")[1]);vals=st["rolled"]
         chosen=vals[idx];st.setdefault("atributos_base",{});st["atributos_base"][ATTR_KEYS[ai]]=chosen
         vals.pop(idx);st["rolled"]=vals
+        
         if ai<5:
             st["step"]=f"attr_{ai+1}"
             if vals:
@@ -713,13 +714,21 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 await q.edit_message_text(f"✅ {ATTR_LABELS[ai]}: *{chosen}*",parse_mode="Markdown")
                 await m.reply_text(f"{ATTR_LABELS[ai+1]}:",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]))
             else:
+                try:
+                    st["atributos_base"][ATTR_KEYS[5]]=chosen;st["step"]="equip"
+                    await _fin_attrs(m,uid)
+                except Exception as e:
+                    import traceback
+                    print(traceback.format_exc())
+                    await m.reply_text(f"⚠️ *Erro Crítico ao compilar a ficha:*\n`{e}`\nO código travou nessa etapa. Verifique o log do terminal!", parse_mode="Markdown")
+        else:
             try:
                 st["step"]="equip"
                 await q.edit_message_text(f"✅ {ATTR_LABELS[5]}: *{chosen}*",parse_mode="Markdown")
                 await _fin_attrs(m,uid)
             except Exception as e:
                 import traceback
-                print(traceback.format_exc()) # Imprime o erro completo no terminal do seu servidor
+                print(traceback.format_exc())
                 await m.reply_text(f"⚠️ *Erro Crítico ao compilar a ficha:*\n`{e}`\nO código travou nessa etapa. Verifique o log do terminal!", parse_mode="Markdown")
     elif d.startswith("eq:"):
         idx=int(d[3:]);st=cstate.get(uid)
