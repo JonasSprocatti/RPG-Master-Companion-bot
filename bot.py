@@ -99,7 +99,10 @@ REFERÊNCIA MECÂNICA: {RPG}"""
 genai.configure(api_key=GK)
 mdl=genai.GenerativeModel("gemini-2.5-flash-lite",system_instruction=SYSP,
     generation_config=genai.GenerationConfig(temperature=0.85,max_output_tokens=1500))
-chats:dict={};cstate:dict={}
+
+# Passo 1: Variável de Trava de Sessão adicionada
+chats:dict={};cstate:dict={};jogo_ativo:dict={}
+
 def gc(cid):
     if cid not in chats: chats[cid]=mdl.start_chat(history=[])
     return chats[cid]
@@ -155,8 +158,6 @@ def db_get_ficha(fid):
 def db_list_fichas(uid, cid):
     if not db: return []
     try: 
-        # ATENÇÃO AQUI: Removemos o filtro .eq("chat_id", str(cid)) que existia no final desta linha!
-        # Agora o bot busca todas as fichas que pertencem a você (uid), em qualquer mesa do multiverso.
         r=db.table("fichas").select("id,nome,raca,classe,nivel,xp").eq("user_id",str(uid)).execute()
         return r.data or []
     except: return []
@@ -471,8 +472,10 @@ WELCOME="🌌 *TERMINAL DA CONFEDERAÇÃO* 🌌\n━━━━━━━━━━�
 async def cmd_start(u,c): await u.message.reply_text(WELCOME,reply_markup=MAIN_KB,parse_mode="Markdown")
 async def cmd_reset(u,c):
     chats.pop(u.effective_chat.id,None)
-    await u.message.reply_text("🔄 _Memória neural purgada._",reply_markup=MAIN_KB,parse_mode="Markdown")
-async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens diretas: /1d20 /2d8+4\n💾 /ficha /fichas /deletarficha ID /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
+    # Passo 2: Desliga a sessão e silencia o Mestre
+    jogo_ativo.pop(u.effective_chat.id,None)
+    await u.message.reply_text("🔄 _Memória neural purgada. Mestre silenciado._",reply_markup=MAIN_KB,parse_mode="Markdown")
+async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens diretas: /1d20 /2d8+4\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
 async def cmd_regras(u,c):
     """Diretriz 5: busca regras do banco."""
@@ -579,6 +582,9 @@ async def cmd_cargarsessao(u,c):
     cid=u.effective_chat.id;chats.pop(cid,None);ch=gc(cid)
     actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
     if ctx: await ask(ch,ctx)
+    
+    # Passo 4 (parte a): Liga o Mestre ao carregar sessão anterior
+    jogo_ativo[cid] = True
     await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Retomando '{s.get('title')}'.\n{s.get('summary')}\nRecapitule.",m=u.message))
 
 async def cmd_contexto(u,c):
@@ -587,6 +593,9 @@ async def cmd_contexto(u,c):
     cid=u.effective_chat.id;chats.pop(cid,None);ch=gc(cid)
     actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
     if ctx: await ask(ch,ctx)
+    
+    # Passo 4 (parte b): Liga o Mestre ao dar contexto manual
+    jogo_ativo[cid] = True
     await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Importado.\n{txt}\nConfirme.",m=u.message))
     if db:db_save_session(cid,"📎 Importado",txt)
 
@@ -629,6 +638,10 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         n_jogadores=len(actives)
         modo="singular" if n_jogadores<=1 else "plural"
         if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {n_jogadores} jogador(es) ativo(s).\n{ctx}")
+        
+        # Passo 3: Liga o Mestre ao começar um novo jogo!
+        jogo_ativo[cid] = True
+        
         await q.edit_message_text("🌌 _Inicializando..._",parse_mode="Markdown")
         await rp(m,await ask(ch,"SISTEMA: NOVA aventura no Sistema Solar. Cena épica. Gancho. Opções. Conciso.",m=m))
     elif d=="play:context":
@@ -898,6 +911,10 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
         modo="singular" if len(actives)<=1 else "plural"
         if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}.\n{ctx}")
+        
+        # Passo 4 (parte c): Liga o mestre ao fornecer um novo contexto manualmente!
+        jogo_ativo[cid] = True 
+        
         resp=await ask(ch,f"CONTEXTO_SESSAO: Retomando.\n{txt}\nRecapitule e pergunte ação.",m=u.message)
         await rp(u.message,resp);cstate.pop(uid,None);return
 
@@ -918,7 +935,10 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             return
         await _save_and_finish(u.message,uid,un,cid,ficha);return
 
+    # Passo 5: A Porta do Segurança (Se o jogo não estiver ativo, o bot fica mudo)
     # ── Jogo normal — Diretriz 3: identidade ──
+    if not jogo_ativo.get(cid): return
+    
     ch=gc(cid)
     try:
         ficha=db_get_active(uid,cid)
