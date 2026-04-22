@@ -40,6 +40,7 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 - Descreva ambiente, controle NPCs, narre consequências das ações DELES.
 - Quando houver apenas 1 jogador, narre no SINGULAR ("O que você faz?").
 - Quando houver múltiplos, narre no PLURAL ("O que vocês fazem?").
+- MODO ESCUTA: Se os jogadores estiverem APENAS conversando entre si, planejando estratégias, ou fazendo roleplay de diálogo (sem interagir com o cenário, sem falar com NPCs e sem rolar dados), responda EXATAMENTE com a tag [ESCUTANDO]. Não narre absolutamente mais nada, apenas observe.
 
 🧑‍🚀 IDENTIFICAÇÃO DE TURNO:
 - Cada mensagem do jogador chega no formato: [Usuário: @nick | Personagem: Nome] diz: texto
@@ -948,6 +949,11 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         resp=await ask(ch,header,m=u.message)
         th(cid)
         clean=await intercept_and_sync(resp,cid,msg=u.message)
+        
+        # Se a IA perceber que é só conversa entre jogadores, o bot cancela o envio da mensagem
+        if "[ESCUTANDO]" in clean.upper():
+            return 
+            
         await rp(u.message,clean)
     except Exception as e:
         log.error(f"Msg:{e}");await u.message.reply_text("⚠️ Interferência.")
