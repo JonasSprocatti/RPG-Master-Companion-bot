@@ -64,6 +64,11 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 - Tiers: +1 a +3 = Básicas | +4 a +6 = +Injeções | +7+ = +Protocolos.
 - OVERCLOCK (sem RAM): 1d6 psíquico por ponto faltante. Falha Crítica(1)=falha+dano+Atordoado.
 
+✨ HABILIDADES (PASSIVAS E ATIVAS):
+- Consulte a seção "habilidades" nas FICHAS_ATIVAS para ver os poderes de Classe, Raça e Filosofia do jogador.
+- PASSIVAS: Estão sempre ativas. Aplique os bônus, vantagens ou ignorar penalidades automaticamente na narrativa e na exigência de dados.
+- ATIVAS: O jogador deve declarar o uso. Siga estritamente a mecânica descrita na ficha dele (pode custar Ações, RAM ou usos diários).
+
 🦾 IMPLANTES:
 - Limite seguro = max(2+Mod.Con, 1).
 - Para instalar narrativamente: use tag [IMPLANTE_ADD:id_implante:nome_personagem]
@@ -96,6 +101,82 @@ IDs scripts: ping choque query bateria scanner jammer glitch trava rollback fire
 IDs implantes: chip_ram olho interface_nav tradutor mira placas coracao filtro adrenalina bateria_int braco estabilizador mantis pernas ancoras
 
 REFERÊNCIA MECÂNICA: {RPG}"""
+
+# ══════ DICIONÁRIOS DE HABILIDADES ══════
+RACAS_HABILIDADES = {
+    "mercusys": [
+        "🧬 Racial (Alta Velocidade): Deslocamento base é o dobro (18m). Regenera 1d4 PV a mais num Descanso Curto. (Exige o dobro de rações).",
+        "🧬 Racial (Leitura Sensitiva): Ao tocar objetos/líquidos, identifica a composição química exata e detecta venenos ou ácidos.",
+        "🧬 Racial (Resistência ao Calor): Imune a dano por fogo ambiental/calor extremo. Desvantagem em ambientes frios (< 25°C)."
+    ],
+    "veny": [
+        "🧬 Racial (Air Shifter): Pode inalar gases para sofrer mutação (dura 1 min). Ex: Oxigênio = ganha asas; Hélio = voa no vácuo e não sofre dano de queda; Hidrogênio = fica gigante (+2 Força)."
+    ],
+    "terraqueo": [
+        "🧬 Racial (Gambiarra): 1x/dia, pode usar a Ação para transformar 3 itens de sucata em 1 item funcional temporário (arma, comunicador, kit médico)."
+    ],
+    "marciano": [
+        "⚡ Racial (Êxtase da Batalha): Ação Livre. Rola 1d6. (1-3 Adrenalina): +2 Dano Físico e +3m Movimento. (4-6 DHEA): Mente fria, +2 Acerto à distância e ignora cobertura. Dura 4 turnos.",
+        "⚡ Racial (Endurecer): Ação de Movimento. Enrijece músculos, recebendo -2 de Dano Físico em todos os golpes sofridos por 4 turnos."
+    ],
+    "conjupitero": [
+        "🧬 Racial (Física de Motor): +2 na Defesa(CD) contra tentativas de empurrão/arremesso. Pode carregar o triplo do peso normal.",
+        "🧬 Racial (Engenharia): +2 permanente nas perícias Pilotagem e Mecânica.",
+        "💼 Racial (Conta da Confederação): Recebe 10% de desconto automático na compra de qualquer item da galáxia."
+    ],
+    "sata": [
+        "⚡ Racial (Cura Genética): 1x/dia, Ação Principal. Cura 1d8+Sabedoria de um alvo. Se rolar 8, cura o dobro. Se rolar 1, o Sata sofre 2 de dano por rejeição.",
+        "⚡ Racial (Camuflagem Cromática): Ação Principal. Ganha +5 em Furtividade se ficar imóvel ou andar metade do movimento.",
+        "⚡ Racial (Emprestar Vitalidade): Ação Livre. Pode transferir metade dos seus PV atuais para curar um aliado com um toque."
+    ],
+    "urak": [
+        "🧬 Racial (Mímica Sonora): Imita qualquer voz, instrumento ou alarme de forma perfeita (Vantagem p/ iludir portas biométricas).",
+        "⚡ Racial (Criogênese): Ação Principal. Congela a umidade do ar para criar um objeto médio (martelo, escudo, chave) que derrete em 6 turnos.",
+        "🧬 Racial (Resistência ao Frio): Sobrevive perfeitamente no vácuo e no zero absoluto. Sofre 1 de dano contínuo acima de 40°C sem traje refrigerado."
+    ],
+    "proturno": [
+        "🧬 Racial (Levantamento Mental): Usa Inteligência no lugar de Força para mover e arremessar objetos de até 50kg a 10m de distância.",
+        "⚡ Racial (Invasão da Sombra): Ação Principal. Controle mental. Disputa de 1d20+Sab. Se o Proturno vencer, dita a ação do inimigo. Se perder, o Proturno sofre 2 de dano mental."
+    ],
+    "infimor": [
+        "🧬 Racial (Passos do Vácuo): Sobrevive no vácuo e não respira. Pode encolher o corpo (perde metade do movimento, mas ganha Vantagem Furtiva).",
+        "🧬 Racial (Braços Telescópicos): O seu alcance para ataques corpo a corpo e interações físicas é de 10 metros.",
+        "🧬 Racial (Fúria do Rebaixado): Se ouvir alguém dizer que Plutão não é planeta, ganha +2 em atributos e +3 dano, mas ataca aliados e inimigos sem controle por 5 turnos."
+    ]
+}
+
+FILOSOFIAS_HABILIDADES = {
+    "cam_voz": ["📜 Caminho (Comando Subliminar): 1x/Descanso Longo. Rola Carisma c/ Vantagem para impor Desvantagem no alvo. Ou usa para fingir de morto perfeitamente para radares térmicos."],
+    "cam_ressonancia": ["📜 Caminho (Eco no Escuro): 1x/Descanso Curto. Ignora escuridão por 1 turno e sente a localização exata de vivos num raio de 10m (mesmo atrás de paredes)."],
+    "cam_engrenagem": ["📜 Caminho (Bênção da Máquina): 1x/Descanso Longo. Transforma um '1' natural (Falha Crítica) em ataque com arma ou Tecnomancia numa falha comum."],
+    "cam_espiral": ["📜 Caminho (Metabolismo Acelerado): Sempre que recuperar Vida (Kit Médico ou Descanso), joga o dado de cura 2 vezes e pega o maior resultado."],
+    "cam_anel": ["📜 Caminho (A Segunda Órbita): 1x/Descanso Longo. Se o PV chegar a 0, em vez de cair, o personagem fica de pé com 1 PV cravado até o final do próximo turno."],
+    "cam_ocaso": ["📜 Caminho (Sacrifício de Sangue): 1x/Combate. Pode sofrer 1d4 de Dano inesquivável de propósito para somar +1d4 numa rolagem de ataque ou perícia (transforma erro em acerto)."],
+    "cod_sobrevivente": ["📜 Código (Paranoia Ativa): +2 Iniciativa. 1x/Descanso Longo, não perde o turno e age normalmente se o grupo for pego em uma Rodada Surpresa/Emboscada."],
+    "cod_corporativo": ["📜 Código (Olhar Avaliador): Ganha Vantagem automática para avaliar itens raros, achar loot oculto e negociar missões."],
+    "cod_cetico": ["📜 Código (Fortaleza Racional): Ganha +2 de Defesa (CD) passiva especificamente contra intimidação, ataques psíquicos e controles mentais."],
+    "cod_fronteira": ["📜 Código (Foco Isolado): Recebe +1 de bônus no Ataque se não houver NENHUM aliado do seu grupo num raio de 5 metros."],
+    "cod_caserna": ["📜 Código (Ato de Sacrifício): 1x/Descanso Curto (Reação). Atira-se na frente de um ataque letal contra um aliado adjacente e sofre o dano no lugar dele."],
+    "cod_viralata": ["📜 Código (Golpe Baixo): 1x/Combate (Ação Livre). Joga poeira/cega um inimigo a 3m de distância. O seu próximo ataque contra esse inimigo é com Vantagem."]
+}
+
+CLASSES_HABILIDADES = {
+    "estudioso": ["🧠 Passiva (Mapa Mental): 1x/sessão, declara que já leu sobre o alvo para o Mestre revelar fraqueza.", "⚡ Ativa (Ponto Estrutural): 1 RAM e Ação Principal. O próximo ataque (seu ou de aliado) no alvo dá Dano Máximo sem rolar."],
+    "mecanico": ["🧠 Passiva (Operador Pesado): Ignora penalidades ao vestir armaduras pesadas.", "⚡ Ativa (Reparo Tático): Ação Principal. Conserta armadura/escudo de aliado para +1d6+Mecânica de PV Temporários."],
+    "assassino": ["🧠 Passiva (O Primeiro Corte): Atacar alvo furtivamente ou antes da ação dele dá +2 acerto e DOBRA O DANO da arma.", "⚡ Ativa (Desaparecer): Matou o inimigo? Ação Livre para rolar Furtividade e sumir do combate."],
+    "soldado": ["🧠 Passiva (Memória Muscular): Usa Armas Pesadas perfeitamente sem o -2 no acerto.", "⚡ Ativa (Fogo de Supressão): Ação Principal. Alvo testa Sabedoria ou fica acovardado (não avança) e ataca com Desvantagem."],
+    "starlord": ["🧠 Passiva (Charme Malandro): 1x/cena, re-rola falha de persuasão e lábia.", "⚡ Ativa (Deixem comigo!): Ação Livre. Grita ordens e o próximo aliado a atacar recebe Vantagem."],
+    "franco_atirador": ["🧠 Passiva (Foco à Distância): +5 no acerto para alvos a >30 metros.", "⚡ Ativa (Tiro Incapacitante): Atira no membro; Dano cai pela metade, mas o alvo fica com Movimento Zero ou derruba a arma."],
+    "musico": ["🧠 Passiva (Ouvido Absoluto): +2 de Defesa(CD) contra controle da mente e dano sônico.", "⚡ Ativa (Frequência Ressonância): Ação Principal. Cria aura de 10m: Aliados ganham +2 Dano OU Inimigos sofrem -2 CD. Dura até o Músico receber dano."],
+    "espiao": ["🧠 Passiva (Rosto na Multidão): Vantagem absoluta para se disfarçar com roupas da facção inimiga.", "⚡ Ativa (Ponto Cego): Ação de Movimento. Esconde-se na confusão; inimigos o ignoram e não o focam até você agir."],
+    "catador": ["🧠 Passiva (Olho para o Ouro): Ao lootear, joga 1d6. Em 4-6, encontra loot/sucata extra valiosa.", "⚡ Ativa (Desmanche Rápido): 1x/combate, Ação Principal. Arranca peça de robô/armadura: 1d8 dano fixo e -1 CD permanente no alvo."],
+    "piloto": ["🧠 Passiva (Instinto Evasivo): O veículo ou Nave que ele pilotar recebe +2 na Defesa(CD) automaticamente.", "⚡ Ativa (Sobrecarga Propulsores): Joga Pilotagem com Vantagem para escapar de tiro espacial letal, mas a nave leva 1d4 dano de estresse."],
+    "batedor": ["🧠 Passiva (Sentidos Alertas): +2 Iniciativa. Nunca cai em rodadas de surpresa.", "⚡ Ativa (Marca do Caçador): Ação Livre. Marca o inimigo; todo o grupo do batedor ignora a cobertura do alvo."],
+    "explorador": ["🧠 Passiva (Mapeamento Tático): Ele e aliados a 10m ignoram as penalidades de Terreno Difícil (gelo/lama).", "⚡ Ativa (Vulnerabilidade Exposta): Ação Principal. Analisa alvo (Sobrevivência). Se passar, grupo dá +1d6 dano no bicho."],
+    "cinetico": ["🧠 Passiva (Bio-feedback): Quando cura aliados com magias, cura 2 PV de si mesmo junto.", "⚡ Ativa (Repulsão Cinética): 1 RAM e Ação Principal. Empurra quem estiver colado em você 3m para trás (testam Força ou caem)."],
+    "prospector": ["🧠 Passiva (Contrato Lucrativo): Garante +20% a mais de dinheiro/créditos nos loots para o grupo.", "⚡ Ativa (Espere!): 1x/combate, Ação Movimento. Convence vilão a hesitar e perder o turno (Ação Principal) dele."],
+    "pirata": ["🧠 Passiva (Brutalidade Abordagem): +1 Dano atacando dentro de Naves/locais apertados, sem sofrer penalidade de espaço.", "⚡ Ativa (Grito Saqueador): Ação Principal. Inimigos a 5m testam Sabedoria ou ficam Amedrontados (Desvantagem em tudo) por 2 turnos."]
+}
 
 genai.configure(api_key=GK)
 mdl=genai.GenerativeModel("gemini-2.5-flash-lite",system_instruction=SYSP,
@@ -370,7 +451,8 @@ def build_ficha(st):
     return {"nome":st.get("nome","?"),"raca":r["nome"],"classe":c["nome"],"filosofia":fl[0],
         "nivel":1,"xp":0,"pv_atual":st["pv"],"pv_max":st["pv"],"cd":cd,
         "ram_atual":ram,"ram_max":ram,"iniciativa":init,"deslocamento":r.get("desloc",9),
-        "atributos":attrs,"pericias":per,"habilidades":[f"{fl[0]}: {fl[1]}"],
+        "atributos":attrs,"pericias":per,
+        "habilidades": [f"📜 {fl[0]}: {fl[1]}"] + RACAS_HABILIDADES.get(st["raca"], []) + CLASSES_HABILIDADES.get(st["classe"], []) + FILOSOFIAS_HABILIDADES.get(st["filosofia"], []),
         "tecnomancias":list(st.get("tecno_selected",[])),
         "armas":[x for x in equip if any(w in x for w in["1d","2d","3d"])],
         "armadura":f"{arm['nome']} (CD+{arm['cd']})",
@@ -432,6 +514,7 @@ def inject_fichas_prompt(fichas):
         lines.append(f"For:{a.get('forca',8)} Des:{a.get('destreza',8)} Con:{a.get('constituicao',8)} Int:{a.get('inteligencia',8)} Sab:{a.get('sabedoria',8)} Car:{a.get('carisma',8)}")
         lines.append(f"Per:{f.get('pericias',{})} Armas:{f.get('armas',[])} Inv:{f.get('inventario',[])}")
         lines.append(f"CG:{f.get('creditos',100)} Tecno:{tnames} Implantes:{f.get('implantes',[])} Filosofia:{f.get('filosofia','')}\n")
+        lines.append(f"Habilidades Ativas e Passivas:\n{f.get('habilidades',[])}\n")
     return "\n".join(lines)
 
 async def _save_and_finish(msg,uid,un,cid,ficha):
@@ -473,14 +556,12 @@ WELCOME="🌌 *TERMINAL DA CONFEDERAÇÃO* 🌌\n━━━━━━━━━━�
 async def cmd_start(u,c): await u.message.reply_text(WELCOME,reply_markup=MAIN_KB,parse_mode="Markdown")
 async def cmd_reset(u,c):
     chats.pop(u.effective_chat.id,None)
-    # Passo 2: Desliga a sessão e silencia o Mestre
     jogo_ativo.pop(u.effective_chat.id,None)
     await u.message.reply_text("🔄 _Memória neural purgada. Mestre silenciado._",reply_markup=MAIN_KB,parse_mode="Markdown")
 async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens diretas: /1d20 /2d8+4\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
 async def cmd_debug(u,c):
     """Ferramenta de Troubleshooting para limpar o Cache e testar o DB."""
-    # 1. Limpa a memória REAL do bot (reinicia o Data Loader)
     DL._loaded = False
     DL.DISPLAY.clear()
     DL.ensure_loaded() # Força o bot a ir ler o Supabase AGORA
@@ -488,14 +569,12 @@ async def cmd_debug(u,c):
     txt = "⚙️ *DIAGNÓSTICO DO SISTEMA*\n━━━━━━━━━━━━━━━━━━━━\n"
     txt += "✅ Memória limpa e recarregada do Supabase.\n\n"
     
-    # 2. Testa um Dicionário (Submenus de Raças)
     r = DL.get_display("display_racas", {})
     if isinstance(r, dict) and r:
         txt += f"🟢 *Raças (Dicionário):* OK! Encontrou {len(r)} raças.\n"
     else:
         txt += f"🔴 *Raças (Dicionário):* ERRO. Retornou vazio ou formato incorreto.\n"
         
-    # 3. Testa um Texto Direto (Naves)
     n = DL.get_display("display_naves", "")
     if isinstance(n, str) and len(n) > 10:
         txt += f"🟢 *Naves (Texto):* OK! Carregou {len(n)} caracteres.\n"
@@ -505,7 +584,6 @@ async def cmd_debug(u,c):
     await u.message.reply_text(txt, parse_mode="Markdown")
 
 async def cmd_regras(u,c):
-    """Diretriz 5: busca regras do banco."""
     DL.ensure_loaded()
     txt=DL.REGRAS_TEXT
     if txt: await rp(u.message,txt if isinstance(txt,str) else json.dumps(txt))
@@ -610,7 +688,6 @@ async def cmd_cargarsessao(u,c):
     actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
     if ctx: await ask(ch,ctx)
     
-    # Passo 4 (parte a): Liga o Mestre ao carregar sessão anterior
     jogo_ativo[cid] = True
     await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Retomando '{s.get('title')}'.\n{s.get('summary')}\nRecapitule.",m=u.message))
 
@@ -621,7 +698,6 @@ async def cmd_contexto(u,c):
     actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
     if ctx: await ask(ch,ctx)
     
-    # Passo 4 (parte b): Liga o Mestre ao dar contexto manual
     jogo_ativo[cid] = True
     await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Importado.\n{txt}\nConfirme.",m=u.message))
     if db:db_save_session(cid,"📎 Importado",txt)
@@ -659,14 +735,12 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
     elif d=="m:gloss": await m.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
     elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /1d20 /ficha /fichas /deletarficha /levelup /implante /salvarsessao /sessoes /cargarsessao /contexto /glossario /regras /reset")
 
-    # Jogo
     elif d=="play:new":
         chats.pop(cid,None);ch=gc(cid);actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
         n_jogadores=len(actives)
         modo="singular" if n_jogadores<=1 else "plural"
         if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {n_jogadores} jogador(es) ativo(s).\n{ctx}")
         
-        # Passo 3: Liga o Mestre ao começar um novo jogo!
         jogo_ativo[cid] = True
         
         await q.edit_message_text("🌌 _Inicializando..._",parse_mode="Markdown")
@@ -675,7 +749,6 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         cstate[uid]={"step":"wait_context","chat_id":cid}
         await q.edit_message_text("📜 *Envio de Contexto*\nDigite o resumo da aventura anterior:",parse_mode="Markdown")
 
-    # Glossário — busca do banco via DL.get_display
     elif d=="g:racas": await m.reply_text("🌌 *RAÇAS:*",reply_markup=mkb(RACAS_BTN,"gr",2),parse_mode="Markdown")
     elif d=="g:classes": await m.reply_text("⚔️ *CLASSES:*",reply_markup=mkb(CLASSES_BTN,"gc",2),parse_mode="Markdown")
     elif d.startswith("gr:"):
@@ -701,7 +774,6 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
     elif d=="gb:f": await rp(m,DL.get_display("display_bestiario_fauna","❌"))
     elif d=="gb:v": await rp(m,DL.get_display("display_bestiario_vazio","❌"))
 
-    # Implantes
     elif d.startswith("ic:"):
         slot=d[3:];f=db_get_active(uid,cid)
         if not f:return
@@ -725,7 +797,6 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         f=db_get_active(uid,cid)
         if f: await _install_implant(m,f,d[3:])
 
-    # ── Criação ──
     elif d.startswith("r:"):
         k=d[2:];cstate.setdefault(uid,{});cstate[uid].update({"step":"classe","raca":k,"chat_id":cid})
         await q.edit_message_text(f"✅ *{RACAS_BTN[k]}*\n📋 2/5: *Especialização*",parse_mode="Markdown")
@@ -758,18 +829,14 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
                     st["atributos_base"][ATTR_KEYS[5]]=chosen;st["step"]="equip"
                     await _fin_attrs(m,uid)
                 except Exception as e:
-                    import traceback
-                    print(traceback.format_exc())
-                    await m.reply_text(f"⚠️ *Erro Crítico ao compilar a ficha:*\n`{e}`\nO código travou nessa etapa. Verifique o log do terminal!", parse_mode="Markdown")
+                    await m.reply_text(f"⚠️ *Erro Crítico:* `{e}`", parse_mode="Markdown")
         else:
             try:
                 st["step"]="equip"
                 await q.edit_message_text(f"✅ {ATTR_LABELS[5]}: *{chosen}*",parse_mode="Markdown")
                 await _fin_attrs(m,uid)
             except Exception as e:
-                import traceback
-                print(traceback.format_exc())
-                await m.reply_text(f"⚠️ *Erro Crítico ao compilar a ficha:*\n`{e}`\nO código travou nessa etapa. Verifique o log do terminal!", parse_mode="Markdown")
+                await m.reply_text(f"⚠️ *Erro Crítico:* `{e}`", parse_mode="Markdown")
     elif d.startswith("eq:"):
         idx=int(d[3:]);st=cstate.get(uid)
         if not st:return
@@ -805,7 +872,6 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             await m.reply_text("+1:",reply_markup=KBD([per_btns[i:i+3] for i in range(0,len(per_btns),3)]))
         else: st["step"]="nome";await m.reply_text("✏️ Digite o *nome*:",parse_mode="Markdown")
 
-    # Level up
     elif d.startswith("la:"):
         k=d[3:];st=cstate.get(uid)
         if not st or st.get("step")!="lvl_attr":return
@@ -825,7 +891,6 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         if not f:return
         per=f.get("pericias",{});per[k]=per.get(k,0)+1;db_update_ficha(fid,{"pericias":per})
         await q.edit_message_text(f"✅ {PERICIAS_NOMES.get(k,k)}→*+{per[k]}*",parse_mode="Markdown")
-        # Verifica novo script
         tecno_skill=per.get("tecnomancia",0);novo_nv=st["novo_nv"]
         if tecno_skill>=1:
             mx=DL.calc_max_scripts(novo_nv,tecno_skill);cur=list(f.get("tecnomancias",[])or[])
@@ -840,7 +905,6 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         cstate.pop(uid,None);ch=gc(cid);await ask(ch,f"SISTEMA: {f.get('nome','?')} subiu Nv{st['novo_nv']}.",m=m)
         await m.reply_text(f"⬆️ *{f.get('nome','?')}* Nv{st['novo_nv']} completo!",parse_mode="Markdown")
 
-    # Tecnomancia seleção
     elif d.startswith("ts:"):
         sid2=d[3:];st=cstate.get(uid)
         if not st or st.get("step")!="tecno_select":return
@@ -902,8 +966,6 @@ async def _fin_attrs(m,uid):
         await m.reply_text("🌍 *+4 atributos:*",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]),parse_mode="Markdown")
     else: st["step"]="nome";await m.reply_text("✏️ Digite o *nome*:",parse_mode="Markdown")
 
-# ══════ MESSAGE HANDLER (Diretriz 3: identidade, Diretriz 4: regex dice) ══════
-
 async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
     cid=u.effective_chat.id;txt=u.message.text;un=u.message.from_user.first_name or"?"
     uid=u.message.from_user.id;username=u.message.from_user.username or un
@@ -911,7 +973,6 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
 
     st=cstate.get(uid)
 
-    # ── Diretriz 4: Rolagem de dados via Regex (/1d20, /2d8+4) ──
     dice_match=DICE_RE.match(txt.strip())
     if dice_match:
         n=int(dice_match.group(1) or 1);s=int(dice_match.group(2));mod=int(dice_match.group(3) or 0)
@@ -923,7 +984,6 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 if rolls[0]==20:cr="\n🌟 *CRÍTICO!*"
                 elif rolls[0]==1:cr="\n💀 *FALHA CRÍTICA!*"
             await rp(u.message,f"🎲 *{n}d{s}{mod_str}*\n{rolls}{f' {mod_str}' if mod else ''} = *{total}*{cr}")
-            # Injeta resultado na IA (Diretriz 4)
             ficha=db_get_active(uid,cid)
             nome_pc=ficha.get("nome","?") if ficha else un
             ch=gc(cid)
@@ -934,24 +994,18 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 await rp(u.message,clean)
             return
 
-    # Esperando contexto (play:context)
     if st and st.get("step")=="wait_context" and st.get("chat_id")==cid:
         chats.pop(cid,None);ch=gc(cid)
         actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
         modo="singular" if len(actives)<=1 else "plural"
         if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}.\n{ctx}")
-        
-        # Passo 4 (parte c): Liga o mestre ao fornecer um novo contexto manualmente!
         jogo_ativo[cid] = True 
-        
         resp=await ask(ch,f"CONTEXTO_SESSAO: Retomando.\n{txt}\nRecapitule e pergunte ação.",m=u.message)
         await rp(u.message,resp);cstate.pop(uid,None);return
 
-    # Criação: esperando nome
     if st and st.get("step")=="nome" and st.get("chat_id")==cid:
         st["nome"]=txt.strip()[:30]
         ficha=build_ficha(st)
-        # Tecnomancia?
         tecno_total=ficha.get("pericias",{}).get("tecnomancia",0)
         if tecno_total>=1:
             mx=DL.calc_max_scripts(1,tecno_total)
@@ -964,31 +1018,23 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             return
         await _save_and_finish(u.message,uid,un,cid,ficha);return
 
-    # Passo 5: A Porta do Segurança (Se o jogo não estiver ativo, o bot fica mudo)
-    # ── Jogo normal — Diretriz 3: identidade ──
     if not jogo_ativo.get(cid): return
     
     ch=gc(cid)
     try:
         ficha=db_get_active(uid,cid)
         nome_pc=ficha.get("nome","?") if ficha else un
-        # Diretriz 3: cabeçalho de identidade
         header=f"[Usuário: @{username} | Personagem: {nome_pc}] diz: {txt}"
         resp=await ask(ch,header,m=u.message)
         th(cid)
         clean=await intercept_and_sync(resp,cid,msg=u.message)
-        
-        # Se a IA perceber que é só conversa entre jogadores, o bot cancela o envio da mensagem
-        if "[ESCUTANDO]" in clean.upper():
-            return 
-            
+        if "[ESCUTANDO]" in clean.upper(): return 
         await rp(u.message,clean)
     except Exception as e:
         log.error(f"Msg:{e}");await u.message.reply_text("⚠️ Interferência.")
 
 async def on_err(u,c): log.error(f"Err:{c.error}")
 
-# ══════ MAIN ══════
 def main():
     DL.ensure_loaded()
     app=Application.builder().token(TG).build()
@@ -1002,7 +1048,6 @@ def main():
         app.add_handler(CommandHandler(cmd,fn))
     app.add_handler(CallbackQueryHandler(on_cb))
     app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,on_msg))
-    # Diretriz 4: captura /NdN como comando regex
     app.add_handler(MessageHandler(filters.Regex(r'^/\d*d\d+'),on_msg))
     app.add_error_handler(on_err)
     if WH: app.run_webhook(listen="0.0.0.0",port=PT,url_path=TG,webhook_url=f"{WH}/{TG}")
