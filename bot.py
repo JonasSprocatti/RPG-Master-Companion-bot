@@ -972,6 +972,7 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
 
     st=cstate.get(uid)
 
+    # ── Diretriz 4: Rolagem de dados via Regex (/1d20) ──
     dice_match=DICE_RE.match(txt.strip())
     if dice_match:
         n=int(dice_match.group(1) or 1);s=int(dice_match.group(2));mod=int(dice_match.group(3) or 0)
@@ -983,6 +984,7 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 if rolls[0]==20:cr="\n🌟 *CRÍTICO!*"
                 elif rolls[0]==1:cr="\n💀 *FALHA CRÍTICA!*"
             await rp(u.message,f"🎲 *{n}d{s}{mod_str}*\n{rolls}{f' {mod_str}' if mod else ''} = *{total}*{cr}")
+            
             ficha=db_get_active(uid,cid)
             nome_pc=ficha.get("nome","?") if ficha else un
             ch=gc(cid)
@@ -990,18 +992,23 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             resp=ch.history[-1].parts[0].text if ch.history else ""
             if resp:
                 clean=await intercept_and_sync(resp,cid,msg=u.message)
-                await rp(u.message,clean)
+                if "[ESCUTANDO]" in clean.upper():
+                    clean = re.sub(r'\[?ESCUTANDO\]?', '', clean, flags=re.IGNORECASE).strip()
+                if clean: await rp(u.message,clean)
             return
 
+    # Esperando contexto (play:context)
     if st and st.get("step")=="wait_context" and st.get("chat_id")==cid:
         chats.pop(cid,None);ch=gc(cid)
         actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
         modo="singular" if len(actives)<=1 else "plural"
         if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}.\n{ctx}")
+        
         jogo_ativo[cid] = True 
         resp=await ask(ch,f"CONTEXTO_SESSAO: Retomando.\n{txt}\nRecapitule e pergunte ação.",m=u.message)
         await rp(u.message,resp);cstate.pop(uid,None);return
 
+    # Criação: esperando nome
     if st and st.get("step")=="nome" and st.get("chat_id")==cid:
         st["nome"]=txt.strip()[:30]
         ficha=build_ficha(st)
@@ -1017,17 +1024,27 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             return
         await _save_and_finish(u.message,uid,un,cid,ficha);return
 
-    if not jogo_ativo.get(cid): return
+    # ── JOGO NORMAL: A PORTA DE SEGURANÇA INTELIGENTE ──
+    # Se quem enviou a mensagem não tem ficha ativa neste chat, o bot ignora.
+    ficha=db_get_active(uid,cid)
+    if not ficha: return
+    
+    # Se tem ficha, ativa o jogo automaticamente (desbloqueia se o bot reiniciou)
+    jogo_ativo[cid] = True
     
     ch=gc(cid)
     try:
-        ficha=db_get_active(uid,cid)
-        nome_pc=ficha.get("nome","?") if ficha else un
+        nome_pc=ficha.get("nome","?")
         header=f"[Usuário: @{username} | Personagem: {nome_pc}] diz: {txt}"
         resp=await ask(ch,header,m=u.message)
         th(cid)
         clean=await intercept_and_sync(resp,cid,msg=u.message)
-        if "[ESCUTANDO]" in clean.upper(): return 
+        
+        # Modo Escuta mais brando: apaga a palavra, mas mantém o texto se houver narração!
+        if "[ESCUTANDO]" in clean.upper():
+            clean = re.sub(r'\[?ESCUTANDO\]?', '', clean, flags=re.IGNORECASE).strip()
+            if not clean: return # Se o bot SÓ disse "[ESCUTANDO]", aí sim ele fica mudo.
+            
         await rp(u.message,clean)
     except Exception as e:
         log.error(f"Msg:{e}");await u.message.reply_text("⚠️ Interferência.")
