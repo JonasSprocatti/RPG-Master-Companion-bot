@@ -554,8 +554,11 @@ WELCOME="🌌 *TERMINAL DA CONFEDERAÇÃO* 🌌\n━━━━━━━━━━�
 # ══════ HANDLERS ══════
 async def cmd_start(u,c): await u.message.reply_text(WELCOME,reply_markup=MAIN_KB,parse_mode="Markdown")
 async def cmd_reset(u,c):
-    chats.pop(u.effective_chat.id,None)
-    jogo_ativo.pop(u.effective_chat.id,None)
+    cid = u.effective_chat.id
+    uid = u.message.from_user.id
+    chats.pop(cid, None)
+    jogo_ativo.pop(cid, None)
+    cstate.pop(uid, None) # Limpa qualquer botão de criação preso na memória
     await u.message.reply_text("🔄 _Memória neural purgada. Mestre silenciado._",reply_markup=MAIN_KB,parse_mode="Markdown")
 async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens diretas: /1d20 /2d8+4\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
@@ -1025,12 +1028,12 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         await _save_and_finish(u.message,uid,un,cid,ficha);return
 
     # ── JOGO NORMAL: A PORTA DE SEGURANÇA INTELIGENTE ──
-    # Se quem enviou a mensagem não tem ficha ativa neste chat, o bot ignora.
+    # 1. Primeiro e mais importante: O jogo está ligado no grupo?
+    if not jogo_ativo.get(cid): return
+    
+    # 2. Se o jogo está ligado, quem enviou tem ficha ativa?
     ficha=db_get_active(uid,cid)
     if not ficha: return
-    
-    # Se tem ficha, ativa o jogo automaticamente (desbloqueia se o bot reiniciou)
-    jogo_ativo[cid] = True
     
     ch=gc(cid)
     try:
