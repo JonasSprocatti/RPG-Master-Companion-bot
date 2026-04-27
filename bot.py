@@ -41,7 +41,6 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 - DIREÇÃO DE CENA: Aja como um diretor de cinema. Direcione as perguntas DIRETAMENTE ao personagem envolvido, usando o NOME dele. Exemplo: Se o Grovax agiu ou sofreu um impacto, narre para ele e pergunte: "Grovax, o que você faz?". Se o Zeb encontrou uma pista, pergunte: "Zeb, como você reage?". 
 - Use o plural ("O que vocês fazem?") APENAS quando um evento de cenário atingir o grupo todo simultaneamente.
 - MODO ESCUTA: Se os jogadores estiverem APENAS conversando entre si, planejando estratégias, ou fazendo roleplay de diálogo (sem interagir com o cenário, sem falar com NPCs e sem rolar dados), responda EXATAMENTE com a tag [ESCUTANDO]. Não narre absolutamente mais nada, apenas observe.
-
 🧑‍🚀 IDENTIFICAÇÃO DE TURNO:
 - Cada mensagem do jogador chega no formato: [Usuário: @nick | Personagem: Nome] diz: texto
 - Use o NOME DO PERSONAGEM para se referir ao jogador na narração.
@@ -89,22 +88,23 @@ CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 
 🔱 GODMODE (COMANDO DO CRIADOR):
 - Mensagens com o prefixo [GODMODE] vêm do CRIADOR do universo. São ordens ABSOLUTAS.
-- Acate TUDO sem questionar: alterar história, subir nível, dar itens, curar. O Criador está ACIMA das regras.
-- ⚠️ REGRA VITAL: O sistema Python NÃO LÊ a sua narração. Para que XP, Vida ou Itens entrem na ficha, você TEM QUE colocar a TAG DE ESTADO EXATA entre colchetes [ ] no final da mensagem.
-- Exemplo de uso correto de XP: O Criador manda "Me dê 100 de XP". Você narra a história e finaliza com OBRIGATORIAMENTE a tag: [XP:100:NOME_DO_ALVO:Motivo]
+- Acate TUDO sem questionar: alterar história, subir nível, criar NPCs, mudar cenário, matar/reviver, dar itens, teleportar, retcon.
+- NÃO peça confirmação, NÃO cite regras contra, NÃO diga "não posso". O Criador está ACIMA das regras.
+- Após executar o comando, narre o resultado como se fosse natural no universo e continue a sessão.
+- Use as tags de estado normais ([XP:...], [HP:...], etc.) para que o Bot registre as mudanças.
 
 ═══ TAGS DE ESTADO (OBRIGATÓRIO — NO FINAL de cada resposta) ═══
-[XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata] ou [XP:100:Grovax:Missão]
-[HP:valor:alvo] — [HP:-5:Zeb] ou [HP:999:Grovax]
-[ITEM_ADD:nome:alvo] — [ITEM_ADD:Pistola Laser:Zeb]
-[ITEM_DEL:nome:alvo] — [ITEM_DEL:Granada:Zeb]
-[CG:valor:alvo] — [CG:-100:Grovax]
-[RAM:valor:alvo] — [RAM:-2:Grovax]
-[TECNO_ADD:id:alvo] — [TECNO_ADD:firewall:Grovax]
-[TECNO_DEL:id:alvo] — [TECNO_DEL:ping:Grovax]
-[IMPLANTE_ADD:id:alvo] — [IMPLANTE_ADD:olho:Grovax]
-[ATTR:atrib:valor:alvo] — [ATTR:forca:+1:Grovax]
-[PER:pericia:valor:alvo] — [PER:furtividade:+1:Grovax]
+[XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata]
+[HP:valor:alvo] — [HP:-5:Jonas]
+[ITEM_ADD:nome:alvo] — [ITEM_ADD:Pistola Laser:Jonas]
+[ITEM_DEL:nome:alvo] — [ITEM_DEL:Granada:Maria]
+[CG:valor:alvo] — [CG:-100:Jonas]
+[RAM:valor:alvo] — [RAM:-2:Jonas]
+[TECNO_ADD:id:alvo] — [TECNO_ADD:firewall:Jonas]
+[TECNO_DEL:id:alvo] — [TECNO_DEL:ping:Jonas]
+[IMPLANTE_ADD:id:alvo] — [IMPLANTE_ADD:olho:Jonas]
+[ATTR:atrib:valor:alvo] — [ATTR:forca:+1:Jonas]
+[PER:pericia:valor:alvo] — [PER:furtividade:+1:Jonas]
 IDs scripts: ping choque query scanner jammer glitch trava rollback firewall travar_arma curto_arm hack_motor ejetar_pente cegueira drenar sobrecarga desativar loop torreta hack_nav apagao inverter reator marionete emp ejetar_piloto reparo_nave formatar gravidade
 IDs implantes: chip_ram olho interface_nav tradutor mira placas coracao filtro adrenalina bateria_int braco estabilizador mantis pernas ancoras
 
@@ -317,7 +317,6 @@ async def intercept_and_sync(text,cid,msg=None):
     for tt,params in changes:
         parts=[p.strip() for p in params.split(":")]
         try:
-            # Se for XP, o formato é [XP:valor:alvo:motivo] - o alvo está na posição 1
             if tt == "XP" and len(parts) >= 3:
                 alvo_raw = parts[1]
             else:
@@ -327,16 +326,11 @@ async def intercept_and_sync(text,cid,msg=None):
             
             def _find():
                 if alvo=="todos": return list({id(f):f for f in nm2f.values()}.values()),True
-                
-                # Busca por nome exato
                 f=nm2f.get(alvo) or nm2f.get(alvo_n)
                 if f: return [f],False
-                
-                # Fallback: Se a IA errar e usar a raça ou classe em vez do nome
                 for active_f in nm2f.values():
                     if alvo in active_f.get("nome","").lower() or alvo in active_f.get("raca","").lower() or alvo in active_f.get("classe","").lower():
                         return [active_f], False
-                        
                 return [],False
 
             if tt=="XP" and len(parts)>=2:
@@ -395,7 +389,6 @@ async def intercept_and_sync(text,cid,msg=None):
                     if sid2 in tc: tc.remove(sid2);db_update_ficha(f["id"],{"tecnomancias":tc})
                     notifs.append(f"🧠 {f.get('nome','?')} perdeu script")
 
-            # ── DIRETRIZ 6: Cirurgia autônoma de implantes ──
             elif tt=="IMPLANTE_ADD" and len(parts)>=2:
                 impl_id=parts[0].lower();tgts,_=_find()
                 for f in tgts:
@@ -404,7 +397,6 @@ async def intercept_and_sync(text,cid,msg=None):
                         impl_list=list(f.get("implantes",[])or[]);con_mod=calc_mod(f.get("atributos",{}).get("constituicao",8))
                         limite=DL.calc_implant_limit(con_mod);qtd=len(impl_list)
                         impl_list.append(imp["nome"]);ups={"implantes":impl_list}
-                        # Mecânica do implante
                         mec=imp.get("mecanica",{})
                         if "ram_max" in mec: ups["ram_max"]=f.get("ram_max",0)+mec["ram_max"]
                         if "cd" in mec: ups["cd"]=f.get("cd",10)+mec["cd"]
@@ -412,18 +404,18 @@ async def intercept_and_sync(text,cid,msg=None):
                         resultado="Operação Segura"
                         if qtd>=limite:
                             extra=qtd-limite+1
-                            if extra==1:  # Perda de Humanidade
+                            if extra==1:
                                 dano=rng.randint(1,6)
                                 ups["pv_max"]=f.get("pv_max",0)+(mec.get("pv_max",0))-dano
                                 ups["pv_atual"]=min(f.get("pv_atual",0),ups["pv_max"])
                                 notas=f.get("notas","")+"| Desvantagem Persuasão (implante) "
                                 ups["notas"]=notas
                                 resultado=f"Sobrecarga Nv1: perdeu {dano} Vida Máxima permanente"
-                            elif extra==2:  # Curto-Circuito
+                            elif extra==2:
                                 notas=f.get("notas","")+"| Curto-Circuito (1-2 natural=1d6 elétrico+atordoa) "
                                 ups["notas"]=notas
                                 resultado="Sobrecarga Nv2: Curto-Circuito instalado"
-                            elif extra>=3:  # Morte
+                            elif extra>=3:
                                 ups["pv_atual"]=0;ups["pv_max"]=0
                                 resultado="COLAPSO NEURAL — ÓBITO CIBERNÉTICO"
                         db_update_ficha(f["id"],ups)
@@ -450,7 +442,6 @@ async def intercept_and_sync(text,cid,msg=None):
     if notifs and msg:
         try: await msg.reply_text("📡 *Sync:*\n"+"\n".join(notifs),parse_mode="Markdown")
         except: pass
-    # Injeta relatórios médicos na IA
     if ia_inject:
         try:
             ch=gc(cid)
@@ -603,26 +594,19 @@ async def cmd_reset(u,c):
 async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
 async def cmd_debug(u,c):
-    """Ferramenta de Troubleshooting para limpar o Cache e testar o DB."""
     DL._loaded = False
     DL.DISPLAY.clear()
-    DL.ensure_loaded() # Força o bot a ir ler o Supabase AGORA
+    DL.ensure_loaded()
     
     txt = "⚙️ *DIAGNÓSTICO DO SISTEMA*\n━━━━━━━━━━━━━━━━━━━━\n"
     txt += "✅ Memória limpa e recarregada do Supabase.\n\n"
-    
     r = DL.get_display("display_racas", {})
-    if isinstance(r, dict) and r:
-        txt += f"🟢 *Raças (Dicionário):* OK! Encontrou {len(r)} raças.\n"
-    else:
-        txt += f"🔴 *Raças (Dicionário):* ERRO. Retornou vazio ou formato incorreto.\n"
+    if isinstance(r, dict) and r: txt += f"🟢 *Raças (Dicionário):* OK! Encontrou {len(r)} raças.\n"
+    else: txt += f"🔴 *Raças (Dicionário):* ERRO. Retornou vazio ou formato incorreto.\n"
         
     n = DL.get_display("display_naves", "")
-    if isinstance(n, str) and len(n) > 10:
-        txt += f"🟢 *Naves (Texto):* OK! Carregou {len(n)} caracteres.\n"
-    else:
-        txt += f"🔴 *Naves (Texto):* ERRO. Retornou vazio ou formato incorreto.\n"
-        
+    if isinstance(n, str) and len(n) > 10: txt += f"🟢 *Naves (Texto):* OK! Carregou {len(n)} caracteres.\n"
+    else: txt += f"🔴 *Naves (Texto):* ERRO. Retornou vazio ou formato incorreto.\n"
     await u.message.reply_text(txt, parse_mode="Markdown")
 
 async def cmd_godmode(u,c):
@@ -741,7 +725,6 @@ async def cmd_cargarsessao(u,c):
     cid=u.effective_chat.id;chats.pop(cid,None);ch=gc(cid)
     actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
     if ctx: await ask(ch,ctx)
-    
     jogo_ativo[cid] = True
     await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Retomando '{s.get('title')}'.\n{s.get('summary')}\nRecapitule.",m=u.message))
 
@@ -751,240 +734,274 @@ async def cmd_contexto(u,c):
     cid=u.effective_chat.id;chats.pop(cid,None);ch=gc(cid)
     actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
     if ctx: await ask(ch,ctx)
-    
     jogo_ativo[cid] = True
     await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Importado.\n{txt}\nConfirme.",m=u.message))
     if db:db_save_session(cid,"📎 Importado",txt)
 
 # ══════ CALLBACK ROUTER ══════
 async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
-    q=u.callback_query;await q.answer();d=q.data;m=q.message
-    uid=q.from_user.id;cid=m.chat_id;un=q.from_user.first_name or"?"
+    try:
+        q=u.callback_query;await q.answer();d=q.data;m=q.message
+        uid=q.from_user.id;cid=m.chat_id;un=q.from_user.first_name or"?"
 
-    if d in("m:back","m:start"): await m.reply_text(WELCOME,reply_markup=MAIN_KB,parse_mode="Markdown")
-    elif d=="m:init":
-        fichas=db_list_fichas(uid,cid)
-        if not fichas: await m.reply_text("❌ Sem personagens.");return
-        btns=[Btn(f"⚔️ {f['nome']} (Nv{f['nivel']})",callback_data=f"sel:{f['id']}") for f in fichas]
-        await m.reply_text("🧑‍🚀 *Selecione:*",reply_markup=KBD([[b] for b in btns]),parse_mode="Markdown")
-    elif d.startswith("sel:"):
-        fid=int(d[4:]);db_set_active(uid,cid,fid);f=db_get_ficha(fid)
-        if f:
-            await m.reply_text(f"✅ *{f.get('nome','?')}* ativado!",parse_mode="Markdown")
-            await rp(m,ff(f))
-            ch=gc(cid);await ask(ch,f"FICHAS_ATIVAS:\n{inject_fichas_prompt([f])}",m=m)
-            play_kb=KBD([[Btn("🆕 Nova Aventura",callback_data="play:new")],[Btn("📜 Continuar",callback_data="play:context")]])
-            await m.reply_text("🌌 *Sincronizado.* Como iniciar?",reply_markup=play_kb,parse_mode="Markdown")
-    elif d=="m:criar":
-        cstate[uid]={"step":"raca","chat_id":cid}
-        await m.reply_text("🧑‍🚀 *RECRUTAMENTO* 1/5: *Origem*",reply_markup=mkb(RACAS_BTN,"r",2),parse_mode="Markdown")
-    elif d=="m:mfichas":
-        fs=db_list_fichas(uid,cid)
-        if not fs: await m.reply_text("📋 Vazio.");return
-        await rp(m,"📋 *PERSONAGENS:*\n"+"\n".join(f"• ID *{f['id']}* — {f['nome']} ({f['raca']} {f['classe']} Nv{f['nivel']})" for f in fs))
-    elif d=="m:csess":
-        sl=db_list_sessions(cid)
-        if not sl: await m.reply_text("📚 Vazio.");return
-        await rp(m,"📚\n"+"\n".join(f"• ID *{s['id']}* — {s.get('title','?')}" for s in sl)+"\n/cargarsessao ID")
-    elif d=="m:gloss": await m.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
-    elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /1d20 /1d20p5 /ficha /fichas /deletarficha /levelup /implante /salvarsessao /sessoes /cargarsessao /contexto /glossario /regras /reset")
+        if d in("m:back","m:start"): await m.reply_text(WELCOME,reply_markup=MAIN_KB,parse_mode="Markdown")
+        elif d=="m:init":
+            fichas=db_list_fichas(uid,cid)
+            if not fichas: await m.reply_text("❌ Sem personagens.");return
+            btns=[Btn(f"⚔️ {f['nome']} (Nv{f['nivel']})",callback_data=f"sel:{f['id']}") for f in fichas]
+            await m.reply_text("🧑‍🚀 *Selecione:*",reply_markup=KBD([[b] for b in btns]),parse_mode="Markdown")
+        elif d.startswith("sel:"):
+            fid=int(d[4:]);db_set_active(uid,cid,fid);f=db_get_ficha(fid)
+            if f:
+                await m.reply_text(f"✅ *{f.get('nome','?')}* ativado!",parse_mode="Markdown")
+                await rp(m,ff(f))
+                ch=gc(cid);await ask(ch,f"FICHAS_ATIVAS:\n{inject_fichas_prompt([f])}",m=m)
+                play_kb=KBD([[Btn("🆕 Nova Aventura",callback_data="play:new")],[Btn("📜 Continuar",callback_data="play:context")]])
+                await m.reply_text("🌌 *Sincronizado.* Como iniciar?",reply_markup=play_kb,parse_mode="Markdown")
+        elif d=="m:criar":
+            cstate[uid]={"step":"raca","chat_id":cid}
+            await m.reply_text("🧑‍🚀 *RECRUTAMENTO* 1/5: *Origem*",reply_markup=mkb(RACAS_BTN,"r",2),parse_mode="Markdown")
+        elif d=="m:mfichas":
+            fs=db_list_fichas(uid,cid)
+            if not fs: await m.reply_text("📋 Vazio.");return
+            await rp(m,"📋 *PERSONAGENS:*\n"+"\n".join(f"• ID *{f['id']}* — {f['nome']} ({f['raca']} {f['classe']} Nv{f['nivel']})" for f in fs))
+        elif d=="m:csess":
+            sl=db_list_sessions(cid)
+            if not sl: await m.reply_text("📚 Vazio.");return
+            await rp(m,"📚\n"+"\n".join(f"• ID *{s['id']}* — {s.get('title','?')}" for s in sl)+"\n/cargarsessao ID")
+        elif d=="m:gloss": await m.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
+        elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /1d20 /1d20p5 /ficha /fichas /deletarficha /levelup /implante /salvarsessao /sessoes /cargarsessao /contexto /glossario /regras /reset")
 
-    elif d=="play:new":
-        chats.pop(cid,None);ch=gc(cid);actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
-        n_jogadores=len(actives)
-        modo="singular" if n_jogadores<=1 else "plural"
-        if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {n_jogadores} jogador(es) ativo(s).\n{ctx}")
-        
-        jogo_ativo[cid] = True
-        
-        await q.edit_message_text("🌌 _Inicializando..._",parse_mode="Markdown")
-        await rp(m,await ask(ch,"SISTEMA: NOVA aventura no Sistema Solar. Cena épica. Gancho. Opções. Conciso.",m=m))
-    elif d=="play:context":
-        cstate[uid]={"step":"wait_context","chat_id":cid}
-        await q.edit_message_text("📜 *Envio de Contexto*\nDigite o resumo da aventura anterior:",parse_mode="Markdown")
+        elif d=="play:new":
+            chats.pop(cid,None);ch=gc(cid);actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
+            n_jogadores=len(actives)
+            modo="singular" if n_jogadores<=1 else "plural"
+            if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {n_jogadores} jogador(es) ativo(s).\n{ctx}")
+            jogo_ativo[cid] = True
+            await q.edit_message_text("🌌 _Inicializando..._",parse_mode="Markdown")
+            await rp(m,await ask(ch,"SISTEMA: NOVA aventura no Sistema Solar. Cena épica. Gancho. Opções. Conciso.",m=m))
+        elif d=="play:context":
+            cstate[uid]={"step":"wait_context","chat_id":cid}
+            await q.edit_message_text("📜 *Envio de Contexto*\nDigite o resumo da aventura anterior:",parse_mode="Markdown")
 
-    elif d=="g:racas": await m.reply_text("🌌 *RAÇAS:*",reply_markup=mkb(RACAS_BTN,"gr",2),parse_mode="Markdown")
-    elif d=="g:classes": await m.reply_text("⚔️ *CLASSES:*",reply_markup=mkb(CLASSES_BTN,"gc",2),parse_mode="Markdown")
-    elif d.startswith("gr:"):
-        data=DL.get_display("display_racas",{});txt=data.get(d[3:],"❌") if isinstance(data,dict) else "❌"
-        await rp(m,txt);await m.reply_text("🔙",reply_markup=KBD([[Btn("🌌",callback_data="g:racas"),Btn("📖",callback_data="m:gloss")]]))
-    elif d.startswith("gc:"):
-        data=DL.get_display("display_classes",{});txt=data.get(d[3:],"❌") if isinstance(data,dict) else "❌"
-        await rp(m,txt);await m.reply_text("🔙",reply_markup=KBD([[Btn("⚔️",callback_data="g:classes"),Btn("📖",callback_data="m:gloss")]]))
-    elif d=="g:ab": await rp(m,DL.get_display("display_armas_brancas","❌ Dados não carregados. Execute seed_dados_rpg.sql"))
-    elif d=="g:af": await rp(m,DL.get_display("display_armas_fogo","❌"))
-    elif d=="g:ar": await rp(m,DL.get_display("display_armaduras","❌"))
-    elif d=="g:im": await rp(m,DL.get_display("display_implantes","❌"))
-    elif d=="g:fe": await rp(m,DL.get_display("display_ferramentas","❌"))
-    elif d=="g:mo": await rp(m,DL.get_display("display_modificacoes","❌"))
-    elif d=="g:na": await rp(m,DL.get_display("display_naves","❌"))
-    elif d=="g:fi": await rp(m,DL.get_display("display_filosofias","❌"))
-    elif d=="g:te": await m.reply_text("🧠",reply_markup=KBD([[Btn("🟢 Básicas",callback_data="gt:b")],[Btn("🟡 Injeções",callback_data="gt:i")],[Btn("🔴 Protocolos",callback_data="gt:p")],[Btn("🔙",callback_data="m:gloss")]]),parse_mode="Markdown")
-    elif d=="gt:b": await rp(m,DL.get_display("display_tecno_basicas","❌"))
-    elif d=="gt:i": await rp(m,DL.get_display("display_tecno_injecoes","❌"))
-    elif d=="gt:p": await rp(m,DL.get_display("display_tecno_protocolos","❌"))
-    elif d=="g:be": await m.reply_text("👾",reply_markup=KBD([[Btn("🌍 Planetas",callback_data="gb:p")],[Btn("🦎 Fauna",callback_data="gb:f")],[Btn("👾 Vazio",callback_data="gb:v")],[Btn("🔙",callback_data="m:gloss")]]),parse_mode="Markdown")
-    elif d=="gb:p": await rp(m,DL.get_display("display_bestiario_planetas","❌"))
-    elif d=="gb:f": await rp(m,DL.get_display("display_bestiario_fauna","❌"))
-    elif d=="gb:v": await rp(m,DL.get_display("display_bestiario_vazio","❌"))
+        elif d=="g:racas": await m.reply_text("🌌 *RAÇAS:*",reply_markup=mkb(RACAS_BTN,"gr",2),parse_mode="Markdown")
+        elif d=="g:classes": await m.reply_text("⚔️ *CLASSES:*",reply_markup=mkb(CLASSES_BTN,"gc",2),parse_mode="Markdown")
+        elif d.startswith("gr:"):
+            data=DL.get_display("display_racas",{});txt=data.get(d[3:],"❌") if isinstance(data,dict) else "❌"
+            await rp(m,txt);await m.reply_text("🔙",reply_markup=KBD([[Btn("🌌",callback_data="g:racas"),Btn("📖",callback_data="m:gloss")]]))
+        elif d.startswith("gc:"):
+            data=DL.get_display("display_classes",{});txt=data.get(d[3:],"❌") if isinstance(data,dict) else "❌"
+            await rp(m,txt);await m.reply_text("🔙",reply_markup=KBD([[Btn("⚔️",callback_data="g:classes"),Btn("📖",callback_data="m:gloss")]]))
+        elif d=="g:ab": await rp(m,DL.get_display("display_armas_brancas","❌ Dados não carregados. Execute seed_dados_rpg.sql"))
+        elif d=="g:af": await rp(m,DL.get_display("display_armas_fogo","❌"))
+        elif d=="g:ar": await rp(m,DL.get_display("display_armaduras","❌"))
+        elif d=="g:im": await rp(m,DL.get_display("display_implantes","❌"))
+        elif d=="g:fe": await rp(m,DL.get_display("display_ferramentas","❌"))
+        elif d=="g:mo": await rp(m,DL.get_display("display_modificacoes","❌"))
+        elif d=="g:na": await rp(m,DL.get_display("display_naves","❌"))
+        elif d=="g:fi": await rp(m,DL.get_display("display_filosofias","❌"))
+        elif d=="g:te": await m.reply_text("🧠",reply_markup=KBD([[Btn("🟢 Básicas",callback_data="gt:b")],[Btn("🟡 Injeções",callback_data="gt:i")],[Btn("🔴 Protocolos",callback_data="gt:p")],[Btn("🔙",callback_data="m:gloss")]]),parse_mode="Markdown")
+        elif d=="gt:b": await rp(m,DL.get_display("display_tecno_basicas","❌"))
+        elif d=="gt:i": await rp(m,DL.get_display("display_tecno_injecoes","❌"))
+        elif d=="gt:p": await rp(m,DL.get_display("display_tecno_protocolos","❌"))
+        elif d=="g:be": await m.reply_text("👾",reply_markup=KBD([[Btn("🌍 Planetas",callback_data="gb:p")],[Btn("🦎 Fauna",callback_data="gb:f")],[Btn("👾 Vazio",callback_data="gb:v")],[Btn("🔙",callback_data="m:gloss")]]),parse_mode="Markdown")
+        elif d=="gb:p": await rp(m,DL.get_display("display_bestiario_planetas","❌"))
+        elif d=="gb:f": await rp(m,DL.get_display("display_bestiario_fauna","❌"))
+        elif d=="gb:v": await rp(m,DL.get_display("display_bestiario_vazio","❌"))
 
-    elif d.startswith("ic:"):
-        slot=d[3:];f=db_get_active(uid,cid)
-        if not f:return
-        impls={k:v for k,v in DL.IMPLANTES_DATA.items() if v["slot"]==slot};cred=f.get("creditos",0)
-        btns=[Btn(f"{'💎' if cred>=v['preco'] else '🚫'} {v['nome']} ({v['preco']}CG)",callback_data=f"ii:{k}") for k,v in impls.items()]
-        btns.append(Btn("🔙",callback_data="m:back"))
-        await m.reply_text(f"🦾 *{slot.upper()}* — 💎{cred}CG",reply_markup=KBD([[b] for b in btns]),parse_mode="Markdown")
-    elif d.startswith("ii:"):
-        impl_id=d[3:];f=db_get_active(uid,cid)
-        if not f or impl_id not in DL.IMPLANTES_DATA:return
-        imp=DL.IMPLANTES_DATA[impl_id]
-        if f.get("creditos",0)<imp["preco"]: await m.reply_text("❌ Créditos insuficientes.");return
-        impl_list=list(f.get("implantes",[])or[]);con_mod=calc_mod(f.get("atributos",{}).get("constituicao",8))
-        lim=DL.calc_implant_limit(con_mod)
-        if len(impl_list)>=lim+2: await m.reply_text("💀 IMPOSSÍVEL. Morte certa.");return
-        if len(impl_list)>=lim:
-            await m.reply_text(f"⚠️ *ACIMA DO LIMITE!*\nInstalar *{imp['nome']}* mesmo assim?",
-                reply_markup=KBD([[Btn("⚠️ Confirmar",callback_data=f"ix:{impl_id}")],[Btn("🔙",callback_data="m:back")]]),parse_mode="Markdown")
-        else: await _install_implant(m,f,impl_id)
-    elif d.startswith("ix:"):
-        f=db_get_active(uid,cid)
-        if f: await _install_implant(m,f,d[3:])
+        elif d.startswith("ic:"):
+            slot=d[3:];f=db_get_active(uid,cid)
+            if not f:return
+            impls={k:v for k,v in DL.IMPLANTES_DATA.items() if v["slot"]==slot};cred=f.get("creditos",0)
+            btns=[Btn(f"{'💎' if cred>=v['preco'] else '🚫'} {v['nome']} ({v['preco']}CG)",callback_data=f"ii:{k}") for k,v in impls.items()]
+            btns.append(Btn("🔙",callback_data="m:back"))
+            await m.reply_text(f"🦾 *{slot.upper()}* — 💎{cred}CG",reply_markup=KBD([[b] for b in btns]),parse_mode="Markdown")
+        elif d.startswith("ii:"):
+            impl_id=d[3:];f=db_get_active(uid,cid)
+            if not f or impl_id not in DL.IMPLANTES_DATA:return
+            imp=DL.IMPLANTES_DATA[impl_id]
+            if f.get("creditos",0)<imp["preco"]: await m.reply_text("❌ Créditos insuficientes.");return
+            impl_list=list(f.get("implantes",[])or[]);con_mod=calc_mod(f.get("atributos",{}).get("constituicao",8))
+            lim=DL.calc_implant_limit(con_mod)
+            if len(impl_list)>=lim+2: await m.reply_text("💀 IMPOSSÍVEL. Morte certa.");return
+            if len(impl_list)>=lim:
+                await m.reply_text(f"⚠️ *ACIMA DO LIMITE!*\nInstalar *{imp['nome']}* mesmo assim?",
+                    reply_markup=KBD([[Btn("⚠️ Confirmar",callback_data=f"ix:{impl_id}")],[Btn("🔙",callback_data="m:back")]]),parse_mode="Markdown")
+            else: await _install_implant(m,f,impl_id)
+        elif d.startswith("ix:"):
+            f=db_get_active(uid,cid)
+            if f: await _install_implant(m,f,d[3:])
 
-    elif d.startswith("r:"):
-        k=d[2:];cstate.setdefault(uid,{});cstate[uid].update({"step":"classe","raca":k,"chat_id":cid})
-        await q.edit_message_text(f"✅ *{RACAS_BTN[k]}*\n📋 2/5: *Especialização*",parse_mode="Markdown")
-        await m.reply_text("⚔️ Selecione:",reply_markup=mkb(CLASSES_BTN,"c",2))
-    elif d.startswith("c:"):
-        k=d[2:];cstate.setdefault(uid,{});cstate[uid].update({"step":"filosofia","classe":k})
-        await q.edit_message_text(f"✅ *{CLASSES_BTN[k]}*\n📋 3/5: *Código*",parse_mode="Markdown")
-        await m.reply_text("📜 Selecione:",reply_markup=mkb(FILOS_BTN,"f",2))
-    elif d.startswith("f:"):
-        k=d[2:];st=cstate.setdefault(uid,{});st.update({"step":"attr_0","filosofia":k})
-        vals,dropped=roll_attrs();st["rolled"]=vals;st["all_rolls"]=vals+[dropped];st["dropped"]=dropped
-        await q.edit_message_text(f"✅ *{FILOS_BTN[k]}*\n📋 4/5: *Calibração*\n━━━━━━━━━━━━━━━━━━━━\n🎲 2d8×7 (máx16):\n{sorted(st['all_rolls'])}\n❌ Desc: {dropped}\n✅ *{vals}*",parse_mode="Markdown")
-        btns=[Btn(str(v),callback_data=f"av:{i}") for i,v in enumerate(vals)]
-        await m.reply_text(f"{ATTR_LABELS[0]}:",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]))
-    elif d.startswith("av:"):
-        idx=int(d[3:]);st=cstate.get(uid)
-        if not st:return
-        ai=int(st.get("step","attr_0").split("_")[1]);vals=st["rolled"]
-        chosen=vals[idx];st.setdefault("atributos_base",{});st["atributos_base"][ATTR_KEYS[ai]]=chosen
-        vals.pop(idx);st["rolled"]=vals
-        
-        if ai<5:
-            st["step"]=f"attr_{ai+1}"
-            if vals:
-                btns=[Btn(str(v),callback_data=f"av:{i}") for i,v in enumerate(vals)]
-                await q.edit_message_text(f"✅ {ATTR_LABELS[ai]}: *{chosen}*",parse_mode="Markdown")
-                await m.reply_text(f"{ATTR_LABELS[ai+1]}:",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]))
-            else:
-                try:
+        elif d.startswith("r:"):
+            k=d[2:];cstate.setdefault(uid,{});cstate[uid].update({"step":"classe","raca":k,"chat_id":cid})
+            await q.edit_message_text(f"✅ *{RACAS_BTN[k]}*\n📋 2/5: *Especialização*",parse_mode="Markdown")
+            await m.reply_text("⚔️ Selecione:",reply_markup=mkb(CLASSES_BTN,"c",2))
+        elif d.startswith("c:"):
+            k=d[2:];cstate.setdefault(uid,{});cstate[uid].update({"step":"filosofia","classe":k})
+            await q.edit_message_text(f"✅ *{CLASSES_BTN[k]}*\n📋 3/5: *Código*",parse_mode="Markdown")
+            await m.reply_text("📜 Selecione:",reply_markup=mkb(FILOS_BTN,"f",2))
+        elif d.startswith("f:"):
+            k=d[2:];st=cstate.setdefault(uid,{});st.update({"step":"attr_0","filosofia":k})
+            vals,dropped=roll_attrs();st["rolled"]=vals;st["all_rolls"]=vals+[dropped];st["dropped"]=dropped
+            await q.edit_message_text(f"✅ *{FILOS_BTN[k]}*\n📋 4/5: *Calibração*\n━━━━━━━━━━━━━━━━━━━━\n🎲 2d8×7 (máx16):\n{sorted(st['all_rolls'])}\n❌ Desc: {dropped}\n✅ *{vals}*",parse_mode="Markdown")
+            btns=[Btn(str(v),callback_data=f"av:{i}") for i,v in enumerate(vals)]
+            await m.reply_text(f"{ATTR_LABELS[0]}:",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]))
+        elif d.startswith("av:"):
+            idx=int(d[3:]);st=cstate.get(uid)
+            if not st:return
+            ai=int(st.get("step","attr_0").split("_")[1]);vals=st["rolled"]
+            chosen=vals[idx];st.setdefault("atributos_base",{});st["atributos_base"][ATTR_KEYS[ai]]=chosen
+            vals.pop(idx);st["rolled"]=vals
+            if ai<5:
+                st["step"]=f"attr_{ai+1}"
+                if vals:
+                    btns=[Btn(str(v),callback_data=f"av:{i}") for i,v in enumerate(vals)]
+                    await q.edit_message_text(f"✅ {ATTR_LABELS[ai]}: *{chosen}*",parse_mode="Markdown")
+                    await m.reply_text(f"{ATTR_LABELS[ai+1]}:",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]))
+                else:
                     st["atributos_base"][ATTR_KEYS[5]]=chosen;st["step"]="equip"
                     await _fin_attrs(m,uid)
-                except Exception as e:
-                    await m.reply_text(f"⚠️ *Erro Crítico:* `{e}`", parse_mode="Markdown")
-        else:
-            try:
+            else:
                 st["step"]="equip"
                 await q.edit_message_text(f"✅ {ATTR_LABELS[5]}: *{chosen}*",parse_mode="Markdown")
                 await _fin_attrs(m,uid)
-            except Exception as e:
-                await m.reply_text(f"⚠️ *Erro Crítico:* `{e}`", parse_mode="Markdown")
-    elif d.startswith("eq:"):
-        idx=int(d[3:]);st=cstate.get(uid)
-        if not st:return
-        cls=DL.CLASSES_STATS[st["classe"]];choices=cls.get("equip_escolha",cls.get("equip_escolha_melee",[]))
-        if choices:st["equip_choice"]=choices[0][idx]
-        await q.edit_message_text(f"✅ *{st.get('equip_choice','?')}*",parse_mode="Markdown")
-        if st["raca"]=="terraqueo":
-            st["step"]="terra_attr";st["bonus_attrs"]={};st["bonus_attr_remaining"]=4
-            btns=[Btn(f"{ATTR_LABELS[i]}",callback_data=f"ta:{k}") for i,k in enumerate(ATTR_KEYS)]
-            await m.reply_text("🌍 *Terráqueo:* +4 atributos (máx+2 cada). Restam: *4*",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]),parse_mode="Markdown")
-        else: st["step"]="nome";await m.reply_text("✏️ Digite o *nome*:",parse_mode="Markdown")
-    elif d.startswith("ta:"):
-        k=d[3:];st=cstate.get(uid)
-        if not st or st.get("step")!="terra_attr":return
-        ba=st.setdefault("bonus_attrs",{})
-        if ba.get(k,0)>=2: await m.reply_text("⚠️ Máx+2!");return
-        ba[k]=ba.get(k,0)+1;st["bonus_attr_remaining"]-=1;rem=st["bonus_attr_remaining"]
-        if rem>0:
-            btns=[Btn(f"{ATTR_LABELS[i]}(+{ba.get(k2,0)})",callback_data=f"ta:{k2}") for i,k2 in enumerate(ATTR_KEYS) if ba.get(k2,0)<2]
-            await q.edit_message_text(f"🌍 {' '.join(f'{ATTR_SHORT[ATTR_KEYS.index(a)]}+{v}' for a,v in ba.items())} | Restam: *{rem}*",parse_mode="Markdown")
-            await m.reply_text("+1:",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]))
-        else:
-            st["step"]="terra_per";st["bonus_pericias"]={};st["bonus_per_remaining"]=3
-            per_btns=[Btn(PERICIAS_NOMES[pk],callback_data=f"tp:{pk}") for pk in sorted(PERICIAS_NOMES.keys())]
-            await m.reply_text("🌍 *+3 perícias:* Restam: *3*",reply_markup=KBD([per_btns[i:i+3] for i in range(0,len(per_btns),3)]),parse_mode="Markdown")
-    elif d.startswith("tp:"):
-        k=d[3:];st=cstate.get(uid)
-        if not st or st.get("step")!="terra_per":return
-        bp=st.setdefault("bonus_pericias",{});bp[k]=bp.get(k,0)+1;st["bonus_per_remaining"]-=1
-        if st["bonus_per_remaining"]>0:
-            per_btns=[Btn(PERICIAS_NOMES[pk],callback_data=f"tp:{pk}") for pk in sorted(PERICIAS_NOMES.keys())]
-            await q.edit_message_text(f"🌍 {' '.join(f'{PERICIAS_NOMES.get(a,a)}+{v}' for a,v in bp.items())} | Restam: *{st['bonus_per_remaining']}*",parse_mode="Markdown")
-            await m.reply_text("+1:",reply_markup=KBD([per_btns[i:i+3] for i in range(0,len(per_btns),3)]))
-        else: st["step"]="nome";await m.reply_text("✏️ Digite o *nome*:",parse_mode="Markdown")
+        elif d.startswith("eq:"):
+            idx=int(d[3:]);st=cstate.get(uid)
+            if not st:return
+            cls=DL.CLASSES_STATS[st["classe"]];choices=cls.get("equip_escolha",cls.get("equip_escolha_melee",[]))
+            if choices:st["equip_choice"]=choices[0][idx]
+            await q.edit_message_text(f"✅ *{st.get('equip_choice','?')}*",parse_mode="Markdown")
+            if st["raca"]=="terraqueo":
+                st["step"]="terra_attr";st["bonus_attrs"]={};st["bonus_attr_remaining"]=4
+                btns=[Btn(f"{ATTR_LABELS[i]}",callback_data=f"ta:{k}") for i,k in enumerate(ATTR_KEYS)]
+                await m.reply_text("🌍 *Terráqueo:* +4 atributos (máx+2 cada). Restam: *4*",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]),parse_mode="Markdown")
+            else: st["step"]="nome";await m.reply_text("✏️ Digite o *nome*:",parse_mode="Markdown")
+        elif d.startswith("ta:"):
+            k=d[3:];st=cstate.get(uid)
+            if not st or st.get("step")!="terra_attr":return
+            ba=st.setdefault("bonus_attrs",{})
+            if ba.get(k,0)>=2: await m.reply_text("⚠️ Máx+2!");return
+            ba[k]=ba.get(k,0)+1;st["bonus_attr_remaining"]-=1;rem=st["bonus_attr_remaining"]
+            if rem>0:
+                btns=[Btn(f"{ATTR_LABELS[i]}(+{ba.get(k2,0)})",callback_data=f"ta:{k2}") for i,k2 in enumerate(ATTR_KEYS) if ba.get(k2,0)<2]
+                await q.edit_message_text(f"🌍 {' '.join(f'{ATTR_SHORT[ATTR_KEYS.index(a)]}+{v}' for a,v in ba.items())} | Restam: *{rem}*",parse_mode="Markdown")
+                await m.reply_text("+1:",reply_markup=KBD([btns[i:i+3] for i in range(0,len(btns),3)]))
+            else:
+                st["step"]="terra_per";st["bonus_pericias"]={};st["bonus_per_remaining"]=3
+                per_btns=[Btn(PERICIAS_NOMES[pk],callback_data=f"tp:{pk}") for pk in sorted(PERICIAS_NOMES.keys())]
+                await m.reply_text("🌍 *+3 perícias:* Restam: *3*",reply_markup=KBD([per_btns[i:i+3] for i in range(0,len(per_btns),3)]),parse_mode="Markdown")
+        elif d.startswith("tp:"):
+            k=d[3:];st=cstate.get(uid)
+            if not st or st.get("step")!="terra_per":return
+            bp=st.setdefault("bonus_pericias",{});bp[k]=bp.get(k,0)+1;st["bonus_per_remaining"]-=1
+            if st["bonus_per_remaining"]>0:
+                per_btns=[Btn(PERICIAS_NOMES[pk],callback_data=f"tp:{pk}") for pk in sorted(PERICIAS_NOMES.keys())]
+                await q.edit_message_text(f"🌍 {' '.join(f'{PERICIAS_NOMES.get(a,a)}+{v}' for a,v in bp.items())} | Restam: *{st['bonus_per_remaining']}*",parse_mode="Markdown")
+                await m.reply_text("+1:",reply_markup=KBD([per_btns[i:i+3] for i in range(0,len(per_btns),3)]))
+            else: st["step"]="nome";await m.reply_text("✏️ Digite o *nome*:",parse_mode="Markdown")
 
-    elif d.startswith("la:"):
-        k=d[3:];st=cstate.get(uid)
-        if not st or st.get("step")!="lvl_attr":return
-        fid=st["ficha_id"];f=db_get_ficha(fid)
-        if not f:return
-        a=f.get("atributos",{});a[k]=a.get(k,8)+1;db_update_ficha(fid,{"atributos":a})
-        await q.edit_message_text(f"✅ {ATTR_SHORT[ATTR_KEYS.index(k)]}→*{a[k]}*({calc_mod(a[k]):+d})",parse_mode="Markdown")
-        st["step"]="lvl_per";per=f.get("pericias",{})
-        limit=5 if st["novo_nv"]<=4 else 7
-        all_per=set(list(per.keys())+list(PERICIAS_NOMES.keys()))
-        per_btns=[Btn(f"{PERICIAS_NOMES.get(pk,pk)}(+{per.get(pk,0)})",callback_data=f"lp:{pk}") for pk in sorted(all_per) if per.get(pk,0)<limit]
-        await m.reply_text("🎯 *+1 Perícia:*",reply_markup=KBD([per_btns[i:i+2] for i in range(0,len(per_btns),2)]),parse_mode="Markdown")
-    elif d.startswith("lp:"):
-        k=d[3:];st=cstate.get(uid)
-        if not st or st.get("step")!="lvl_per":return
-        fid=st["ficha_id"];f=db_get_ficha(fid)
-        if not f:return
-        per=f.get("pericias",{});per[k]=per.get(k,0)+1;db_update_ficha(fid,{"pericias":per})
-        await q.edit_message_text(f"✅ {PERICIAS_NOMES.get(k,k)}→*+{per[k]}*",parse_mode="Markdown")
-        tecno_skill=per.get("tecnomancia",0);novo_nv=st["novo_nv"]
-        if tecno_skill>=1:
-            mx=DL.calc_max_scripts(novo_nv,tecno_skill);cur=list(f.get("tecnomancias",[])or[])
-            if len(cur)<mx:
-                avail=DL.get_available_scripts(tecno_skill)
-                avail={k2:v for k2,v in avail.items() if k2 not in cur}
-                if avail:
-                    st["step"]="lvl_tecno"
-                    btns=[Btn(f"🧠 {v['nome']}({v['ram']}R)",callback_data=f"lt:{k2}") for k2,v in sorted(avail.items(),key=lambda x:x[1]["ram"])]
-                    await m.reply_text(f"🧠 *Novo script!* ({len(cur)+1}/{mx})",reply_markup=KBD([btns[i:i+2] for i in range(0,len(btns),2)]),parse_mode="Markdown")
-                    return
-        cstate.pop(uid,None);ch=gc(cid);await ask(ch,f"SISTEMA: {f.get('nome','?')} subiu Nv{st['novo_nv']}.",m=m)
-        await m.reply_text(f"⬆️ *{f.get('nome','?')}* Nv{st['novo_nv']} completo!",parse_mode="Markdown")
+        elif d.startswith("la:"):
+            k=d[3:];st=cstate.get(uid)
+            if not st or st.get("step")!="lvl_attr":return
+            fid=st.get("ficha_id")
+            if not fid: return
+            f=db_get_ficha(fid)
+            if not f:
+                await m.reply_text("⚠️ Ficha não encontrada.")
+                return
+            a=f.get("atributos",{})
+            if not isinstance(a, dict): a = {}
+            val = int(a.get(k, 8)) + 1
+            a[k] = val
+            db_update_ficha(fid,{"atributos":a})
+            
+            await q.edit_message_text(f"✅ {ATTR_SHORT[ATTR_KEYS.index(k)]}→*{val}*({calc_mod(val):+d})",parse_mode="Markdown")
+            
+            st["step"]="lvl_per"
+            per=f.get("pericias",{})
+            if not isinstance(per, dict): per = {}
+            limit=5 if st.get("novo_nv", 1)<=4 else 7
+            all_per=set(list(per.keys())+list(PERICIAS_NOMES.keys()))
+            per_btns=[Btn(f"{PERICIAS_NOMES.get(pk,pk)}(+{per.get(pk,0)})",callback_data=f"lp:{pk}") for pk in sorted(all_per) if int(per.get(pk,0))<limit]
+            await m.reply_text("🎯 *+1 Perícia:*",reply_markup=KBD([per_btns[i:i+2] for i in range(0,len(per_btns),2)]),parse_mode="Markdown")
+            
+        elif d.startswith("lp:"):
+            k=d[3:];st=cstate.get(uid)
+            if not st or st.get("step")!="lvl_per":return
+            fid=st.get("ficha_id")
+            if not fid: return
+            f=db_get_ficha(fid)
+            if not f:
+                await m.reply_text("⚠️ Ficha não encontrada.")
+                return
+            
+            per=f.get("pericias",{})
+            if not isinstance(per, dict): per = {}
+            
+            try: val = int(per.get(k, 0)) + 1
+            except: val = 1
+            per[k] = val
+            
+            db_update_ficha(fid,{"pericias":per})
+            await q.edit_message_text(f"✅ {PERICIAS_NOMES.get(k,k)}→*+{val}*",parse_mode="Markdown")
+            
+            tecno_skill=int(per.get("tecnomancia",0))
+            novo_nv=st.get("novo_nv", 1)
+            
+            if tecno_skill>=1:
+                mx=DL.calc_max_scripts(novo_nv,tecno_skill);cur=list(f.get("tecnomancias",[])or[])
+                if len(cur)<mx:
+                    avail=DL.get_available_scripts(tecno_skill)
+                    avail={k2:v for k2,v in avail.items() if k2 not in cur}
+                    if avail:
+                        st["step"]="lvl_tecno"
+                        btns=[Btn(f"🧠 {v['nome']}({v['ram']}R)",callback_data=f"lt:{k2}") for k2,v in sorted(avail.items(),key=lambda x:x[1]["ram"])]
+                        await m.reply_text(f"🧠 *Novo script!* ({len(cur)+1}/{mx})",reply_markup=KBD([btns[i:i+2] for i in range(0,len(btns),2)]),parse_mode="Markdown")
+                        return
+            
+            cstate.pop(uid,None)
+            await m.reply_text(f"⬆️ *{f.get('nome','?')}* Nv{novo_nv} completo!",parse_mode="Markdown")
+            ch=gc(cid)
+            await ask(ch,f"SISTEMA: {f.get('nome','?')} subiu Nv{novo_nv}.",m=m)
 
-    elif d.startswith("ts:"):
-        sid2=d[3:];st=cstate.get(uid)
-        if not st or st.get("step")!="tecno_select":return
-        if sid2 in st.get("tecno_selected",[]): return
-        st.setdefault("tecno_selected",[]).append(sid2);st["tecno_remaining"]-=1
-        nm_s=DL.TECNO_SCRIPTS.get(sid2,{}).get("nome",sid2)
-        if st["tecno_remaining"]>0:
-            avail={k:v for k,v in st["tecno_available"].items() if k not in st["tecno_selected"]}
-            btns=[Btn(f"🧠 {v['nome']}({v['ram']}R)",callback_data=f"ts:{k}") for k,v in sorted(avail.items(),key=lambda x:x[1]["ram"])]
-            await q.edit_message_text(f"✅ +{nm_s} | Restam: *{st['tecno_remaining']}*",parse_mode="Markdown")
-            if btns: await m.reply_text("Próximo:",reply_markup=KBD([btns[i:i+2] for i in range(0,len(btns),2)]))
-        else:
-            ficha=st["built_ficha"];ficha["tecnomancias"]=list(st["tecno_selected"])
-            await q.edit_message_text(f"✅ +{nm_s} | Scripts completos!",parse_mode="Markdown")
-            await _save_and_finish(m,uid,un,cid,ficha)
-    elif d.startswith("lt:"):
-        sid2=d[3:];st=cstate.get(uid)
-        if not st or st.get("step")!="lvl_tecno":return
-        fid=st["ficha_id"];f=db_get_ficha(fid)
-        if not f:return
-        tc=list(f.get("tecnomancias",[])or[])
-        if sid2 not in tc: tc.append(sid2);db_update_ficha(fid,{"tecnomancias":tc})
-        nm_s=DL.TECNO_SCRIPTS.get(sid2,{}).get("nome",sid2)
-        await q.edit_message_text(f"✅ Aprendeu: *{nm_s}*",parse_mode="Markdown")
-        cstate.pop(uid,None);ch=gc(cid);await ask(ch,f"SISTEMA: {f.get('nome','?')} aprendeu {nm_s}.",m=m)
-        await m.reply_text(f"⬆️ Level up completo!",parse_mode="Markdown")
+        elif d.startswith("ts:"):
+            sid2=d[3:];st=cstate.get(uid)
+            if not st or st.get("step")!="tecno_select":return
+            if sid2 in st.get("tecno_selected",[]): return
+            st.setdefault("tecno_selected",[]).append(sid2);st["tecno_remaining"]-=1
+            nm_s=DL.TECNO_SCRIPTS.get(sid2,{}).get("nome",sid2)
+            if st["tecno_remaining"]>0:
+                avail={k:v for k,v in st["tecno_available"].items() if k not in st["tecno_selected"]}
+                btns=[Btn(f"🧠 {v['nome']}({v['ram']}R)",callback_data=f"ts:{k}") for k,v in sorted(avail.items(),key=lambda x:x[1]["ram"])]
+                await q.edit_message_text(f"✅ +{nm_s} | Restam: *{st['tecno_remaining']}*",parse_mode="Markdown")
+                if btns: await m.reply_text("Próximo:",reply_markup=KBD([btns[i:i+2] for i in range(0,len(btns),2)]))
+            else:
+                ficha=st["built_ficha"];ficha["tecnomancias"]=list(st["tecno_selected"])
+                await q.edit_message_text(f"✅ +{nm_s} | Scripts completos!",parse_mode="Markdown")
+                await _save_and_finish(m,uid,un,cid,ficha)
+        elif d.startswith("lt:"):
+            sid2=d[3:];st=cstate.get(uid)
+            if not st or st.get("step")!="lvl_tecno":return
+            fid=st.get("ficha_id")
+            if not fid: return
+            f=db_get_ficha(fid)
+            if not f:
+                await m.reply_text("⚠️ Ficha não encontrada."); return
+                
+            tc=list(f.get("tecnomancias",[])or[])
+            if sid2 not in tc: tc.append(sid2);db_update_ficha(fid,{"tecnomancias":tc})
+            nm_s=DL.TECNO_SCRIPTS.get(sid2,{}).get("nome",sid2)
+            await q.edit_message_text(f"✅ Aprendeu: *{nm_s}*",parse_mode="Markdown")
+            
+            cstate.pop(uid,None)
+            await m.reply_text(f"⬆️ Level up completo!",parse_mode="Markdown")
+            ch=gc(cid)
+            await ask(ch,f"SISTEMA: {f.get('nome','?')} aprendeu {nm_s}.",m=m)
+
+    except Exception as e:
+        log.error(f"Erro Global Callback: {e}")
+        try: await u.callback_query.message.reply_text(f"⚠️ Erro ao processar o botão: {e}")
+        except: pass
 
 async def _fin_attrs(m,uid):
     st=cstate.get(uid)
@@ -1027,7 +1044,6 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
 
     st=cstate.get(uid)
 
-    # ── Diretriz 4: Rolagem de dados via Regex (/1d20p5, /2d8m1) ──
     dice_match=DICE_RE.match(txt.strip())
     if dice_match:
         n=int(dice_match.group(1) or 1);s=int(dice_match.group(2))
@@ -1042,7 +1058,6 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 elif rolls[0]==1:cr="\n💀 *FALHA CRÍTICA!*"
             await rp(u.message,f"🎲 *{n}d{s}{mod_str}*\n{rolls}{f' {mod_str}' if mod else ''} = *{total}*{cr}")
             
-            # Só injeta na IA se houver jogo ativo
             if jogo_ativo.get(cid):
                 ficha=db_get_active(uid,cid)
                 nome_pc=ficha.get("nome","?") if ficha else un
@@ -1056,7 +1071,6 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                     if clean: await rp(u.message,clean)
             return
 
-    # Esperando contexto (play:context)
     if st and st.get("step")=="wait_context" and st.get("chat_id")==cid:
         chats.pop(cid,None);ch=gc(cid)
         actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
@@ -1067,7 +1081,6 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         resp=await ask(ch,f"CONTEXTO_SESSAO: Retomando.\n{txt}\nRecapitule e pergunte ação.",m=u.message)
         await rp(u.message,resp);cstate.pop(uid,None);return
 
-    # Criação: esperando nome
     if st and st.get("step")=="nome" and st.get("chat_id")==cid:
         st["nome"]=txt.strip()[:30]
         ficha=build_ficha(st)
@@ -1083,7 +1096,6 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             return
         await _save_and_finish(u.message,uid,un,cid,ficha);return
 
-    # ── GODMODE: Comando absoluto do Criador ──
     if godmode.get(str(uid)):
         ch=gc(cid)
         try:
@@ -1101,11 +1113,8 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             log.error(f"Godmode:{e}");await u.message.reply_text("⚠️ Erro no GODMODE.")
         return
 
-    # ── JOGO NORMAL: A PORTA DE SEGURANÇA INTELIGENTE ──
-    # 1. Primeiro e mais importante: O jogo está ligado no grupo?
     if not jogo_ativo.get(cid): return
     
-    # 2. Se o jogo está ligado, quem enviou tem ficha ativa?
     ficha=db_get_active(uid,cid)
     if not ficha: return
     
@@ -1117,10 +1126,9 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         th(cid)
         clean=await intercept_and_sync(resp,cid,msg=u.message)
         
-        # Modo Escuta mais brando: apaga a palavra, mas mantém o texto se houver narração!
         if "[ESCUTANDO]" in clean.upper():
             clean = re.sub(r'\[?ESCUTANDO\]?', '', clean, flags=re.IGNORECASE).strip()
-            if not clean: return # Se o bot SÓ disse "[ESCUTANDO]", aí sim ele fica mudo.
+            if not clean: return 
             
         await rp(u.message,clean)
     except Exception as e:
