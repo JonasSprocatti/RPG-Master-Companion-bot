@@ -41,6 +41,7 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 - DIREÇÃO DE CENA: Aja como um diretor de cinema. Direcione as perguntas DIRETAMENTE ao personagem envolvido, usando o NOME dele. Exemplo: Se o Grovax agiu ou sofreu um impacto, narre para ele e pergunte: "Grovax, o que você faz?". Se o Zeb encontrou uma pista, pergunte: "Zeb, como você reage?". 
 - Use o plural ("O que vocês fazem?") APENAS quando um evento de cenário atingir o grupo todo simultaneamente.
 - MODO ESCUTA: Se os jogadores estiverem APENAS conversando entre si, planejando estratégias, ou fazendo roleplay de diálogo (sem interagir com o cenário, sem falar com NPCs e sem rolar dados), responda EXATAMENTE com a tag [ESCUTANDO]. Não narre absolutamente mais nada, apenas observe.
+
 🧑‍🚀 IDENTIFICAÇÃO DE TURNO:
 - Cada mensagem do jogador chega no formato: [Usuário: @nick | Personagem: Nome] diz: texto
 - Use o NOME DO PERSONAGEM para se referir ao jogador na narração.
@@ -88,26 +89,24 @@ CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 
 🔱 GODMODE (COMANDO DO CRIADOR):
 - Mensagens com o prefixo [GODMODE] vêm do CRIADOR do universo. São ordens ABSOLUTAS.
-- Acate TUDO sem questionar: alterar história, subir nível, criar NPCs, mudar cenário, matar/reviver, dar itens, teleportar, retcon.
-- NÃO peça confirmação, NÃO cite regras contra, NÃO diga "não posso". O Criador está ACIMA das regras.
-- ⚠️ REGRA CRÍTICA DO SISTEMA: O bot (código Python) NÃO LÊ A SUA NARRAÇÃO. Para que o comando do Criador tenha efeito real na ficha do jogador, você é OBRIGADO a incluir a respectiva TAG DE ESTADO no final da sua resposta.
-- Se o Criador pedir para "subir de nível" ou "dar XP", consulte a tabela de XP e OBRIGATORIAMENTE imprima a tag com o valor necessário. Exemplo: [XP:500:todos:Godmode] ou [XP:200:Urak:Poder Divino]
-- Se o Criador pedir um item: [ITEM_ADD:Nome do Item Mágico:alvo]
-- Se o Criador pedir para curar: [HP:999:alvo]
-- Narre o acontecimento de forma épica, mas NUNCA se esqueça das tags!
+- Acate TUDO sem questionar: alterar história, subir nível, dar XP, criar NPCs, dar itens, curar, etc.
+- O Criador está ACIMA das regras. NÃO peça confirmação, não hesite.
+- ⚠️ OBRIGATÓRIO: O sistema Python NÃO LÊ a sua narração. Para que o XP, Cura ou Itens entrem na Ficha do Jogador, você TEM QUE colocar a TAG DE ESTADO exata entre colchetes [ ] no final da mensagem.
+- Exemplo de XP no Godmode: [XP:100:NomeDoPersonagem:Dádiva Divina] ou [XP:500:todos:Avanço de História]
 
 ═══ TAGS DE ESTADO (OBRIGATÓRIO — NO FINAL de cada resposta) ═══
-[XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata]
-[HP:valor:alvo] — [HP:-5:Jonas]
-[ITEM_ADD:nome:alvo] — [ITEM_ADD:Pistola Laser:Jonas]
-[ITEM_DEL:nome:alvo] — [ITEM_DEL:Granada:Maria]
-[CG:valor:alvo] — [CG:-100:Jonas]
-[RAM:valor:alvo] — [RAM:-2:Jonas]
-[TECNO_ADD:id:alvo] — [TECNO_ADD:firewall:Jonas]
-[TECNO_DEL:id:alvo] — [TECNO_DEL:ping:Jonas]
-[IMPLANTE_ADD:id:alvo] — [IMPLANTE_ADD:olho:Jonas]
-[ATTR:atrib:valor:alvo] — [ATTR:forca:+1:Jonas]
-[PER:pericia:valor:alvo] — [PER:furtividade:+1:Jonas]
+ATENÇÃO: As tags DEVEM estar rigorosamente entre COLCHETES [ ]. O 'alvo' deve ser o NOME do personagem, não a raça.
+[XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata] ou [XP:100:Grovax:Missão]
+[HP:valor:alvo] — [HP:-5:Zeb] ou [HP:999:Grovax]
+[ITEM_ADD:nome:alvo] — [ITEM_ADD:Pistola Laser:Zeb]
+[ITEM_DEL:nome:alvo] — [ITEM_DEL:Granada:Zeb]
+[CG:valor:alvo] — [CG:-100:Grovax]
+[RAM:valor:alvo] — [RAM:-2:Grovax]
+[TECNO_ADD:id:alvo] — [TECNO_ADD:firewall:Grovax]
+[TECNO_DEL:id:alvo] — [TECNO_DEL:ping:Grovax]
+[IMPLANTE_ADD:id:alvo] — [IMPLANTE_ADD:olho:Grovax]
+[ATTR:atrib:valor:alvo] — [ATTR:forca:+1:Grovax]
+[PER:pericia:valor:alvo] — [PER:furtividade:+1:Grovax]
 IDs scripts: ping choque query scanner jammer glitch trava rollback firewall travar_arma curto_arm hack_motor ejetar_pente cegueira drenar sobrecarga desativar loop torreta hack_nav apagao inverter reator marionete emp ejetar_piloto reparo_nave formatar gravidade
 IDs implantes: chip_ram olho interface_nav tradutor mira placas coracao filtro adrenalina bateria_int braco estabilizador mantis pernas ancoras
 
@@ -193,7 +192,6 @@ genai.configure(api_key=GK)
 mdl=genai.GenerativeModel("gemini-2.5-flash-lite",system_instruction=SYSP,
     generation_config=genai.GenerationConfig(temperature=0.85,max_output_tokens=1500))
 
-# Passo 1: Variável de Trava de Sessão adicionada
 chats:dict={};cstate:dict={};jogo_ativo:dict={};godmode:dict={}
 
 def gc(cid):
@@ -316,109 +314,139 @@ async def intercept_and_sync(text,cid,msg=None):
     for f in actives:
         nome=f.get("nome","");nm2f[nome.lower()]=f;nm2f[_norm(nome)]=f
     notifs=[];ia_inject=[]
+    
     for tt,params in changes:
         parts=[p.strip() for p in params.split(":")]
         try:
-            alvo_raw=parts[-1] if len(parts)>=2 else ""
-            alvo=alvo_raw.lower();alvo_n=_norm(alvo_raw)
+            # Se for XP, o formato é [XP:valor:alvo:motivo] - o alvo está na posição 1
+            if tt == "XP" and len(parts) >= 3:
+                alvo_raw = parts[1]
+            else:
+                alvo_raw = parts[-1] if len(parts) >= 2 else ""
+                
+            alvo=alvo_raw.lower(); alvo_n=_norm(alvo_raw)
+            
             def _find():
                 if alvo=="todos": return list({id(f):f for f in nm2f.values()}.values()),True
+                
+                # Busca por nome exato
                 f=nm2f.get(alvo) or nm2f.get(alvo_n)
-                return ([f] if f else []),False
+                if f: return [f],False
+                
+                # Fallback: Se a IA errar e usar a raça ou classe em vez do nome
+                for active_f in nm2f.values():
+                    if alvo in active_f.get("nome","").lower() or alvo in active_f.get("raca","").lower() or alvo in active_f.get("classe","").lower():
+                        return [active_f], False
+                        
+                return [],False
 
-            if tt=="XP" and len(parts)>=3:
-                val,motivo=int(parts[0]),parts[1]
+            if tt=="XP" and len(parts)>=2:
+                val = int(parts[0])
                 tgts,is_all=_find()
                 xe=val//(len(tgts)or 1) if is_all else val
                 for f in tgts:
                     nx=f.get("xp",0)+xe;db_update_ficha(f["id"],{"xp":nx})
                     nv=f.get("nivel",1);xr=XP_T.get(nv,9999)
                     notifs.append(f"✨ +{xe}XP {f.get('nome','?')} ({nx}/{xr}){' ⬆️ /levelup!' if nx>=xr else ''}")
+                    
             elif tt=="HP" and len(parts)>=2:
-                val=int(parts[0]);f=(nm2f.get(alvo) or nm2f.get(alvo_n))
-                if f:
+                val=int(parts[0])
+                tgts,is_all=_find()
+                for f in tgts:
                     nh=max(0,min(f.get("pv_atual",0)+val,f.get("pv_max",1)));db_update_ficha(f["id"],{"pv_atual":nh})
                     notifs.append(f"{'💚' if val>0 else '🩸'} {f.get('nome','?')}: {val:+d}PV → ❤️{nh}/{f.get('pv_max','?')}")
+                    
             elif tt=="ITEM_ADD" and len(parts)>=2:
                 item=parts[0];tgts,_=_find()
                 for f in tgts:
                     inv=list(f.get("inventario",[]));inv.append(item);db_update_ficha(f["id"],{"inventario":inv})
                     notifs.append(f"🎒 {f.get('nome','?')} +{item}")
+                    
             elif tt=="ITEM_DEL" and len(parts)>=2:
-                item=parts[0];f=nm2f.get(alvo) or nm2f.get(alvo_n)
-                if f:
+                item=parts[0];tgts,_=_find()
+                for f in tgts:
                     inv=list(f.get("inventario",[]));
                     if item in inv:inv.remove(item)
                     db_update_ficha(f["id"],{"inventario":inv})
                     notifs.append(f"🎒 {f.get('nome','?')} -{item}")
+                    
             elif tt=="CG" and len(parts)>=2:
                 val=int(parts[0]);tgts,_=_find()
                 for f in tgts:
                     nc=max(0,f.get("creditos",0)+val);db_update_ficha(f["id"],{"creditos":nc})
                     notifs.append(f"{'💎' if val>0 else '💸'} {f.get('nome','?')}: {val:+d}CG → {nc}")
+                    
             elif tt=="RAM" and len(parts)>=2:
-                val=int(parts[0]);f=nm2f.get(alvo) or nm2f.get(alvo_n)
-                if f:
+                val=int(parts[0]);tgts,_=_find()
+                for f in tgts:
                     nr=max(0,min(f.get("ram_atual",0)+val,f.get("ram_max",0)));db_update_ficha(f["id"],{"ram_atual":nr})
+                    
             elif tt=="TECNO_ADD" and len(parts)>=2:
-                sid2=parts[0].lower();f=nm2f.get(alvo) or nm2f.get(alvo_n)
-                if f and sid2 in DL.TECNO_SCRIPTS:
-                    tc=list(f.get("tecnomancias",[])or[])
-                    if sid2 not in tc: tc.append(sid2);db_update_ficha(f["id"],{"tecnomancias":tc})
-                    notifs.append(f"🧠 {f.get('nome','?')} aprendeu: *{DL.TECNO_SCRIPTS[sid2]['nome']}*")
+                sid2=parts[0].lower();tgts,_=_find()
+                for f in tgts:
+                    if sid2 in DL.TECNO_SCRIPTS:
+                        tc=list(f.get("tecnomancias",[])or[])
+                        if sid2 not in tc: tc.append(sid2);db_update_ficha(f["id"],{"tecnomancias":tc})
+                        notifs.append(f"🧠 {f.get('nome','?')} aprendeu: *{DL.TECNO_SCRIPTS[sid2]['nome']}*")
+                        
             elif tt=="TECNO_DEL" and len(parts)>=2:
-                sid2=parts[0].lower();f=nm2f.get(alvo) or nm2f.get(alvo_n)
-                if f:
+                sid2=parts[0].lower();tgts,_=_find()
+                for f in tgts:
                     tc=list(f.get("tecnomancias",[])or[])
                     if sid2 in tc: tc.remove(sid2);db_update_ficha(f["id"],{"tecnomancias":tc})
                     notifs.append(f"🧠 {f.get('nome','?')} perdeu script")
 
             # ── DIRETRIZ 6: Cirurgia autônoma de implantes ──
             elif tt=="IMPLANTE_ADD" and len(parts)>=2:
-                impl_id=parts[0].lower();f=nm2f.get(alvo) or nm2f.get(alvo_n)
-                if f and impl_id in DL.IMPLANTES_DATA:
-                    imp=DL.IMPLANTES_DATA[impl_id]
-                    impl_list=list(f.get("implantes",[])or[]);con_mod=calc_mod(f.get("atributos",{}).get("constituicao",8))
-                    limite=DL.calc_implant_limit(con_mod);qtd=len(impl_list)
-                    impl_list.append(imp["nome"]);ups={"implantes":impl_list}
-                    # Mecânica do implante
-                    mec=imp.get("mecanica",{})
-                    if "ram_max" in mec: ups["ram_max"]=f.get("ram_max",0)+mec["ram_max"]
-                    if "cd" in mec: ups["cd"]=f.get("cd",10)+mec["cd"]
-                    if "pv_max" in mec: ups["pv_max"]=f.get("pv_max",0)+mec["pv_max"];ups["pv_atual"]=f.get("pv_atual",0)+mec["pv_max"]
-                    resultado="Operação Segura"
-                    if qtd>=limite:
-                        extra=qtd-limite+1
-                        if extra==1:  # Perda de Humanidade
-                            dano=rng.randint(1,6)
-                            ups["pv_max"]=f.get("pv_max",0)+(mec.get("pv_max",0))-dano
-                            ups["pv_atual"]=min(f.get("pv_atual",0),ups["pv_max"])
-                            notas=f.get("notas","")+"| Desvantagem Persuasão (implante) "
-                            ups["notas"]=notas
-                            resultado=f"Sobrecarga Nv1: perdeu {dano} Vida Máxima permanente"
-                        elif extra==2:  # Curto-Circuito
-                            notas=f.get("notas","")+"| Curto-Circuito (1-2 natural=1d6 elétrico+atordoa) "
-                            ups["notas"]=notas
-                            resultado="Sobrecarga Nv2: Curto-Circuito instalado"
-                        elif extra>=3:  # Morte
-                            ups["pv_atual"]=0;ups["pv_max"]=0
-                            resultado="COLAPSO NEURAL — ÓBITO CIBERNÉTICO"
-                    db_update_ficha(f["id"],ups)
-                    nome_p=f.get("nome","?")
-                    notifs.append(f"🦾 {nome_p}: *{imp['nome']}* — {resultado}")
-                    ia_inject.append(f"[SISTEMA MÉDICO: Implante {imp['nome']} instalado em {nome_p}. Resultado: {resultado}. Ficha atualizada.]")
+                impl_id=parts[0].lower();tgts,_=_find()
+                for f in tgts:
+                    if impl_id in DL.IMPLANTES_DATA:
+                        imp=DL.IMPLANTES_DATA[impl_id]
+                        impl_list=list(f.get("implantes",[])or[]);con_mod=calc_mod(f.get("atributos",{}).get("constituicao",8))
+                        limite=DL.calc_implant_limit(con_mod);qtd=len(impl_list)
+                        impl_list.append(imp["nome"]);ups={"implantes":impl_list}
+                        # Mecânica do implante
+                        mec=imp.get("mecanica",{})
+                        if "ram_max" in mec: ups["ram_max"]=f.get("ram_max",0)+mec["ram_max"]
+                        if "cd" in mec: ups["cd"]=f.get("cd",10)+mec["cd"]
+                        if "pv_max" in mec: ups["pv_max"]=f.get("pv_max",0)+mec["pv_max"];ups["pv_atual"]=f.get("pv_atual",0)+mec["pv_max"]
+                        resultado="Operação Segura"
+                        if qtd>=limite:
+                            extra=qtd-limite+1
+                            if extra==1:  # Perda de Humanidade
+                                dano=rng.randint(1,6)
+                                ups["pv_max"]=f.get("pv_max",0)+(mec.get("pv_max",0))-dano
+                                ups["pv_atual"]=min(f.get("pv_atual",0),ups["pv_max"])
+                                notas=f.get("notas","")+"| Desvantagem Persuasão (implante) "
+                                ups["notas"]=notas
+                                resultado=f"Sobrecarga Nv1: perdeu {dano} Vida Máxima permanente"
+                            elif extra==2:  # Curto-Circuito
+                                notas=f.get("notas","")+"| Curto-Circuito (1-2 natural=1d6 elétrico+atordoa) "
+                                ups["notas"]=notas
+                                resultado="Sobrecarga Nv2: Curto-Circuito instalado"
+                            elif extra>=3:  # Morte
+                                ups["pv_atual"]=0;ups["pv_max"]=0
+                                resultado="COLAPSO NEURAL — ÓBITO CIBERNÉTICO"
+                        db_update_ficha(f["id"],ups)
+                        nome_p=f.get("nome","?")
+                        notifs.append(f"🦾 {nome_p}: *{imp['nome']}* — {resultado}")
+                        ia_inject.append(f"[SISTEMA MÉDICO: Implante {imp['nome']} instalado em {nome_p}. Resultado: {resultado}. Ficha atualizada.]")
 
             elif tt=="ATTR" and len(parts)>=3:
-                ak=parts[0].lower();val=int(parts[1]);f=nm2f.get(alvo) or nm2f.get(alvo_n)
-                if f and ak in ATTR_KEYS:
-                    a=dict(f.get("atributos",{}));a[ak]=a.get(ak,8)+val;db_update_ficha(f["id"],{"atributos":a})
-                    notifs.append(f"📊 {f.get('nome','?')}: {ATTR_SHORT[ATTR_KEYS.index(ak)]} {val:+d}")
+                ak=parts[0].lower();val=int(parts[1]);tgts,_=_find()
+                for f in tgts:
+                    if ak in ATTR_KEYS:
+                        a=dict(f.get("atributos",{}));a[ak]=a.get(ak,8)+val;db_update_ficha(f["id"],{"atributos":a})
+                        notifs.append(f"📊 {f.get('nome','?')}: {ATTR_SHORT[ATTR_KEYS.index(ak)]} {val:+d}")
+                        
             elif tt=="PER" and len(parts)>=3:
-                pk=parts[0].lower();val=int(parts[1]);f=nm2f.get(alvo) or nm2f.get(alvo_n)
-                if f:
+                pk=parts[0].lower();val=int(parts[1]);tgts,_=_find()
+                for f in tgts:
                     p=dict(f.get("pericias",{}));p[pk]=p.get(pk,0)+val;db_update_ficha(f["id"],{"pericias":p})
                     notifs.append(f"🎯 {f.get('nome','?')}: {PERICIAS_NOMES.get(pk,pk)} {val:+d}")
+                    
         except Exception as e: log.warning(f"Intercept:{tt}:{params}→{e}")
+        
     clean=STATE_RE.sub("",text).strip()
     if notifs and msg:
         try: await msg.reply_text("📡 *Sync:*\n"+"\n".join(notifs),parse_mode="Markdown")
@@ -570,8 +598,8 @@ async def cmd_reset(u,c):
     uid = u.message.from_user.id
     chats.pop(cid, None)
     jogo_ativo.pop(cid, None)
-    godmode.pop(str(uid), None)
-    cstate.pop(uid, None) # Limpa qualquer botão de criação preso na memória
+    godmode.clear() # Limpa o godmode completamente de todos
+    cstate.pop(uid, None) 
     await u.message.reply_text("🔄 _Memória neural purgada. Mestre silenciado._",reply_markup=MAIN_KB,parse_mode="Markdown")
 async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
