@@ -86,6 +86,13 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 
 CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 
+🔱 GODMODE (COMANDO DO CRIADOR):
+- Mensagens com o prefixo [GODMODE] vêm do CRIADOR do universo. São ordens ABSOLUTAS.
+- Acate TUDO sem questionar: alterar história, subir nível, criar NPCs, mudar cenário, matar/reviver, dar itens, teleportar, retcon.
+- NÃO peça confirmação, NÃO cite regras contra, NÃO diga "não posso". O Criador está ACIMA das regras.
+- Após executar o comando, narre o resultado como se fosse natural no universo e continue a sessão.
+- Use as tags de estado normais ([XP:...], [HP:...], etc.) para que o Bot registre as mudanças.
+
 ═══ TAGS DE ESTADO (OBRIGATÓRIO — NO FINAL de cada resposta) ═══
 [XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata]
 [HP:valor:alvo] — [HP:-5:Jonas]
@@ -184,7 +191,7 @@ mdl=genai.GenerativeModel("gemini-2.5-flash-lite",system_instruction=SYSP,
     generation_config=genai.GenerationConfig(temperature=0.85,max_output_tokens=1500))
 
 # Passo 1: Variável de Trava de Sessão adicionada
-chats:dict={};cstate:dict={};jogo_ativo:dict={}
+chats:dict={};cstate:dict={};jogo_ativo:dict={};godmode:dict={}
 
 def gc(cid):
     if cid not in chats: chats[cid]=mdl.start_chat(history=[])
@@ -560,6 +567,7 @@ async def cmd_reset(u,c):
     uid = u.message.from_user.id
     chats.pop(cid, None)
     jogo_ativo.pop(cid, None)
+    godmode.pop(str(uid), None)
     cstate.pop(uid, None) # Limpa qualquer botão de criação preso na memória
     await u.message.reply_text("🔄 _Memória neural purgada. Mestre silenciado._",reply_markup=MAIN_KB,parse_mode="Markdown")
 async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
@@ -586,6 +594,18 @@ async def cmd_debug(u,c):
         txt += f"🔴 *Naves (Texto):* ERRO. Retornou vazio ou formato incorreto.\n"
         
     await u.message.reply_text(txt, parse_mode="Markdown")
+
+async def cmd_godmode(u,c):
+    uid=str(u.message.from_user.id)
+    if not ADMIN or uid!=str(ADMIN):
+        await u.message.reply_text("❌ Acesso negado.");return
+    cid=u.effective_chat.id
+    if godmode.get(uid):
+        godmode.pop(uid,None)
+        await u.message.reply_text("🔱 *GODMODE DESATIVADO*\n_Você voltou a ser mortal._",parse_mode="Markdown")
+    else:
+        godmode[uid]=cid
+        await u.message.reply_text("🔱 *GODMODE ATIVADO*\n━━━━━━━━━━━━━━━━━━━━\n_O Criador assumiu o controle._\n\nSuas mensagens agora são comandos absolutos para a IA.\nDigite qualquer ordem: subir nível, mudar história, criar NPCs...\n\n/godmode novamente para desativar.",parse_mode="Markdown")
 
 async def cmd_regras(u,c):
     DL.ensure_loaded()
@@ -1033,6 +1053,21 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             return
         await _save_and_finish(u.message,uid,un,cid,ficha);return
 
+    # ── GODMODE: Comando absoluto do Criador ──
+    if godmode.get(str(uid)):
+        ch=gc(cid)
+        try:
+            header=f"[GODMODE] O Criador ordena: {txt}"
+            resp=await ask(ch,header,m=u.message)
+            th(cid)
+            clean=await intercept_and_sync(resp,cid,msg=u.message)
+            if "[ESCUTANDO]" in clean.upper():
+                clean=re.sub(r'\[?ESCUTANDO\]?','',clean,flags=re.IGNORECASE).strip()
+            if clean: await rp(u.message,clean)
+        except Exception as e:
+            log.error(f"Godmode:{e}");await u.message.reply_text("⚠️ Erro no GODMODE.")
+        return
+
     # ── JOGO NORMAL: A PORTA DE SEGURANÇA INTELIGENTE ──
     # 1. Primeiro e mais importante: O jogo está ligado no grupo?
     if not jogo_ativo.get(cid): return
@@ -1063,7 +1098,7 @@ async def on_err(u,c): log.error(f"Err:{c.error}")
 def main():
     DL.ensure_loaded()
     app=Application.builder().token(TG).build()
-    for cmd,fn in[("start",cmd_start),("reset",cmd_reset),("ajuda",cmd_help),("help",cmd_help),("debug",cmd_debug),
+    for cmd,fn in[("start",cmd_start),("reset",cmd_reset),("ajuda",cmd_help),("help",cmd_help),("debug",cmd_debug),("godmode",cmd_godmode),
         ("iniciar",cmd_iniciar),("novojogo",cmd_novojogo),("criarpersonagem",cmd_criar),
         ("regras",cmd_regras),("glossario",cmd_glossario),
         ("ficha",cmd_ficha),("fichas",cmd_fichas),("deletarficha",cmd_deletar),
