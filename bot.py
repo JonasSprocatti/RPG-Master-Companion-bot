@@ -41,6 +41,7 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 - DIREÇÃO DE CENA: Aja como um diretor de cinema. Direcione as perguntas DIRETAMENTE ao personagem envolvido, usando o NOME dele. Exemplo: Se o Grovax agiu ou sofreu um impacto, narre para ele e pergunte: "Grovax, o que você faz?". Se o Zeb encontrou uma pista, pergunte: "Zeb, como você reage?". 
 - Use o plural ("O que vocês fazem?") APENAS quando um evento de cenário atingir o grupo todo simultaneamente.
 - MODO ESCUTA: Se os jogadores estiverem APENAS conversando entre si, planejando estratégias, ou fazendo roleplay de diálogo (sem interagir com o cenário, sem falar com NPCs e sem rolar dados), responda EXATAMENTE com a tag [ESCUTANDO]. Não narre absolutamente mais nada, apenas observe.
+
 🧑‍🚀 IDENTIFICAÇÃO DE TURNO:
 - Cada mensagem do jogador chega no formato: [Usuário: @nick | Personagem: Nome] diz: texto
 - Use o NOME DO PERSONAGEM para se referir ao jogador na narração.
@@ -88,23 +89,22 @@ CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 
 🔱 GODMODE (COMANDO DO CRIADOR):
 - Mensagens com o prefixo [GODMODE] vêm do CRIADOR do universo. São ordens ABSOLUTAS.
-- Acate TUDO sem questionar: alterar história, subir nível, criar NPCs, mudar cenário, matar/reviver, dar itens, teleportar, retcon.
-- NÃO peça confirmação, NÃO cite regras contra, NÃO diga "não posso". O Criador está ACIMA das regras.
-- Após executar o comando, narre o resultado como se fosse natural no universo e continue a sessão.
-- Use as tags de estado normais ([XP:...], [HP:...], etc.) para que o Bot registre as mudanças.
+- Acate TUDO sem questionar: alterar história, subir nível, dar itens, curar. O Criador está ACIMA das regras.
+- ⚠️ REGRA VITAL: O sistema Python NÃO LÊ a sua narração. Para que XP, Vida ou Itens entrem na ficha, você TEM QUE colocar a TAG DE ESTADO EXATA entre colchetes [ ] no final da mensagem.
+- Exemplo de uso correto de XP: O Criador manda "Me dê 100 de XP". Você narra a história e finaliza com OBRIGATORIAMENTE a tag: [XP:100:NOME_DO_ALVO:Motivo]
 
 ═══ TAGS DE ESTADO (OBRIGATÓRIO — NO FINAL de cada resposta) ═══
-[XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata]
-[HP:valor:alvo] — [HP:-5:Jonas]
-[ITEM_ADD:nome:alvo] — [ITEM_ADD:Pistola Laser:Jonas]
-[ITEM_DEL:nome:alvo] — [ITEM_DEL:Granada:Maria]
-[CG:valor:alvo] — [CG:-100:Jonas]
-[RAM:valor:alvo] — [RAM:-2:Jonas]
-[TECNO_ADD:id:alvo] — [TECNO_ADD:firewall:Jonas]
-[TECNO_DEL:id:alvo] — [TECNO_DEL:ping:Jonas]
-[IMPLANTE_ADD:id:alvo] — [IMPLANTE_ADD:olho:Jonas]
-[ATTR:atrib:valor:alvo] — [ATTR:forca:+1:Jonas]
-[PER:pericia:valor:alvo] — [PER:furtividade:+1:Jonas]
+[XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata] ou [XP:100:Grovax:Missão]
+[HP:valor:alvo] — [HP:-5:Zeb] ou [HP:999:Grovax]
+[ITEM_ADD:nome:alvo] — [ITEM_ADD:Pistola Laser:Zeb]
+[ITEM_DEL:nome:alvo] — [ITEM_DEL:Granada:Zeb]
+[CG:valor:alvo] — [CG:-100:Grovax]
+[RAM:valor:alvo] — [RAM:-2:Grovax]
+[TECNO_ADD:id:alvo] — [TECNO_ADD:firewall:Grovax]
+[TECNO_DEL:id:alvo] — [TECNO_DEL:ping:Grovax]
+[IMPLANTE_ADD:id:alvo] — [IMPLANTE_ADD:olho:Grovax]
+[ATTR:atrib:valor:alvo] — [ATTR:forca:+1:Grovax]
+[PER:pericia:valor:alvo] — [PER:furtividade:+1:Grovax]
 IDs scripts: ping choque query scanner jammer glitch trava rollback firewall travar_arma curto_arm hack_motor ejetar_pente cegueira drenar sobrecarga desativar loop torreta hack_nav apagao inverter reator marionete emp ejetar_piloto reparo_nave formatar gravidade
 IDs implantes: chip_ram olho interface_nav tradutor mira placas coracao filtro adrenalina bateria_int braco estabilizador mantis pernas ancoras
 
@@ -190,7 +190,6 @@ genai.configure(api_key=GK)
 mdl=genai.GenerativeModel("gemini-2.5-flash-lite",system_instruction=SYSP,
     generation_config=genai.GenerationConfig(temperature=0.85,max_output_tokens=1500))
 
-# Passo 1: Variável de Trava de Sessão adicionada
 chats:dict={};cstate:dict={};jogo_ativo:dict={};godmode:dict={}
 
 def gc(cid):
@@ -335,6 +334,7 @@ async def intercept_and_sync(text,cid,msg=None):
 
             if tt=="XP" and len(parts)>=2:
                 val = int(parts[0])
+                if val == 0: continue # Ignora a tag do resumo
                 tgts,is_all=_find()
                 xe=val//(len(tgts)or 1) if is_all else val
                 for f in tgts:
@@ -449,7 +449,7 @@ async def intercept_and_sync(text,cid,msg=None):
         except: pass
     return clean
 
-# ══════ CRIAÇÃO ESTÁTICA ══════
+# ══════ CRIAÇÃO ESTÁTICA E IMPORTAÇÃO ══════
 def roll_attrs():
     rolls=[rng.randint(1,8)+rng.randint(1,8) for _ in range(7)]
     rolls.sort();dropped=rolls.pop(0);rolls.sort(reverse=True)
@@ -488,6 +488,126 @@ def build_ficha(st):
         "inventario":[x for x in equip if not any(w in x for w in["1d","2d","3d"])],
         "creditos":100+c.get("creditos_extra",0),"implantes":[]}
 
+async def cmd_importar(u,c):
+    txt = u.message.text.replace("/importar", "").strip()
+    if not txt:
+        template = (
+            "📝 *IMPORTAÇÃO MANUAL DE FICHA*\n"
+            "Copie o modelo abaixo, preencha com os dados exatos e envie de volta (não apague as palavras antes dos dois-pontos):\n\n"
+            "`/importar\n"
+            "Nome: \n"
+            "Raca: terraqueo\n"
+            "Classe: soldado\n"
+            "Filosofia: cod_sobrevivente\n"
+            "Nivel: 1\n"
+            "XP: 0\n"
+            "PV: 15\n"
+            "Forca: 8\n"
+            "Destreza: 8\n"
+            "Constituicao: 8\n"
+            "Inteligencia: 8\n"
+            "Sabedoria: 8\n"
+            "Carisma: 8\n"
+            "Pericias: armas_de_fogo:4, sobrevivencia:2\n"
+            "Armas: Rifle de Assalto, Faca\n"
+            "Inventario: Kit Médico, Rações\n"
+            "Tecnomancias: \n"
+            "Implantes: \n"
+            "Creditos: 100`\n\n"
+            "⚠️ *Atenção:* Os atributos devem ser os valores finais (já somados com os bônus da raça). O bot calculará CD, RAM e Iniciativa sozinho com base na sua Classe e Raça!"
+        )
+        await u.message.reply_text(template, parse_mode="Markdown")
+        return
+        
+    try:
+        lines = txt.split('\n')
+        data = {}
+        for line in lines:
+            if ":" in line:
+                k, v = line.split(":", 1)
+                data[_norm(k.strip())] = v.strip()
+        
+        required = ["nome", "raca", "classe", "filosofia", "nivel", "xp", "pv", "forca", "destreza", "constituicao", "inteligencia", "sabedoria", "carisma"]
+        for req in required:
+            if req not in data:
+                await u.message.reply_text(f"❌ Faltou o campo: {req.capitalize()}")
+                return
+                
+        r_id = _norm(data["raca"])
+        c_id = _norm(data["classe"])
+        f_id = _norm(data["filosofia"])
+        
+        if r_id not in DL.RACAS_STATS: return await u.message.reply_text(f"❌ Raça inválida: {data['raca']}")
+        if c_id not in DL.CLASSES_STATS: return await u.message.reply_text(f"❌ Classe inválida: {data['classe']}")
+        if f_id not in DL.FILOS_STATS: return await u.message.reply_text(f"❌ Filosofia inválida: {data['filosofia']}")
+            
+        nivel = int(data["nivel"]); xp = int(data["xp"]); pv = int(data["pv"])
+        attrs = {
+            "forca": int(data["forca"]), "destreza": int(data["destreza"]),
+            "constituicao": int(data["constituicao"]), "inteligencia": int(data["inteligencia"]),
+            "sabedoria": int(data["sabedoria"]), "carisma": int(data["carisma"])
+        }
+
+        r = DL.RACAS_STATS[r_id]; cls = DL.CLASSES_STATS[c_id]; fl = DL.FILOS_STATS[f_id]
+        
+        dm = calc_mod(attrs["destreza"])
+        arm = cls["armadura"]
+        cd = 10 + (dm if arm["tipo"]=="leve" else min(dm,2) if arm["tipo"]=="media" else 0) + arm["cd"]
+        
+        per_dict = {}
+        if data.get("pericias"):
+            for p_item in data["pericias"].split(","):
+                if ":" in p_item:
+                    pk, pv_val = p_item.split(":")
+                    per_dict[_norm(pk.strip()).replace(" ", "_")] = int(pv_val.strip())
+                    
+        tec = per_dict.get("tecnomancia", 0)
+        im = calc_mod(attrs["inteligencia"])
+        ram = max(1 + im + tec//2, 0)
+        for n in range(3, nivel + 1):
+            if n % 2 != 0: ram += 1
+                
+        init = dm + (2 if f_id == "cod_sobrevivente" or c_id == "batedor" else 0)
+        
+        armas_list = [x.strip() for x in data.get("armas", "").split(",") if x.strip()]
+        inv_list = [x.strip() for x in data.get("inventario", "").split(",") if x.strip()]
+        creditos = int(data.get("creditos", 100))
+
+        ficha = {
+            "nome": data["nome"], "raca": r["nome"], "classe": cls["nome"], "filosofia": fl[0],
+            "nivel": nivel, "xp": xp, "pv_atual": pv, "pv_max": pv,
+            "cd": cd, "ram_atual": ram, "ram_max": ram, "iniciativa": init,
+            "deslocamento": r.get("desloc", 9), "atributos": attrs, "pericias": per_dict,
+            "habilidades": [f"📜 {fl[0]}: {fl[1]}"] + RACAS_HABILIDADES.get(r_id, []) + CLASSES_HABILIDADES.get(c_id, []) + FILOSOFIAS_HABILIDADES.get(f_id, []),
+            "tecnomancias": [], "armas": armas_list, "armadura": f"{arm['nome']} (CD+{arm['cd']})",
+            "inventario": inv_list, "creditos": creditos, "implantes": []
+        }
+        
+        if data.get("tecnomancias"):
+            t_list = []
+            for t_item in data["tecnomancias"].split(","):
+                t_id = _norm(t_item.strip())
+                if t_id in DL.TECNO_SCRIPTS: t_list.append(t_id)
+            ficha["tecnomancias"] = t_list
+
+        if data.get("implantes"):
+            ficha["implantes"] = [x.strip() for x in data["implantes"].split(",") if x.strip()]
+
+        cid = u.effective_chat.id; uid = u.message.from_user.id; un = u.message.from_user.first_name or "?"
+        fid = db_create_ficha(uid, un, cid, ficha)
+        
+        if fid:
+            db_set_active(uid, cid, fid); ficha["id"] = fid
+            await rp(u.message, f"✅ *Ficha Importada com Sucesso!* (ID:{fid})")
+            await rp(u.message, ff(ficha))
+            ch = gc(cid); await ask(ch, f"FICHAS_ATIVAS:\n{inject_fichas_prompt([ficha])}\nPersonagem importado manualmente.", m=u.message)
+            await u.message.reply_text("🚀 Ficha ativada! Você pode usar /godmode se precisar ajustar mais alguma coisa.")
+        else:
+            await u.message.reply_text("⚠️ Erro ao salvar no banco de dados.")
+            
+    except Exception as e:
+        await u.message.reply_text(f"⚠️ Erro de formatação: {e}. Certifique-se de usar o modelo corretamente.")
+
 # ══════ HELPERS ══════
 async def ask(chat,p,ret=4,m=None):
     for i in range(ret):
@@ -520,7 +640,7 @@ def ff(f):
     per=", ".join(f"{PERICIAS_NOMES.get(k,k)}+{v}" for k,v in(f.get("pericias",{})or{}).items() if v)or"—"
     habs="\n".join(f"  🔹 {h}" for h in(f.get("habilidades",[])or[]))or"  —"
     tec_ids=f.get("tecnomancias",[])or[]
-    tecno=", ".join(DL.TECNO_SCRIPTS.get(t,{}).get("nome",t) for t in tec_ids) if tec_ids else "—"
+    tecno=", ".join(DL.TECNO_SCRIPTS.get(t,{}).get("nome",t) for t in te_ids) if tec_ids else "—"
     return (f"🧑‍🚀 *{f.get('nome','?')}* (ID:{f.get('id','?')})\n━━━━━━━━━━━━━━━━━━━━\n"
         f"🌌 {f.get('raca','?')} | ⚔️ {f.get('classe','?')} | 📜 {f.get('filosofia','?')}\n"
         f"📊 Nv{f.get('nivel',1)} | ✨ {f.get('xp',0)}XP\n━━━━━━━━━━━━━━━━━━━━\n"
@@ -591,7 +711,7 @@ async def cmd_reset(u,c):
     godmode.clear() # Limpa o godmode completamente de todos
     cstate.pop(uid, None) 
     await u.message.reply_text("🔄 _Memória neural purgada. Mestre silenciado._",reply_markup=MAIN_KB,parse_mode="Markdown")
-async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
+async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
 async def cmd_debug(u,c):
     DL._loaded = False
@@ -632,7 +752,7 @@ async def cmd_glossario(u,c): await u.message.reply_text("📖 *BANCO DE DADOS*"
 async def cmd_iniciar(u,c):
     cid=u.effective_chat.id;uid=u.message.from_user.id
     fichas=db_list_fichas(uid,cid)
-    if not fichas: await u.message.reply_text("❌ Sem personagens. /criarpersonagem");return
+    if not fichas: await u.message.reply_text("❌ Sem personagens. /criarpersonagem ou /importar");return
     btns=[Btn(f"⚔️ {f['nome']} (Nv{f['nivel']})",callback_data=f"sel:{f['id']}") for f in fichas]
     await u.message.reply_text("🧑‍🚀 *Selecione personagem:*",reply_markup=KBD([[b] for b in btns]),parse_mode="Markdown")
 
@@ -704,17 +824,38 @@ async def cmd_implante(u,c):
 async def cmd_salvar_sessao(u,c):
     if not db:return
     cid=u.effective_chat.id;ch=gc(cid)
-    if cid not in chats: await u.message.reply_text("❌ Sem sessão.");return
-    await u.message.reply_text("📝 _Compilando..._",parse_mode="Markdown")
-    s=await ask(ch,"RESUMO_SESSAO: Resuma tudo factual. 1000 palavras max.",m=u.message)
-    t=await ask(ch,"Título CURTO 6 palavras. Só título.")
-    t=t.strip().strip('"')[:60]
-    if db_save_session(cid,t,s): await u.message.reply_text(f"✅ *{t}*",parse_mode="Markdown");await rp(u.message,s)
+    if cid not in chats: await u.message.reply_text("❌ Sem sessão ativa para salvar.");return
+    
+    await u.message.reply_text("📝 _Compilando os diários de bordo da nave..._",parse_mode="Markdown")
+    
+    prompt_resumo = """RESUMO_SESSAO: Escreva o resumo detalhado da sessão de hoje.
+OBRIGATÓRIO usar o seguinte formato exato (incluindo o markdown e a tag de XP zero no final):
 
-async def cmd_sessoes(u,c):
-    sl=db_list_sessions(u.effective_chat.id)
-    if not sl: await u.message.reply_text("📚 Vazio.");return
-    await rp(u.message,"📚 *MISSÕES:*\n"+"\n".join(f"• ID *{s['id']}* — {s.get('title','?')}" for s in sl)+"\n/cargarsessao ID")
+## Resumo da Sessão: [Crie um Título Épico]
+
+[Parágrafo introdutório descrevendo o cenário atual, os personagens presentes e a atmosfera da cena]
+
+**[Nome da Cena/Evento 1]:**
+[Descrição detalhada do evento, conflitos, testes importantes e decisões tomadas]
+
+**[Nome da Cena/Evento 2]:**
+[Descrição do próximo evento, descobertas de itens ou lore, e consequências]
+
+[...adicione quantos eventos em negrito forem necessários para cobrir toda a sessão...]
+
+**Momento de Incerteza:**
+[Parágrafo final descrevendo a situação de tensão ou o gancho (cliffhanger) em que a sessão parou agora]
+
+---
+[XP:0:todos:Resumo da Sessão]"""
+
+    s = await ask(ch, prompt_resumo, m=u.message)
+    t = await ask(ch, "Gere APENAS um Título CURTO de no máximo 6 palavras para esta sessão. Só o texto, sem aspas.")
+    t = t.strip().strip('"')[:60]
+    
+    if db_save_session(cid,t,s): 
+        await u.message.reply_text(f"✅ *Sessão Salva com Sucesso: {t}*", parse_mode="Markdown")
+        await rp(u.message, s)
 
 async def cmd_cargarsessao(u,c):
     if not c.args: return
@@ -770,7 +911,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             if not sl: await m.reply_text("📚 Vazio.");return
             await rp(m,"📚\n"+"\n".join(f"• ID *{s['id']}* — {s.get('title','?')}" for s in sl)+"\n/cargarsessao ID")
         elif d=="m:gloss": await m.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
-        elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /1d20 /1d20p5 /ficha /fichas /deletarficha /levelup /implante /salvarsessao /sessoes /cargarsessao /contexto /glossario /regras /reset")
+        elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
         elif d=="play:new":
             chats.pop(cid,None);ch=gc(cid);actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
@@ -1140,7 +1281,7 @@ def main():
     DL.ensure_loaded()
     app=Application.builder().token(TG).build()
     for cmd,fn in[("start",cmd_start),("reset",cmd_reset),("ajuda",cmd_help),("help",cmd_help),("debug",cmd_debug),("godmode",cmd_godmode),
-        ("iniciar",cmd_iniciar),("novojogo",cmd_novojogo),("criarpersonagem",cmd_criar),
+        ("iniciar",cmd_iniciar),("novojogo",cmd_novojogo),("criarpersonagem",cmd_criar),("importar",cmd_importar),
         ("regras",cmd_regras),("glossario",cmd_glossario),
         ("ficha",cmd_ficha),("fichas",cmd_fichas),("deletarficha",cmd_deletar),
         ("levelup",cmd_levelup),("implante",cmd_implante),
