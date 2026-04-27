@@ -26,7 +26,7 @@ RPG_FILE=os.path.join(os.path.dirname(__file__),"rpg_content.txt")
 with open(RPG_FILE,"r",encoding="utf-8") as f: RPG=f.read()
 
 XP_T={1:100,2:250,3:450,4:700,5:1000,6:1400,7:1900,8:2500,9:3200}
-DICE_RE=re.compile(r'/(\d*)d(\d+)([+-]\d+)?')  # Diretriz 4: regex dice
+DICE_RE=re.compile(r'/(\d*)d(\d+)(?:([pm+-])(\d+))?')  # Aceita /1d20p5 E /1d20+5
 def _norm(s): return unicodedata.normalize("NFKD",s.lower()).encode("ascii","ignore").decode()
 
 SYSP=f"""Você é o Mestre do RPG "Passagem Sombria - RPG Espacial".
@@ -47,7 +47,9 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 - NUNCA confunda jogadores. Cada ação é de quem mandou.
 
 🎲 ROLAGENS DE DADOS:
-- Quando um jogador tentar ação com risco, PEÇA O TESTE (ex: "Faça /1d20+3 para Furtividade CD 15").
+- Quando um jogador tentar ação com risco, PEÇA O TESTE usando o formato clicável:
+  /1d20p5 (p = soma modificador) ou /1d20m2 (m = subtrai). Sem modificador: /1d20
+  Exemplo: "Faça /1d20p5 para Furtividade CD 15" (onde p5 = +5 do modificador total).
 - O bot calcula automaticamente e injeta: [SISTEMA: Personagem rolou NdN+X = Total]
 - Ao receber um resultado de [SISTEMA:], narre a consequência IMEDIATA baseada no valor.
 
@@ -96,7 +98,7 @@ CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 [IMPLANTE_ADD:id:alvo] — [IMPLANTE_ADD:olho:Jonas]
 [ATTR:atrib:valor:alvo] — [ATTR:forca:+1:Jonas]
 [PER:pericia:valor:alvo] — [PER:furtividade:+1:Jonas]
-IDs scripts: ping choque query bateria scanner jammer glitch trava rollback firewall travar_arma curto_arm hack_motor ejetar_pente cegueira drenar sobrecarga desativar loop torreta hack_nav apagao inverter reator marionete emp ejetar_piloto reparo_nave formatar gravidade
+IDs scripts: ping choque query scanner jammer glitch trava rollback firewall travar_arma curto_arm hack_motor ejetar_pente cegueira drenar sobrecarga desativar loop torreta hack_nav apagao inverter reator marionete emp ejetar_piloto reparo_nave formatar gravidade
 IDs implantes: chip_ram olho interface_nav tradutor mira placas coracao filtro adrenalina bateria_int braco estabilizador mantis pernas ancoras
 
 REFERÊNCIA MECÂNICA: {RPG}"""
@@ -560,7 +562,7 @@ async def cmd_reset(u,c):
     jogo_ativo.pop(cid, None)
     cstate.pop(uid, None) # Limpa qualquer botão de criação preso na memória
     await u.message.reply_text("🔄 _Memória neural purgada. Mestre silenciado._",reply_markup=MAIN_KB,parse_mode="Markdown")
-async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens diretas: /1d20 /2d8+4\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
+async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
 async def cmd_debug(u,c):
     """Ferramenta de Troubleshooting para limpar o Cache e testar o DB."""
@@ -735,7 +737,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         if not sl: await m.reply_text("📚 Vazio.");return
         await rp(m,"📚\n"+"\n".join(f"• ID *{s['id']}* — {s.get('title','?')}" for s in sl)+"\n/cargarsessao ID")
     elif d=="m:gloss": await m.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
-    elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /1d20 /ficha /fichas /deletarficha /levelup /implante /salvarsessao /sessoes /cargarsessao /contexto /glossario /regras /reset")
+    elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /1d20 /1d20p5 /ficha /fichas /deletarficha /levelup /implante /salvarsessao /sessoes /cargarsessao /contexto /glossario /regras /reset")
 
     elif d=="play:new":
         chats.pop(cid,None);ch=gc(cid);actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
@@ -975,10 +977,12 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
 
     st=cstate.get(uid)
 
-    # ── Diretriz 4: Rolagem de dados via Regex (/1d20) ──
+    # ── Diretriz 4: Rolagem de dados via Regex (/1d20p5, /2d8m1) ──
     dice_match=DICE_RE.match(txt.strip())
     if dice_match:
-        n=int(dice_match.group(1) or 1);s=int(dice_match.group(2));mod=int(dice_match.group(3) or 0)
+        n=int(dice_match.group(1) or 1);s=int(dice_match.group(2))
+        mod_sign=dice_match.group(3);mod_val=int(dice_match.group(4) or 0)
+        mod=mod_val if mod_sign in("p","+") else -mod_val if mod_sign in("m","-") else 0
         if 1<=n<=20 and 1<=s<=100:
             rolls=[rng.randint(1,s) for _ in range(n)];total=sum(rolls)+mod
             mod_str=f"{mod:+d}" if mod else ""
@@ -988,16 +992,18 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 elif rolls[0]==1:cr="\n💀 *FALHA CRÍTICA!*"
             await rp(u.message,f"🎲 *{n}d{s}{mod_str}*\n{rolls}{f' {mod_str}' if mod else ''} = *{total}*{cr}")
             
-            ficha=db_get_active(uid,cid)
-            nome_pc=ficha.get("nome","?") if ficha else un
-            ch=gc(cid)
-            await ask(ch,f"[SISTEMA: O personagem {nome_pc} rolou {n}d{s}{mod_str} e obteve {total}. Narre a consequência.]",m=u.message)
-            resp=ch.history[-1].parts[0].text if ch.history else ""
-            if resp:
-                clean=await intercept_and_sync(resp,cid,msg=u.message)
-                if "[ESCUTANDO]" in clean.upper():
-                    clean = re.sub(r'\[?ESCUTANDO\]?', '', clean, flags=re.IGNORECASE).strip()
-                if clean: await rp(u.message,clean)
+            # Só injeta na IA se houver jogo ativo
+            if jogo_ativo.get(cid):
+                ficha=db_get_active(uid,cid)
+                nome_pc=ficha.get("nome","?") if ficha else un
+                ch=gc(cid)
+                await ask(ch,f"[SISTEMA: O personagem {nome_pc} rolou {n}d{s}{mod_str} e obteve {total}. Narre a consequência.]",m=u.message)
+                resp=ch.history[-1].parts[0].text if ch.history else ""
+                if resp:
+                    clean=await intercept_and_sync(resp,cid,msg=u.message)
+                    if "[ESCUTANDO]" in clean.upper():
+                        clean = re.sub(r'\[?ESCUTANDO\]?', '', clean, flags=re.IGNORECASE).strip()
+                    if clean: await rp(u.message,clean)
             return
 
     # Esperando contexto (play:context)

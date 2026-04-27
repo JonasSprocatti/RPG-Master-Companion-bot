@@ -59,7 +59,9 @@ def load_from_db():
                     "display_bestiario_planetas","display_bestiario_fauna","display_bestiario_vazio"]:
             if key in lk: DISPLAY[key]=lk[key]
             
-        if "regras" in lk: REGRAS_TEXT=lk["regras"] if isinstance(lk["regras"],str) else json.dumps(lk["regras"])
+        if "regras" in lk:
+            raw=lk["regras"]
+            REGRAS_TEXT=raw.get("texto","") if isinstance(raw,dict) else (raw if isinstance(raw,str) else json.dumps(raw))
         _loaded=True
         log.info(f"✅ Dados RPG: {len(lk)} categorias sobrepostas com sucesso do Supabase")
         return True
