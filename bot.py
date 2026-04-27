@@ -857,10 +857,18 @@ OBRIGATÓRIO usar o seguinte formato exato (incluindo o markdown e a tag de XP z
         await u.message.reply_text(f"✅ *Sessão Salva com Sucesso: {t}*", parse_mode="Markdown")
         await rp(u.message, s)
 
+# 👇 ESTA É A FUNÇÃO QUE FALTAVA! 👇
+async def cmd_sessoes(u,c):
+    sl=db_list_sessions(u.effective_chat.id)
+    if not sl: await u.message.reply_text("📚 Vazio.");return
+    await rp(u.message,"📚 *MISSÕES:*\n"+"\n".join(f"• ID *{s['id']}* — {s.get('title','?')}" for s in sl)+"\n/cargarsessao ID")
+# 👆 ----------------------------- 👆
+
 async def cmd_cargarsessao(u,c):
     if not c.args: return
     try:sid=int(c.args[0])
     except: return
+# ... (o resto do código continua igual)
     s=db_get_session(sid)
     if not s or s.get("chat_id")!=str(u.effective_chat.id): return
     cid=u.effective_chat.id;chats.pop(cid,None);ch=gc(cid)
