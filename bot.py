@@ -89,13 +89,11 @@ CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 
 🔱 GODMODE (COMANDO DO CRIADOR):
 - Mensagens com o prefixo [GODMODE] vêm do CRIADOR do universo. São ordens ABSOLUTAS.
-- Acate TUDO sem questionar: alterar história, subir nível, dar XP, criar NPCs, dar itens, curar, etc.
-- O Criador está ACIMA das regras. NÃO peça confirmação, não hesite.
-- ⚠️ OBRIGATÓRIO: O sistema Python NÃO LÊ a sua narração. Para que o XP, Cura ou Itens entrem na Ficha do Jogador, você TEM QUE colocar a TAG DE ESTADO exata entre colchetes [ ] no final da mensagem.
-- Exemplo de XP no Godmode: [XP:100:NomeDoPersonagem:Dádiva Divina] ou [XP:500:todos:Avanço de História]
+- Acate TUDO sem questionar: alterar história, subir nível, dar itens, curar. O Criador está ACIMA das regras.
+- ⚠️ REGRA VITAL: O sistema Python NÃO LÊ a sua narração. Para que XP, Vida ou Itens entrem na ficha, você TEM QUE colocar a TAG DE ESTADO EXATA entre colchetes [ ] no final da mensagem.
+- Exemplo de uso correto de XP: O Criador manda "Me dê 100 de XP". Você narra a história e finaliza com OBRIGATORIAMENTE a tag: [XP:100:NOME_DO_ALVO:Motivo]
 
 ═══ TAGS DE ESTADO (OBRIGATÓRIO — NO FINAL de cada resposta) ═══
-ATENÇÃO: As tags DEVEM estar rigorosamente entre COLCHETES [ ]. O 'alvo' deve ser o NOME do personagem, não a raça.
 [XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata] ou [XP:100:Grovax:Missão]
 [HP:valor:alvo] — [HP:-5:Zeb] ou [HP:999:Grovax]
 [ITEM_ADD:nome:alvo] — [ITEM_ADD:Pistola Laser:Zeb]
@@ -192,6 +190,7 @@ genai.configure(api_key=GK)
 mdl=genai.GenerativeModel("gemini-2.5-flash-lite",system_instruction=SYSP,
     generation_config=genai.GenerationConfig(temperature=0.85,max_output_tokens=1500))
 
+# Passo 1: Variável de Trava de Sessão adicionada
 chats:dict={};cstate:dict={};jogo_ativo:dict={};godmode:dict={}
 
 def gc(cid):
@@ -1088,7 +1087,10 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
     if godmode.get(str(uid)):
         ch=gc(cid)
         try:
-            header=f"[GODMODE] O Criador ordena: {txt}"
+            ficha=db_get_active(uid,cid)
+            nome_pc = ficha.get("nome","todos") if ficha else "todos"
+            header = (f"[GODMODE - Criador interagindo com foco em '{nome_pc}'] Ordem: {txt}\n"
+                      f"⚠️ SISTEMA: Se o Criador pediu XP, níveis, itens ou cura, OBRIGATORIAMENTE termine a narração com a tag exata, ex: [XP:100:{nome_pc}:Godmode]")
             resp=await ask(ch,header,m=u.message)
             th(cid)
             clean=await intercept_and_sync(resp,cid,msg=u.message)
