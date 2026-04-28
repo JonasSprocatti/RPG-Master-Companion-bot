@@ -16,6 +16,18 @@ import data_loader as DL
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s",level=logging.INFO)
 log=logging.getLogger(__name__)
 
+# ══════ TRACING SYSTEM ══════
+def trace(category, detail, uid=None, cid=None, extra=None):
+    """Log estruturado para rastrear todo fluxo do bot.
+    Categorias: MSG_IN, MSG_OUT, BTN, DICE, AI_REQ, AI_RES, INTERCEPT, DB, GODMODE, SESSION, ERROR
+    """
+    parts = [f"[TRACE:{category}]"]
+    if cid: parts.append(f"chat={cid}")
+    if uid: parts.append(f"user={uid}")
+    parts.append(detail)
+    if extra: parts.append(f"| {extra}")
+    log.info(" ".join(parts))
+
 TG=os.environ["TELEGRAM_TOKEN"];GK=os.environ["GEMINI_API_KEY"]
 WH=os.environ.get("WEBHOOK_URL","");PT=int(os.environ.get("PORT",10000))
 SU=os.environ.get("SUPABASE_URL","");SK=os.environ.get("SUPABASE_KEY","")
@@ -227,7 +239,9 @@ def db_update_ficha(fid,updates):
         clean={}
         for k,v in updates.items(): clean[k]=json.dumps(v,ensure_ascii=False) if isinstance(v,(dict,list)) else v
         clean["updated_at"]=datetime.now(timezone.utc).isoformat()
-        db.table("fichas").update(clean).eq("id",fid).execute();return True
+        db.table("fichas").update(clean).eq("id",fid).execute()
+        trace("DB",f"UPDATE ficha={fid}",extra=f"campos={list(updates.keys())}")
+        return True
     except Exception as e: log.error(f"db_update:{e}"); return False
 
 def db_get_ficha(fid):
@@ -307,6 +321,7 @@ async def intercept_and_sync(text,cid,msg=None):
     if not db: return text
     changes=STATE_RE.findall(text)
     if not changes: return text
+    trace("INTERCEPT",f"Encontrou {len(changes)} tags",cid=cid,extra=f"tags={[c[0] for c in changes]}")
     actives=db_get_all_active(cid)
     nm2f={}
     for f in actives:
@@ -440,6 +455,7 @@ async def intercept_and_sync(text,cid,msg=None):
         
     clean=STATE_RE.sub("",text).strip()
     if notifs and msg:
+        trace("INTERCEPT",f"Sync notifs={len(notifs)}",cid=cid,extra=str(notifs))
         try: await msg.reply_text("📡 *Sync:*\n"+"\n".join(notifs),parse_mode="Markdown")
         except: pass
     if ia_inject:
@@ -610,8 +626,12 @@ async def cmd_importar(u,c):
 
 # ══════ HELPERS ══════
 async def ask(chat,p,ret=4,m=None):
+    trace("AI_REQ","→ Gemini",extra=f"prompt_len={len(p)} first_50='{p[:50]}...'")
     for i in range(ret):
-        try: return chat.send_message(p).text
+        try:
+            resp=chat.send_message(p).text
+            trace("AI_RES","← Gemini",extra=f"resp_len={len(resp)} has_tags={'[' in resp and ':' in resp}")
+            return resp
         except gex.ResourceExhausted as e:
             if "per_day" in str(e): return "⚠️ Limite diário."
             w=(2**i)*10+rng.uniform(0,5)
@@ -640,7 +660,7 @@ def ff(f):
     per=", ".join(f"{PERICIAS_NOMES.get(k,k)}+{v}" for k,v in(f.get("pericias",{})or{}).items() if v)or"—"
     habs="\n".join(f"  🔹 {h}" for h in(f.get("habilidades",[])or[]))or"  —"
     tec_ids=f.get("tecnomancias",[])or[]
-    tecno=", ".join(DL.TECNO_SCRIPTS.get(t,{}).get("nome",t) for t in te_ids) if tec_ids else "—"
+    tecno=", ".join(DL.TECNO_SCRIPTS.get(t,{}).get("nome",t) for t in tec_ids) if tec_ids else "—"
     return (f"🧑‍🚀 *{f.get('nome','?')}* (ID:{f.get('id','?')})\n━━━━━━━━━━━━━━━━━━━━\n"
         f"🌌 {f.get('raca','?')} | ⚔️ {f.get('classe','?')} | 📜 {f.get('filosofia','?')}\n"
         f"📊 Nv{f.get('nivel',1)} | ✨ {f.get('xp',0)}XP\n━━━━━━━━━━━━━━━━━━━━\n"
@@ -706,6 +726,7 @@ async def cmd_start(u,c): await u.message.reply_text(WELCOME,reply_markup=MAIN_K
 async def cmd_reset(u,c):
     cid = u.effective_chat.id
     uid = u.message.from_user.id
+    trace("SESSION","🔄 RESET — jogo desligado, chat limpo",uid=uid,cid=cid)
     chats.pop(cid, None)
     jogo_ativo.pop(cid, None)
     godmode.clear() # Limpa o godmode completamente de todos
@@ -892,6 +913,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
     try:
         q=u.callback_query;await q.answer();d=q.data;m=q.message
         uid=q.from_user.id;cid=m.chat_id;un=q.from_user.first_name or"?"
+        trace("BTN",f"callback='{d}'",uid=uid,cid=cid,extra=f"user={un}")
 
         if d in("m:back","m:start"): await m.reply_text(WELCOME,reply_markup=MAIN_KB,parse_mode="Markdown")
         elif d=="m:init":
@@ -922,6 +944,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
         elif d=="play:new":
+            trace("SESSION","▶️ Nova aventura iniciada",uid=uid,cid=cid)
             chats.pop(cid,None);ch=gc(cid);actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
             n_jogadores=len(actives)
             modo="singular" if n_jogadores<=1 else "plural"
@@ -1190,6 +1213,7 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
     cid=u.effective_chat.id;txt=u.message.text;un=u.message.from_user.first_name or"?"
     uid=u.message.from_user.id;username=u.message.from_user.username or un
     if not txt:return
+    trace("MSG_IN",f"texto='{txt[:80]}...' " if len(txt)>80 else f"texto='{txt}'",uid=uid,cid=cid,extra=f"user={un} jogo={jogo_ativo.get(cid,False)} godmode={godmode.get(str(uid),False)}")
 
     st=cstate.get(uid)
 
@@ -1206,6 +1230,7 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 if rolls[0]==20:cr="\n🌟 *CRÍTICO!*"
                 elif rolls[0]==1:cr="\n💀 *FALHA CRÍTICA!*"
             await rp(u.message,f"🎲 *{n}d{s}{mod_str}*\n{rolls}{f' {mod_str}' if mod else ''} = *{total}*{cr}")
+            trace("DICE",f"{n}d{s}{mod_str}={total}",uid=uid,cid=cid,extra=f"rolls={rolls} inject_ia={jogo_ativo.get(cid,False)}")
             
             if jogo_ativo.get(cid):
                 ficha=db_get_active(uid,cid)
@@ -1246,6 +1271,7 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         await _save_and_finish(u.message,uid,un,cid,ficha);return
 
     if godmode.get(str(uid)):
+        trace("GODMODE",f"Ordem: '{txt[:80]}'",uid=uid,cid=cid)
         ch=gc(cid)
         try:
             ficha=db_get_active(uid,cid)
@@ -1262,10 +1288,14 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             log.error(f"Godmode:{e}");await u.message.reply_text("⚠️ Erro no GODMODE.")
         return
 
-    if not jogo_ativo.get(cid): return
+    if not jogo_ativo.get(cid):
+        trace("GATE","❌ Mensagem IGNORADA — jogo_ativo=False",uid=uid,cid=cid)
+        return
     
     ficha=db_get_active(uid,cid)
-    if not ficha: return
+    if not ficha:
+        trace("GATE","❌ Mensagem IGNORADA — sem ficha ativa",uid=uid,cid=cid)
+        return
     
     ch=gc(cid)
     try:
@@ -1276,14 +1306,18 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         clean=await intercept_and_sync(resp,cid,msg=u.message)
         
         if "[ESCUTANDO]" in clean.upper():
+            trace("AI_RES","IA em modo ESCUTANDO (silêncio)",uid=uid,cid=cid)
             clean = re.sub(r'\[?ESCUTANDO\]?', '', clean, flags=re.IGNORECASE).strip()
             if not clean: return 
-            
+        
+        trace("MSG_OUT",f"resp_len={len(clean)}",cid=cid)
         await rp(u.message,clean)
     except Exception as e:
         log.error(f"Msg:{e}");await u.message.reply_text("⚠️ Interferência.")
 
-async def on_err(u,c): log.error(f"Err:{c.error}")
+async def on_err(u,c):
+    trace("ERROR",f"Global: {c.error}")
+    log.error(f"Err:{c.error}")
 
 def main():
     DL.ensure_loaded()
