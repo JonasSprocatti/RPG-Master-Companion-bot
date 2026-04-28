@@ -726,12 +726,22 @@ async def cmd_start(u,c): await u.message.reply_text(WELCOME,reply_markup=MAIN_K
 async def cmd_reset(u,c):
     cid = u.effective_chat.id
     uid = u.message.from_user.id
-    trace("SESSION","🔄 RESET — jogo desligado, chat limpo",uid=uid,cid=cid)
+    old_history=len(chats[cid].history) if cid in chats else 0
+    had_game=jogo_ativo.get(cid,False)
+    had_godmode=bool(godmode)
+    trace("SESSION","🔄 RESET",uid=uid,cid=cid,extra=f"history={old_history} game={had_game}")
     chats.pop(cid, None)
     jogo_ativo.pop(cid, None)
-    godmode.clear() # Limpa o godmode completamente de todos
+    godmode.clear()
     cstate.pop(uid, None) 
-    await u.message.reply_text("🔄 _Memória neural purgada. Mestre silenciado._",reply_markup=MAIN_KB,parse_mode="Markdown")
+    txt=(f"🔄 *RESET COMPLETO*\n━━━━━━━━━━━━━━━━━━━━\n"
+         f"🧹 Histórico IA: *{old_history} msgs removidas*\n"
+         f"🎮 Sessão: *{'desligada' if had_game else 'já estava off'}*\n"
+         f"🔱 Godmode: *{'desativado' if had_godmode else 'n/a'}*\n"
+         f"💾 Fichas e sessões: *intactas no banco*\n"
+         f"━━━━━━━━━━━━━━━━━━━━\n"
+         f"_Use /novojogo para iniciar nova sessão._")
+    await u.message.reply_text(txt,reply_markup=MAIN_KB,parse_mode="Markdown")
 async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
 async def cmd_debug(u,c):
@@ -899,11 +909,20 @@ async def cmd_cargarsessao(u,c):
     if not c.args: return
     try:sid=int(c.args[0])
     except: return
-# ... (o resto do código continua igual)
     s=db_get_session(sid)
     if not s or s.get("chat_id")!=str(u.effective_chat.id): return
-    cid=u.effective_chat.id;chats.pop(cid,None);ch=gc(cid)
+    cid=u.effective_chat.id
+    old_history=len(chats[cid].history) if cid in chats else 0
+    chats.pop(cid,None);ch=gc(cid)
     actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
+    nomes=", ".join(f.get("nome","?") for f in actives)
+    trace("SESSION",f"📂 Carregando sessão {sid}",cid=cid,extra=f"purged={old_history}")
+    boot=(f"⚙️ *BOOT DO MESTRE*\n━━━━━━━━━━━━━━━━━━━━\n"
+          f"🧹 Memória: *PURGADA* ({old_history} msgs)\n"
+          f"📂 Sessão: *{s.get('title','?')}*\n"
+          f"📋 Fichas: *{len(actives)}* ({nomes})\n"
+          f"✅ Sistema: *ONLINE*\n━━━━━━━━━━━━━━━━━━━━")
+    await u.message.reply_text(boot,parse_mode="Markdown")
     if ctx: await ask(ch,ctx)
     jogo_ativo[cid] = True
     await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Retomando '{s.get('title')}'.\n{s.get('summary')}\nRecapitule.",m=u.message))
@@ -911,8 +930,18 @@ async def cmd_cargarsessao(u,c):
 async def cmd_contexto(u,c):
     txt=u.message.text.replace("/contexto","",1).strip()
     if not txt: await u.message.reply_text("📎 `/contexto texto...`",parse_mode="Markdown");return
-    cid=u.effective_chat.id;chats.pop(cid,None);ch=gc(cid)
+    cid=u.effective_chat.id
+    old_history=len(chats[cid].history) if cid in chats else 0
+    chats.pop(cid,None);ch=gc(cid)
     actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
+    nomes=", ".join(f.get("nome","?") for f in actives)
+    trace("SESSION","📎 Contexto manual",cid=cid,extra=f"purged={old_history}")
+    boot=(f"⚙️ *BOOT DO MESTRE*\n━━━━━━━━━━━━━━━━━━━━\n"
+          f"🧹 Memória: *PURGADA* ({old_history} msgs)\n"
+          f"📎 Contexto: *manual*\n"
+          f"📋 Fichas: *{len(actives)}* ({nomes})\n"
+          f"✅ Sistema: *ONLINE*\n━━━━━━━━━━━━━━━━━━━━")
+    await u.message.reply_text(boot,parse_mode="Markdown")
     if ctx: await ask(ch,ctx)
     jogo_ativo[cid] = True
     await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Importado.\n{txt}\nConfirme.",m=u.message))
@@ -964,13 +993,28 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             actives=db_get_all_active(cid)
             if not actives:
                 await m.reply_text("❌ Nenhum jogador selecionou personagem. Usem 🧑‍🚀 no lobby.");return
-            trace("SESSION","▶️ Nova aventura iniciada",uid=uid,cid=cid,extra=f"jogadores={len(actives)}")
-            chats.pop(cid,None);ch=gc(cid);ctx=inject_fichas_prompt(actives)
+            
+            # ── Boot sequence com diagnóstico ──
+            old_history=len(chats[cid].history) if cid in chats else 0
+            chats.pop(cid,None)  # PURGA total do histórico Gemini
+            ch=gc(cid)           # Chat novo, history=[]
+            ctx=inject_fichas_prompt(actives)
             n_jogadores=len(actives)
             modo="singular" if n_jogadores<=1 else "plural"
+            nomes=", ".join(f.get("nome","?") for f in actives)
+            
+            trace("SESSION","▶️ Nova aventura",uid=uid,cid=cid,extra=f"purged={old_history}msgs jogadores={n_jogadores}")
+            
+            boot=(f"⚙️ *BOOT DO MESTRE*\n━━━━━━━━━━━━━━━━━━━━\n"
+                  f"🧹 Memória anterior: *PURGADA* ({old_history} msgs removidas)\n"
+                  f"🧠 IA: *Nova instância* (histórico zerado)\n"
+                  f"📋 Fichas injetadas: *{n_jogadores}* ({nomes})\n"
+                  f"🎭 Modo: *{modo}*\n"
+                  f"✅ Sistema: *ONLINE*\n━━━━━━━━━━━━━━━━━━━━")
+            await q.edit_message_text(boot,parse_mode="Markdown")
+            
             if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {n_jogadores} jogador(es) ativo(s).\n{ctx}")
             jogo_ativo[cid] = True
-            await q.edit_message_text("🌌 _Inicializando..._",parse_mode="Markdown")
             await rp(m,await ask(ch,"SISTEMA: NOVA aventura no Sistema Solar. Cena épica. Gancho. Opções. Conciso.",m=m))
         elif d=="play:context":
             cstate[uid]={"step":"wait_context","chat_id":cid}
@@ -1266,11 +1310,22 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             return
 
     if st and st.get("step")=="wait_context" and st.get("chat_id")==cid:
+        old_history=len(chats[cid].history) if cid in chats else 0
         chats.pop(cid,None);ch=gc(cid)
         actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
         modo="singular" if len(actives)<=1 else "plural"
-        if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}.\n{ctx}")
+        nomes=", ".join(f.get("nome","?") for f in actives)
         
+        trace("SESSION","📜 Retomando com contexto",uid=uid,cid=cid,extra=f"purged={old_history}msgs jogadores={len(actives)}")
+        
+        boot=(f"⚙️ *BOOT DO MESTRE*\n━━━━━━━━━━━━━━━━━━━━\n"
+              f"🧹 Memória anterior: *PURGADA* ({old_history} msgs removidas)\n"
+              f"🧠 IA: *Nova instância* + contexto importado\n"
+              f"📋 Fichas: *{len(actives)}* ({nomes})\n"
+              f"✅ Sistema: *ONLINE*\n━━━━━━━━━━━━━━━━━━━━")
+        await u.message.reply_text(boot,parse_mode="Markdown")
+        
+        if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}.\n{ctx}")
         jogo_ativo[cid] = True 
         resp=await ask(ch,f"CONTEXTO_SESSAO: Retomando.\n{txt}\nRecapitule e pergunte ação.",m=u.message)
         await rp(u.message,resp);cstate.pop(uid,None);return
