@@ -708,7 +708,7 @@ async def _install_implant(msg,f,impl_id):
     await msg.reply_text(f"🦾 *{imp['nome']}* instalado!\n💎 -{imp['preco']}CG → {ups['creditos']}CG\n_{imp['efeito']}_",parse_mode="Markdown")
 
 MAIN_KB=KBD([
-    [Btn("🚀 Iniciar Sessão",callback_data="m:init"),Btn("🧑‍🚀 Criar Personagem",callback_data="m:criar")],
+    [Btn("🚀 Novo Jogo",callback_data="m:lobby"),Btn("🧑‍🚀 Criar Personagem",callback_data="m:criar")],
     [Btn("📋 Minhas Fichas",callback_data="m:mfichas"),Btn("📚 Retomar Sessão",callback_data="m:csess")],
     [Btn("📖 Glossário",callback_data="m:gloss"),Btn("❓ Comandos",callback_data="m:help")]])
 GLOSS_KB=KBD([
@@ -771,18 +771,28 @@ async def cmd_regras(u,c):
 async def cmd_glossario(u,c): await u.message.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
 
 async def cmd_iniciar(u,c):
-    cid=u.effective_chat.id;uid=u.message.from_user.id
-    fichas=db_list_fichas(uid,cid)
-    if not fichas: await u.message.reply_text("❌ Sem personagens. /criarpersonagem ou /importar");return
-    btns=[Btn(f"⚔️ {f['nome']} (Nv{f['nivel']})",callback_data=f"sel:{f['id']}") for f in fichas]
-    await u.message.reply_text("🧑‍🚀 *Selecione personagem:*",reply_markup=KBD([[b] for b in btns]),parse_mode="Markdown")
+    await _build_lobby(u.message,u.effective_chat.id)
+
+async def _build_lobby(msg,cid):
+    """Monta o painel de lobby mostrando quem está pronto."""
+    actives=db_get_all_active(cid)
+    lines=["🌌 *LOBBY DE SESSÃO*\n━━━━━━━━━━━━━━━━━━━━"]
+    if actives:
+        lines.append("*Tripulação confirmada:*")
+        for f in actives:
+            lines.append(f"  ✅ {f.get('user_name','?')} → *{f.get('nome','?')}* ({f.get('raca','')} {f.get('classe','')} Nv{f.get('nivel',1)})")
+    else:
+        lines.append("❌ _Nenhum tripulante selecionou personagem._")
+    lines.append(f"\n👥 *{len(actives)}* jogador(es) pronto(s)")
+    lines.append("\n_Cada jogador toca_ 🧑‍🚀 _para selecionar._")
+    btns=[[Btn("🧑‍🚀 Selecionar Meu Personagem",callback_data="lobby:sel")]]
+    if actives:
+        btns.append([Btn("🔄 Atualizar Lobby",callback_data="lobby:refresh")])
+        btns.append([Btn("🆕 Nova Aventura",callback_data="play:new"),Btn("📜 Continuar",callback_data="play:context")])
+    await msg.reply_text("\n".join(lines),reply_markup=KBD(btns),parse_mode="Markdown")
 
 async def cmd_novojogo(u,c):
-    cid=u.effective_chat.id
-    actives=db_get_all_active(cid)
-    if not actives: await u.message.reply_text("❌ Usem /iniciar primeiro.");return
-    play_kb=KBD([[Btn("🆕 Nova Aventura",callback_data="play:new")],[Btn("📜 Continuar",callback_data="play:context")]])
-    await u.message.reply_text("🌌 *Fichas sincronizadas.* Como iniciar?",reply_markup=play_kb,parse_mode="Markdown")
+    await _build_lobby(u.message,u.effective_chat.id)
 
 async def cmd_criar(u,c):
     cstate[u.message.from_user.id]={"step":"raca","chat_id":u.effective_chat.id}
@@ -916,19 +926,16 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         trace("BTN",f"callback='{d}'",uid=uid,cid=cid,extra=f"user={un}")
 
         if d in("m:back","m:start"): await m.reply_text(WELCOME,reply_markup=MAIN_KB,parse_mode="Markdown")
-        elif d=="m:init":
-            fichas=db_list_fichas(uid,cid)
-            if not fichas: await m.reply_text("❌ Sem personagens.");return
-            btns=[Btn(f"⚔️ {f['nome']} (Nv{f['nivel']})",callback_data=f"sel:{f['id']}") for f in fichas]
-            await m.reply_text("🧑‍🚀 *Selecione:*",reply_markup=KBD([[b] for b in btns]),parse_mode="Markdown")
+        elif d in("m:lobby","m:init"):
+            await _build_lobby(m,cid)
         elif d.startswith("sel:"):
             fid=int(d[4:]);db_set_active(uid,cid,fid);f=db_get_ficha(fid)
             if f:
                 await m.reply_text(f"✅ *{f.get('nome','?')}* ativado!",parse_mode="Markdown")
                 await rp(m,ff(f))
                 ch=gc(cid);await ask(ch,f"FICHAS_ATIVAS:\n{inject_fichas_prompt([f])}",m=m)
-                play_kb=KBD([[Btn("🆕 Nova Aventura",callback_data="play:new")],[Btn("📜 Continuar",callback_data="play:context")]])
-                await m.reply_text("🌌 *Sincronizado.* Como iniciar?",reply_markup=play_kb,parse_mode="Markdown")
+                # Mostra lobby atualizado para todos verem
+                await _build_lobby(m,cid)
         elif d=="m:criar":
             cstate[uid]={"step":"raca","chat_id":cid}
             await m.reply_text("🧑‍🚀 *RECRUTAMENTO* 1/5: *Origem*",reply_markup=mkb(RACAS_BTN,"r",2),parse_mode="Markdown")
@@ -943,9 +950,22 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
         elif d=="m:gloss": await m.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
         elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
+        # ── Lobby ──
+        elif d=="lobby:sel":
+            fichas=db_list_fichas(uid,cid)
+            if not fichas:
+                await m.reply_text("❌ Sem personagens. Use /criarpersonagem ou /importar primeiro.");return
+            btns=[Btn(f"⚔️ {f['nome']} (Nv{f['nivel']})",callback_data=f"sel:{f['id']}") for f in fichas]
+            await m.reply_text(f"🧑‍🚀 *{un}, selecione seu personagem:*",reply_markup=KBD([[b] for b in btns]),parse_mode="Markdown")
+        elif d=="lobby:refresh":
+            await _build_lobby(m,cid)
+
         elif d=="play:new":
-            trace("SESSION","▶️ Nova aventura iniciada",uid=uid,cid=cid)
-            chats.pop(cid,None);ch=gc(cid);actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
+            actives=db_get_all_active(cid)
+            if not actives:
+                await m.reply_text("❌ Nenhum jogador selecionou personagem. Usem 🧑‍🚀 no lobby.");return
+            trace("SESSION","▶️ Nova aventura iniciada",uid=uid,cid=cid,extra=f"jogadores={len(actives)}")
+            chats.pop(cid,None);ch=gc(cid);ctx=inject_fichas_prompt(actives)
             n_jogadores=len(actives)
             modo="singular" if n_jogadores<=1 else "plural"
             if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {n_jogadores} jogador(es) ativo(s).\n{ctx}")
