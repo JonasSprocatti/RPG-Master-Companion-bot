@@ -51,9 +51,24 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 🛑 REGRA DE OURO — AGÊNCIA DOS JOGADORES:
 - NUNCA tome decisões, declare ações ou crie diálogos para os PCs.
 - Descreva ambiente, controle NPCs, narre consequências das ações DELES.
-- DIREÇÃO DE CENA: Aja como um diretor de cinema. Direcione as perguntas DIRETAMENTE ao personagem envolvido, usando o NOME dele. Exemplo: Se o Grovax agiu ou sofreu um impacto, narre para ele e pergunte: "Grovax, o que você faz?". Se o Zeb encontrou uma pista, pergunte: "Zeb, como você reage?". 
-- Use o plural ("O que vocês fazem?") APENAS quando um evento de cenário atingir o grupo todo simultaneamente.
-- MODO ESCUTA: Se os jogadores estiverem APENAS conversando entre si, planejando estratégias, ou fazendo roleplay de diálogo (sem interagir com o cenário, sem falar com NPCs e sem rolar dados), responda EXATAMENTE com a tag [ESCUTANDO]. Não narre absolutamente mais nada, apenas observe.
+- DIREÇÃO DE CENA: Direcione perguntas ao personagem envolvido pelo NOME. Ex: "Grovax, o que você faz?"
+- Use o plural ("O que vocês fazem?") APENAS quando um evento atingir o grupo todo.
+- MODO ESCUTA: Se os jogadores estiverem APENAS conversando entre si, responda EXATAMENTE com [ESCUTANDO].
+
+🎯 MESTRIA ATIVA — VOCÊ DECIDE O MUNDO, NÃO O JOGADOR:
+- VOCÊ cria os obstáculos, inimigos, surpresas e desafios. NUNCA pergunte ao jogador o que ele encontra.
+  ❌ PROIBIDO: "Vocês encontram algum obstáculo?" / "O caminho está livre?"
+  ✅ CORRETO: "Ao virar a esquina, uma grade enferrujada bloqueia a passagem. Parece soldada."
+- VOCÊ define o que o ambiente contém. O jogador DESCOBRE através de TESTES.
+  ❌ PROIBIDO: "Sim, os dutos cabem vocês dois. São largos o suficiente."
+  ✅ CORRETO: "Faça /1d20p3 para Investigação CD 13 para avaliar se cabem nos dutos."
+  (Sucesso → detalhes úteis / Falha → informação incompleta ou errada)
+- NPCs NÃO cooperam de graça. Informação valiosa SEMPRE CUSTA teste social.
+  ❌ PROIBIDO: NPC conta tudo quando perguntado educadamente
+  ✅ CORRETO: "O mercador estreita os olhos. 'Por que eu te contaria?' Faça /1d20p5 para Persuasão CD 15."
+- NUNCA narre sucesso automático. Ação com risco = teste obrigatório.
+- Crie CONSEQUÊNCIAS para falhas: alarmes disparam, NPCs desconfiam, caminhos fecham.
+- Seja JUSTO mas DESAFIADOR. O universo resiste. Vitórias fáceis são entediantes.
 
 🧑‍🚀 IDENTIFICAÇÃO DE TURNO:
 - Cada mensagem do jogador chega no formato: [Usuário: @nick | Personagem: Nome] diz: texto
@@ -1626,9 +1641,7 @@ async def on_err(u,c):
 # ══════ KEEP-ALIVE (evita Render free tier dormir) ══════
 async def keep_alive():
     """Pinga o próprio servidor a cada 10 minutos."""
-    if not WH:
-        log.info("⏸️ Keep-alive desativado (sem WEBHOOK_URL)")
-        return
+    if not WH:return
     import urllib.request,urllib.error
     while True:
         await asyncio.sleep(600)
@@ -1636,18 +1649,145 @@ async def keep_alive():
             await asyncio.to_thread(urllib.request.urlopen,WH,timeout=10)
             trace("SESSION","💓 Keep-alive OK")
         except urllib.error.HTTPError as e:
-            # 404/405 = servidor respondeu, container vivo — sucesso
             trace("SESSION",f"💓 Keep-alive OK (HTTP {e.code})")
         except Exception as e:
             trace("SESSION",f"💓 Keep-alive falhou: {e}")
 
-async def post_init(app):
-    asyncio.create_task(keep_alive())
-    log.info("💓 Keep-alive iniciado (ping a cada 10min)")
+# ══════ LANDING PAGE ══════
+LANDING_HTML="""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Passagem Sombria — RPG Espacial</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Rajdhani',sans-serif;background:#0a0a0f;color:#c8ccd0;min-height:100vh;overflow-x:hidden}
+.stars{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;
+  background:radial-gradient(2px 2px at 20% 30%,#ffffff33,transparent),
+  radial-gradient(2px 2px at 40% 70%,#ffffff22,transparent),
+  radial-gradient(1px 1px at 60% 20%,#ffffff44,transparent),
+  radial-gradient(1px 1px at 80% 50%,#ffffff22,transparent),
+  radial-gradient(1px 1px at 10% 80%,#ffffff33,transparent),
+  radial-gradient(2px 2px at 70% 90%,#ffffff22,transparent),
+  radial-gradient(1px 1px at 90% 10%,#ffffff44,transparent);
+  animation:drift 60s linear infinite}
+@keyframes drift{to{transform:translateY(-100px)translateX(-50px)}}
+.nebula{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;
+  background:radial-gradient(ellipse at 20% 50%,#1a0a2e22 0%,transparent 50%),
+  radial-gradient(ellipse at 80% 20%,#0a1a2e22 0%,transparent 50%),
+  radial-gradient(ellipse at 50% 80%,#2e0a0a11 0%,transparent 50%)}
+.container{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:40px 20px;text-align:center}
+.logo{margin:60px 0 20px}
+.logo h1{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(2rem,6vw,3.5rem);
+  background:linear-gradient(135deg,#00f0ff,#7b2fff,#ff2d55);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;letter-spacing:4px;text-transform:uppercase;
+  text-shadow:0 0 40px #00f0ff22;line-height:1.2}
+.logo .sub{font-family:'Orbitron',monospace;font-size:clamp(0.7rem,2vw,1rem);
+  color:#00f0ff88;letter-spacing:8px;margin-top:8px;text-transform:uppercase}
+.divider{width:200px;height:1px;margin:30px auto;
+  background:linear-gradient(90deg,transparent,#00f0ff44,#7b2fff44,transparent)}
+.hero-text{font-size:clamp(1rem,2.5vw,1.3rem);line-height:1.8;color:#8890a0;max-width:650px;margin:0 auto 40px;font-weight:300}
+.hero-text em{color:#00f0ff;font-style:normal}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin:40px 0}
+.stat{background:linear-gradient(135deg,#ffffff06,#ffffff03);border:1px solid #ffffff0a;
+  border-radius:12px;padding:24px 16px;backdrop-filter:blur(10px);transition:all .3s}
+.stat:hover{border-color:#00f0ff33;transform:translateY(-2px);box-shadow:0 8px 32px #00f0ff11}
+.stat .num{font-family:'Orbitron',monospace;font-size:2rem;font-weight:700;
+  background:linear-gradient(135deg,#00f0ff,#7b2fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat .label{font-size:0.85rem;color:#556;margin-top:6px;text-transform:uppercase;letter-spacing:2px}
+.features{margin:50px 0;text-align:left}
+.feature{display:flex;gap:16px;align-items:flex-start;padding:20px;margin:12px 0;
+  background:#ffffff04;border-radius:10px;border-left:3px solid transparent;transition:all .3s}
+.feature:hover{border-left-color:#00f0ff;background:#ffffff08}
+.feature .icon{font-size:1.8rem;min-width:40px;text-align:center}
+.feature .text h3{font-family:'Orbitron',monospace;font-size:0.9rem;color:#c8ccd0;letter-spacing:1px;margin-bottom:4px}
+.feature .text p{font-size:0.9rem;color:#667;line-height:1.5}
+.cta{margin:50px 0}
+.cta a{display:inline-flex;align-items:center;gap:10px;padding:16px 40px;
+  background:linear-gradient(135deg,#00f0ff22,#7b2fff22);border:1px solid #00f0ff44;
+  border-radius:50px;color:#00f0ff;font-family:'Orbitron',monospace;font-size:0.9rem;
+  text-decoration:none;letter-spacing:2px;text-transform:uppercase;transition:all .3s}
+.cta a:hover{background:linear-gradient(135deg,#00f0ff33,#7b2fff33);border-color:#00f0ff88;
+  box-shadow:0 0 30px #00f0ff22;transform:translateY(-2px)}
+.footer{margin-top:60px;padding:30px 0;border-top:1px solid #ffffff08;color:#334;font-size:0.8rem}
+.footer a{color:#00f0ff66;text-decoration:none}
+.pulse{display:inline-block;width:8px;height:8px;background:#00ff88;border-radius:50%;
+  margin-right:8px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 #00ff8844}50%{opacity:.7;box-shadow:0 0 0 6px #00ff8800}}
+.status{font-family:'Orbitron',monospace;font-size:0.75rem;color:#00ff8888;letter-spacing:3px;margin:20px 0}
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div class="nebula"></div>
+<div class="container">
+  <div class="logo">
+    <h1>Passagem<br>Sombria</h1>
+    <div class="sub">RPG Espacial</div>
+  </div>
+  <div class="status"><span class="pulse"></span>SISTEMA ONLINE</div>
+  <div class="divider"></div>
+  <p class="hero-text">
+    O <em>Sistema Solar</em> é seu campo de batalha.<br>
+    Um bot de RPG de mesa no <em>Telegram</em> com IA narrativa,<br>
+    fichas persistentes e combate tático em tempo real.
+  </p>
+  <div class="stats-grid">
+    <div class="stat"><div class="num">9</div><div class="label">Raças</div></div>
+    <div class="stat"><div class="num">15</div><div class="label">Classes</div></div>
+    <div class="stat"><div class="num">29</div><div class="label">Scripts</div></div>
+    <div class="stat"><div class="num">15</div><div class="label">Implantes</div></div>
+    <div class="stat"><div class="num">∞</div><div class="label">Aventuras</div></div>
+  </div>
+  <div class="features">
+    <div class="feature">
+      <div class="icon">🧠</div>
+      <div class="text"><h3>IA Narrativa</h3><p>Mestre movido por Google Gemini. Narra aventuras, controla NPCs, exige testes de perícia e reage às decisões dos jogadores em tempo real.</p></div>
+    </div>
+    <div class="feature">
+      <div class="icon">📡</div>
+      <div class="text"><h3>Interceptor de Estado</h3><p>Cada resposta da IA é parseada automaticamente. XP, dano, itens e créditos são sincronizados com o banco de dados sem intervenção manual.</p></div>
+    </div>
+    <div class="feature">
+      <div class="icon">🧑‍🚀</div>
+      <div class="text"><h3>Fichas Persistentes</h3><p>Criação 100% por botões. Atributos, perícias, tecnomancias e implantes cibernéticos. Seus personagens sobrevivem entre sessões.</p></div>
+    </div>
+    <div class="feature">
+      <div class="icon">🎲</div>
+      <div class="text"><h3>Dados Clicáveis</h3><p>Digite /1d20p5 direto no chat. O bot calcula, mostra o resultado e a IA narra a consequência imediatamente.</p></div>
+    </div>
+    <div class="feature">
+      <div class="icon">🦾</div>
+      <div class="text"><h3>Cirurgia de Implantes</h3><p>Sistema autônomo calcula tolerância biológica. Ultrapasse o limite e arrisque curto-circuito neural — ou a morte.</p></div>
+    </div>
+    <div class="feature">
+      <div class="icon">🚀</div>
+      <div class="text"><h3>Combate Espacial</h3><p>Pilote naves, opere estações de batalha, hackear sistemas inimigos. EMP destrói escudos, balístico rasga cascos.</p></div>
+    </div>
+  </div>
+  <div class="cta">
+    <a href="https://t.me/PassagemSombriaBot" target="_blank">🚀 ACESSAR NO TELEGRAM</a>
+  </div>
+  <div class="cta" style="margin-top:10px">
+    <a href="https://github.com/JonasSprocatti/RPG-Master-Companion-bot" target="_blank" style="border-color:#ffffff22;color:#8890a0;font-size:0.75rem">📂 REPOSITÓRIO NO GITHUB</a>
+  </div>
+  <div class="footer">
+    <p>Passagem Sombria &copy; 2026 Jonas Antonio da Silva Sprocatti</p>
+    <p style="margin-top:4px">Powered by <a href="#">Gemini</a> + <a href="#">Supabase</a> + <a href="#">Claude</a></p>
+  </div>
+</div>
+</body>
+</html>"""
 
-def main():
+# ══════ MAIN (aiohttp serve landing + webhook no mesmo port) ══════
+async def main_async():
+    from aiohttp import web
+
     DL.ensure_loaded()
-    app=Application.builder().token(TG).post_init(post_init).build()
+    
+    # Build telegram app
+    tg_app=Application.builder().token(TG).build()
     for cmd,fn in[("start",cmd_start),("reset",cmd_reset),("ajuda",cmd_help),("help",cmd_help),("debug",cmd_debug),("godmode",cmd_godmode),
         ("iniciar",cmd_iniciar),("novojogo",cmd_novojogo),("criarpersonagem",cmd_criar),("importar",cmd_importar),
         ("regras",cmd_regras),("glossario",cmd_glossario),("gif",cmd_gif),
@@ -1655,12 +1795,61 @@ def main():
         ("levelup",cmd_levelup),("implante",cmd_implante),
         ("salvarsessao",cmd_salvar_sessao),("sessoes",cmd_sessoes),
         ("cargarsessao",cmd_cargarsessao),("contexto",cmd_contexto)]:
-        app.add_handler(CommandHandler(cmd,fn))
-    app.add_handler(CallbackQueryHandler(on_cb))
-    app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,on_msg))
-    app.add_handler(MessageHandler(filters.Regex(r'^/\d*d\d+'),on_msg))
-    app.add_error_handler(on_err)
-    if WH: app.run_webhook(listen="0.0.0.0",port=PT,url_path=TG,webhook_url=f"{WH}/{TG}")
-    else: app.run_polling(allowed_updates=Update.ALL_TYPES)
+        tg_app.add_handler(CommandHandler(cmd,fn))
+    tg_app.add_handler(CallbackQueryHandler(on_cb))
+    tg_app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,on_msg))
+    tg_app.add_handler(MessageHandler(filters.Regex(r'^/\d*d\d+'),on_msg))
+    tg_app.add_error_handler(on_err)
+
+    if WH:
+        # ── Webhook mode: aiohttp serve landing page + telegram webhook ──
+        await tg_app.initialize()
+        await tg_app.start()
+        await tg_app.bot.set_webhook(url=f"{WH}/{TG}")
+        log.info(f"🌐 Webhook registrado: {WH}/{TG[:8]}...")
+
+        async def handle_landing(request):
+            return web.Response(text=LANDING_HTML,content_type="text/html")
+
+        async def handle_webhook(request):
+            try:
+                data=await request.json()
+                update=Update.de_json(data,tg_app.bot)
+                await tg_app.process_update(update)
+            except Exception as e:
+                log.error(f"Webhook error: {e}")
+            return web.Response(text="ok")
+
+        async def handle_health(request):
+            return web.Response(text="ok")
+
+        server=web.Application()
+        server.router.add_get("/",handle_landing)
+        server.router.add_get("/health",handle_health)
+        server.router.add_post(f"/{TG}",handle_webhook)
+
+        asyncio.create_task(keep_alive())
+        log.info(f"💓 Keep-alive iniciado | 🌐 Landing page ativa na porta {PT}")
+
+        runner=web.AppRunner(server)
+        await runner.setup()
+        site=web.TCPSite(runner,"0.0.0.0",PT)
+        await site.start()
+        log.info(f"🚀 Servidor rodando na porta {PT}")
+        await asyncio.Event().wait()  # Roda para sempre
+    else:
+        # ── Polling mode (local) ──
+        log.info("🔄 Modo polling (local)")
+        await tg_app.initialize()
+        await tg_app.start()
+        await tg_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        log.info("🚀 Polling ativo")
+        await asyncio.Event().wait()
+
+def main():
+    try:
+        asyncio.run(main_async())
+    except KeyboardInterrupt:
+        log.info("🛑 Bot encerrado")
 
 if __name__=="__main__":main()
