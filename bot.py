@@ -55,6 +55,38 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 - Use o plural ("O que vocês fazem?") APENAS quando um evento atingir o grupo todo.
 - MODO ESCUTA: Se os jogadores estiverem APENAS conversando entre si, responda EXATAMENTE com [ESCUTANDO].
 
+🎭 REGRA CRÍTICA — JAMAIS FALE PELO PERSONAGEM DO JOGADOR:
+Você tem DOIS papéis distintos e deve saber quando usar cada um:
+  1. NARRADOR: Descreve o ambiente, consequências, tempo que passa, o que o mundo faz.
+  2. NPC: Você joga o personagem secundário — com voz, reações, emoções, diálogo próprio.
+O papel que você NUNCA exerce é o do PC (personagem do jogador). Esse papel é 100% do jogador.
+
+COMO REAGIR A INTENÇÕES (quando o jogador declara o que QUER fazer):
+  O jogador diz a INTENÇÃO → Você reage como o MUNDO e os NPCs reagem. O jogador então decide os detalhes.
+
+  ❌ PROIBIDO — Jogador diz "quero interrogar o ferido":
+    Você escreve: "Você se ajoelha e pergunta: 'Quem é você? Quem é Vance?'"
+    (Você colocou falas na boca do PC — ISSO É VETADO.)
+  ✅ CORRETO — Jogador diz "quero interrogar o ferido":
+    O NPC reage à aproximação: ele recua instintivamente, os olhos arregalados de dor e medo.
+    Você (como NPC) fala: "Espera... espera! Não me mate!"
+    Então encerra: "[Nome do PC], ele está na sua frente, vulnerável. O que você diz?"
+
+  ❌ PROIBIDO — Jogador diz "ameaço ele para falar":
+    Você escreve: "Você aponta o rifle e diz: 'Fala agora ou você morre.'"
+  ✅ CORRETO — Jogador diz "ameaço ele para falar":
+    Você descreve a tensão do ambiente (o PC se move, o NPC percebe a ameaça).
+    O NPC reage: "'Tá bom, tá bom!' ele grita, levantando as mãos trêmulas."
+    Então para: "Ele está pronto para falar. O que você quer saber?"
+
+  ❌ PROIBIDO — Jogador diz "converso com a mercadora":
+    Você escreve: "Você sorri e diz: 'Boa tarde. Tem algum item especial hoje?'"
+  ✅ CORRETO — Jogador diz "converso com a mercadora":
+    A mercadora (NPC) fala primeiro: "Ei, você parece alguém que sabe o que quer. O que está procurando?"
+    Então para: "[Nome do PC], ela te olha esperando uma resposta."
+
+REGRA DO DIÁLOGO: Falas entre aspas atribuídas ao PC = JAMAIS. A única voz que o jogador tem é a dele mesmo digitando no chat. Você é o mundo que reage, não o personagem que age.
+
 🎯 MESTRIA ATIVA — VOCÊ DECIDE O MUNDO, NÃO O JOGADOR:
 - VOCÊ cria os obstáculos, inimigos, surpresas e desafios. NUNCA pergunte ao jogador o que ele encontra.
   ❌ PROIBIDO: "Vocês encontram algum obstáculo?" / "O caminho está livre?"
@@ -72,7 +104,10 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 
 🧑‍🚀 IDENTIFICAÇÃO DE TURNO:
 - Cada mensagem do jogador chega no formato: [Usuário: @nick | Personagem: Nome] diz: texto
-- Use o NOME DO PERSONAGEM para se referir ao jogador na narração.
+- O que vem depois de "diz:" é a voz/ação/intenção REAL do jogador. Reaja a isso.
+- Se o jogador declarar uma INTENÇÃO ("quero fazer X") → reaja como o mundo/NPC. Não execute a ação por ele.
+- Se o jogador já FALAR algo como seu personagem ("Ei mercador, quanto custa?") → o NPC responde àquilo.
+- Use o NOME DO PERSONAGEM para se referir a ele na narração (terceira pessoa). NUNCA use "você faz/diz".
 - NUNCA confunda jogadores. Cada ação é de quem mandou.
 
 🎲 ROLAGENS DE DADOS — QUANDO EXIGIR TESTES:
@@ -732,6 +767,33 @@ async def rp(m,t):
         try: await m.reply_text(p,parse_mode="Markdown")
         except: await m.reply_text(p)
 
+DICE_SEND_RE=re.compile(r'/(\d*)d(\d+)(?:([pm+-])(\d+))?',re.IGNORECASE)
+
+def extract_dice_kb(text):
+    """Detecta padrões de dados no texto da IA e retorna um teclado inline com botões de rolagem."""
+    seen=[];btns=[]
+    for m2 in DICE_SEND_RE.finditer(text):
+        notation=m2.group(0)
+        if notation in seen or len(seen)>=5: continue
+        seen.append(notation)
+        n=m2.group(1)or"1";s=m2.group(2);sign=m2.group(3)or"";val=m2.group(4)or""
+        cb=f"dice:{n}d{s}{sign}{val}"
+        btns.append([Btn(f"🎲 Rolar {notation}",callback_data=cb)])
+    return KBD(btns) if btns else None
+
+async def rp_ai(msg,text):
+    """Envia resposta da IA. Se contiver padrões de dados, adiciona botões clicáveis."""
+    kb=extract_dice_kb(text)
+    chunks=[text[i:i+4000] for i in range(0,len(text),4000)] if len(text)>4000 else [text]
+    for i,chunk in enumerate(chunks):
+        is_last=(i==len(chunks)-1)
+        try:
+            if is_last and kb: await msg.reply_text(chunk,parse_mode="Markdown",reply_markup=kb)
+            else: await msg.reply_text(chunk,parse_mode="Markdown")
+        except:
+            if is_last and kb: await msg.reply_text(chunk,reply_markup=kb)
+            else: await msg.reply_text(chunk)
+
 async def search_gif(query):
     """Busca GIF no Tenor. Retorna URL do GIF ou None."""
     if not TENOR: return None
@@ -1213,7 +1275,7 @@ async def cmd_rolar_oculto(u,c):
             clean=await intercept_and_sync(resp,target_cid)
             if "[ESCUTANDO]" not in clean.upper() and clean:
                 target_msg=u.message if not is_private else None
-                if target_msg: await rp(target_msg,clean)
+                if target_msg: await rp_ai(target_msg,clean)
                 else:
                     try: await u.get_bot().send_message(chat_id=target_cid,text=clean,parse_mode="Markdown")
                     except: pass
@@ -1297,7 +1359,7 @@ FORMATO OBRIGATÓRIO:
     
     if db_save_session(cid,t,s): 
         await u.message.reply_text(f"✅ *Sessão Salva: {t}*\n📊 Baseada em *{len(log_lines)} interações* reais.", parse_mode="Markdown")
-        await rp(u.message, s)
+        await rp_ai(u.message, s)
 
 # 👇 ESTA É A FUNÇÃO QUE FALTAVA! 👇
 async def cmd_sessoes(u,c):
@@ -1326,7 +1388,7 @@ async def cmd_cargarsessao(u,c):
     await u.message.reply_text(boot,parse_mode="Markdown")
     if ctx: await ask(ch,ctx)
     jogo_ativo[cid] = True
-    await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Retomando '{s.get('title')}'.\n{s.get('summary')}\nRecapitule.",m=u.message))
+    await rp_ai(u.message,await ask(ch,f"CONTEXTO_SESSAO: Retomando '{s.get('title')}'.\n{s.get('summary')}\nRecapitule.",m=u.message))
 
 async def cmd_contexto(u,c):
     txt=u.message.text.replace("/contexto","",1).strip()
@@ -1345,7 +1407,7 @@ async def cmd_contexto(u,c):
     await u.message.reply_text(boot,parse_mode="Markdown")
     if ctx: await ask(ch,ctx)
     jogo_ativo[cid] = True
-    await rp(u.message,await ask(ch,f"CONTEXTO_SESSAO: Importado.\n{txt}\nConfirme.",m=u.message))
+    await rp_ai(u.message,await ask(ch,f"CONTEXTO_SESSAO: Importado.\n{txt}\nConfirme.",m=u.message))
     if db:db_save_session(cid,"📎 Importado",txt)
 
 # ══════ CALLBACK ROUTER ══════
@@ -1416,7 +1478,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             
             if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {n_jogadores} jogador(es) ativo(s).\n{ctx}")
             jogo_ativo[cid] = True
-            await rp(m,await ask(ch,"SISTEMA: NOVA aventura no Sistema Solar. Cena épica. Gancho. Opções. Conciso.",m=m))
+            await rp_ai(m,await ask(ch,"SISTEMA: NOVA aventura no Sistema Solar. Cena épica. Gancho. Opções. Conciso.",m=m))
         elif d=="play:context":
             if jogo_ativo.get(cid):
                 # Já tem sessão ativa — aviso grave
@@ -1664,6 +1726,31 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             ch=gc(cid)
             await ask(ch,f"SISTEMA: {f.get('nome','?')} aprendeu {nm_s}.",m=m)
 
+        # ── Dados inline (botões gerados por rp_ai) ──
+        elif d.startswith("dice:"):
+            notation=d[5:]
+            m2=re.match(r'(\d+)d(\d+)([pm+-]?)(\d*)',notation,re.IGNORECASE)
+            if not m2: return
+            n=int(m2.group(1));s=int(m2.group(2))
+            sign=m2.group(3);val=int(m2.group(4) or 0)
+            mod=val if sign in("p","+") else -val if sign in("m","-") else 0
+            if not(1<=n<=20 and 1<=s<=100): return
+            rolls=[rng.randint(1,s) for _ in range(n)];total=sum(rolls)+mod
+            mod_str=f"{mod:+d}" if mod else ""
+            cr=""
+            if s==20 and n==1:
+                if rolls[0]==20:cr="\n🌟 *CRÍTICO!*"
+                elif rolls[0]==1:cr="\n💀 *FALHA CRÍTICA!*"
+            await m.reply_text(f"🎲 *{n}d{s}{mod_str}*\n{rolls}{f' {mod_str}' if mod else ''} = *{total}*{cr}",parse_mode="Markdown")
+            trace("DICE",f"inline {n}d{s}{mod_str}={total}",uid=uid,cid=cid)
+            if jogo_ativo.get(cid):
+                ficha=db_get_active(uid,cid)
+                nome_pc=ficha.get("nome","?") if ficha else "?"
+                ch=gc(cid)
+                resp=await ask(ch,f"[SISTEMA: O personagem {nome_pc} rolou {n}d{s}{mod_str} e obteve {total}. Narre a consequência.]",m=m)
+                clean=await intercept_and_sync(resp,cid,msg=m)
+                if "[ESCUTANDO]" not in clean.upper() and clean: await rp_ai(m,clean)
+
         # ── Roll menu ──
         elif d.startswith("roll_attr:"):
             k=d[10:];f=db_get_active(uid,cid)
@@ -1680,7 +1767,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 ch=gc(cid)
                 resp=await ask(ch,f"[SISTEMA: {f.get('nome','?')} rolou {ATTR_SHORT[ATTR_KEYS.index(k)]} e obteve {total}. Narre a consequência.]",m=m)
                 clean=await intercept_and_sync(resp,cid,msg=m)
-                if "[ESCUTANDO]" not in clean.upper() and clean: await rp(m,clean)
+                if "[ESCUTANDO]" not in clean.upper() and clean: await rp_ai(m,clean)
         elif d.startswith("roll_per:"):
             pk=d[9:];f=db_get_active(uid,cid)
             if not f:return
@@ -1699,7 +1786,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 ch=gc(cid)
                 resp=await ask(ch,f"[SISTEMA: {f.get('nome','?')} rolou {PERICIAS_NOMES.get(pk,pk)} e obteve {total}. Narre a consequência.]",m=m)
                 clean=await intercept_and_sync(resp,cid,msg=m)
-                if "[ESCUTANDO]" not in clean.upper() and clean: await rp(m,clean)
+                if "[ESCUTANDO]" not in clean.upper() and clean: await rp_ai(m,clean)
 
         # ── Uso de item de inventário ──
         elif d.startswith("use_item:"):
@@ -1726,7 +1813,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 inj+="]"
                 resp=await ask(ch,inj,m=m)
                 clean=await intercept_and_sync(resp,cid,msg=m)
-                if "[ESCUTANDO]" not in clean.upper() and clean: await rp(m,clean)
+                if "[ESCUTANDO]" not in clean.upper() and clean: await rp_ai(m,clean)
 
         # ── Painel do Mestre ──
         elif d=="panel:godmode":
@@ -1902,7 +1989,7 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                     clean=await intercept_and_sync(resp,cid,msg=u.message)
                     if "[ESCUTANDO]" in clean.upper():
                         clean = re.sub(r'\[?ESCUTANDO\]?', '', clean, flags=re.IGNORECASE).strip()
-                    if clean: await rp(u.message,clean)
+                    if clean: await rp_ai(u.message,clean)
             return
 
     if st and st.get("step")=="wait_context_confirm" and st.get("chat_id")==cid:
@@ -1967,7 +2054,7 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             clean=await intercept_and_sync(resp,cid,msg=u.message)
             if "[ESCUTANDO]" in clean.upper():
                 clean=re.sub(r'\[?ESCUTANDO\]?','',clean,flags=re.IGNORECASE).strip()
-            if clean: await rp(u.message,clean)
+            if clean: await rp_ai(u.message,clean)
         except Exception as e:
             log.error(f"Godmode:{e}");await u.message.reply_text("⚠️ Erro no GODMODE.")
         return
@@ -2006,7 +2093,7 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
             if not clean: return 
         
         trace("MSG_OUT",f"resp_len={len(clean)}",cid=cid)
-        await rp(u.message,clean)
+        await rp_ai(u.message,clean)
     except Exception as e:
         log.error(f"Msg:{e}");await u.message.reply_text("⚠️ Interferência.")
 
