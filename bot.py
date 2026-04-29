@@ -255,6 +255,9 @@ mdl=genai.GenerativeModel("gemini-2.5-flash-lite",system_instruction=SYSP,
     generation_config=genai.GenerationConfig(temperature=0.85,max_output_tokens=1500))
 
 chats:dict={};cstate:dict={};jogo_ativo:dict={};godmode:dict={}
+admin_last_chat:dict={}   # admin_uid -> cid (último grupo ativo do admin para /guiar)
+user_last_chat:dict={}    # uid -> cid (último grupo ativo de cada jogador para /rolar_oculto)
+combat_state:dict={}      # cid -> {phase, queue, current_idx, pinned_msg_id}
 
 def gc(cid):
     if cid not in chats: chats[cid]=mdl.start_chat(history=[])
@@ -365,6 +368,24 @@ def db_get_session(sid):
     if not db: return None
     try: r=db.table("sessoes").select("*").eq("id",sid).execute(); return r.data[0] if r.data else None
     except: return None
+
+def db_get_bau(cid):
+    if not db: return []
+    try:
+        r=db.table("bau_grupo").select("items").eq("chat_id",str(cid)).execute()
+        if r.data:
+            items=r.data[0].get("items",[])
+            return items if isinstance(items,list) else json.loads(items) if isinstance(items,str) else []
+        return []
+    except: return []
+
+def db_update_bau(cid,items):
+    if not db: return False
+    try:
+        db.table("bau_grupo").upsert({"chat_id":str(cid),"items":json.dumps(items,ensure_ascii=False),
+            "updated_at":datetime.now(timezone.utc).isoformat()},on_conflict="chat_id").execute()
+        return True
+    except Exception as e: log.error(f"db_update_bau:{e}"); return False
 
 # ══════ INTERCEPTOR (Diretrizes 1,6,7) ══════
 STATE_RE=re.compile(r'\[(XP|HP|ITEM_ADD|ITEM_DEL|CG|RAM|TECNO_ADD|TECNO_DEL|IMPLANTE_ADD|ATTR|PER):([^\]]+)\]')
@@ -740,6 +761,11 @@ async def send_gif(msg,query):
             trace("ERROR",f"GIF send failed: {e}")
     return False
 
+def render_bar(atual,maximo,emoji_f,emoji_e,size=5):
+    if maximo<=0: return f"{atual}/{maximo}"
+    filled=max(0,min(size,round((atual/maximo)*size)))
+    return f"[{''.join([emoji_f]*filled+[emoji_e]*(size-filled))}] {atual}/{maximo}"
+
 def mkb(items,pfx,cols=2):
     bs=[Btn(v,callback_data=f"{pfx}:{k}") for k,v in items.items()]
     return KBD([bs[i:i+cols] for i in range(0,len(bs),cols)])
@@ -754,7 +780,8 @@ def ff(f):
     return (f"🧑‍🚀 *{f.get('nome','?')}* (ID:{f.get('id','?')})\n━━━━━━━━━━━━━━━━━━━━\n"
         f"🌌 {f.get('raca','?')} | ⚔️ {f.get('classe','?')} | 📜 {f.get('filosofia','?')}\n"
         f"📊 Nv{f.get('nivel',1)} | ✨ {f.get('xp',0)}XP\n━━━━━━━━━━━━━━━━━━━━\n"
-        f"❤️ {f.get('pv_atual','?')}/{f.get('pv_max','?')} | 🛡️ CD{f.get('cd','?')} | 🧠 RAM{f.get('ram_atual','?')}/{f.get('ram_max','?')}\n"
+        f"❤️ {render_bar(f.get('pv_atual',0),f.get('pv_max',1),'❤️','🖤')} | 🛡️ CD{f.get('cd','?')}\n"
+        f"🧠 {render_bar(f.get('ram_atual',0),f.get('ram_max',1),'🧠','⚪')}\n"
         f"⚡Init+{f.get('iniciativa',0)} | 🏃{f.get('deslocamento',9)}m\n━━━━━━━━━━━━━━━━━━━━\n"
         f"💪{a.get('forca','?')}({calc_mod(a.get('forca',8)):+d}) ⚡{a.get('destreza','?')}({calc_mod(a.get('destreza',8)):+d}) 🩸{a.get('constituicao','?')}({calc_mod(a.get('constituicao',8)):+d})\n"
         f"🧠{a.get('inteligencia','?')}({calc_mod(a.get('inteligencia',8)):+d}) 🦉{a.get('sabedoria','?')}({calc_mod(a.get('sabedoria',8)):+d}) 🗣️{a.get('carisma','?')}({calc_mod(a.get('carisma',8)):+d})\n━━━━━━━━━━━━━━━━━━━━\n"
@@ -832,7 +859,17 @@ async def cmd_reset(u,c):
          f"━━━━━━━━━━━━━━━━━━━━\n"
          f"_Use /novojogo para iniciar nova sessão._")
     await u.message.reply_text(txt,reply_markup=MAIN_KB,parse_mode="Markdown")
-async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n🎬 /gif termo — busca GIF animado\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
+async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS v4.0*\n━━━━━━━━━━━━━━━━━━━━\n"
+    "⚔️ /iniciar /novojogo /criarpersonagem /importar\n"
+    "🎲 Rolagens: /rolar (menu) | /1d20 /2d8p4 /1d6m1\n"
+    "🔒 /rolar_oculto 1d20p5 — dado secreto só p/ IA\n"
+    "💾 /ficha /fichas /deletarficha /levelup /implante\n"
+    "👥 /grupo — HUD da mesa | /bau /nave — baú da nave\n"
+    "⚔️ /combate — gerenciador de turnos\n"
+    "🎬 /gif termo — busca GIF animado\n"
+    "📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n"
+    "📖 /glossario /regras /reset /ajuda\n"
+    "🔱 Admin: /godmode /painel /guiar <ordem>")
 
 async def cmd_debug(u,c):
     uid=str(u.message.from_user.id)
@@ -925,6 +962,7 @@ async def cmd_godmode(u,c):
     if not ADMIN or uid!=str(ADMIN):
         await u.message.reply_text("❌ Acesso negado.");return
     cid=u.effective_chat.id
+    if u.effective_chat.type!="private": admin_last_chat[uid]=cid
     if godmode.get(uid):
         godmode.pop(uid,None)
         await u.message.reply_text("🔱 *GODMODE DESATIVADO*\n_Você voltou a ser mortal._",parse_mode="Markdown")
@@ -978,10 +1016,60 @@ async def cmd_criar(u,c):
     cstate[u.message.from_user.id]={"step":"raca","chat_id":u.effective_chat.id}
     await u.message.reply_text("🧑‍🚀 *RECRUTAMENTO*\n━━━━━━━━━━━━━━━━━━━━\n📋 1/5: *Origem*",reply_markup=mkb(RACAS_BTN,"r",2),parse_mode="Markdown")
 
+ITEM_CONSUMIVEIS={"kit médico","kit medico","kit médico avançado","antídoto","estimulante","rações","racao"}
+
+def _get_inv_kb(f):
+    inv=f.get("inventario",[])or[]
+    btns=[]
+    for item in inv:
+        nome_low=item.lower().strip()
+        if any(c in nome_low for c in["kit","antídoto","antidoto","estimulante"]):
+            btns.append([Btn(f"💊 Usar {item}",callback_data=f"use_item:{item[:40]}")])
+    if btns: return KBD(btns)
+    return None
+
+async def send_ficha(msg,f):
+    txt=ff(f)
+    kb=_get_inv_kb(f)
+    url=f.get("imagem_url","")
+    if url:
+        try:
+            await msg.reply_photo(photo=url,caption=txt,parse_mode="Markdown",reply_markup=kb)
+            return
+        except: pass
+    if kb: await msg.reply_text(txt,parse_mode="Markdown",reply_markup=kb)
+    else: await rp(msg,txt)
+
 async def cmd_ficha(u,c):
     f=db_get_active(u.message.from_user.id,u.effective_chat.id)
     if not f: await u.message.reply_text("❌ /iniciar");return
-    await rp(u.message,ff(f))
+    await send_ficha(u.message,f)
+
+async def cmd_rolar(u,c):
+    uid=u.message.from_user.id;cid=u.effective_chat.id
+    f=db_get_active(uid,cid)
+    if not f: await u.message.reply_text("❌ /iniciar");return
+    a=f.get("atributos",{});per=f.get("pericias",{})or{}
+    rows=[]
+    # Atributos
+    attr_btns=[]
+    for i,k in enumerate(ATTR_KEYS):
+        m=calc_mod(a.get(k,8))
+        label=f"{ATTR_SHORT[i]}({m:+d})"
+        attr_btns.append(Btn(label,callback_data=f"roll_attr:{k}"))
+    rows+=[attr_btns[:3],attr_btns[3:]]
+    # Perícias com bônus
+    per_btns=[]
+    for pk,pv in sorted(per.items(),key=lambda x:-x[1]):
+        if pv<=0: continue
+        attr_k=PERICIAS_ATTR.get(pk,[""])[0]
+        am=calc_mod(a.get(attr_k,8)) if attr_k else 0
+        total=am+pv
+        label=f"{PERICIAS_NOMES.get(pk,pk)[:10]}({total:+d})"
+        per_btns.append(Btn(label,callback_data=f"roll_per:{pk}"))
+    for i in range(0,len(per_btns),2): rows.append(per_btns[i:i+2])
+    await u.message.reply_text(f"🎲 *{f.get('nome','?')}* — Escolha a rolagem:",
+        reply_markup=KBD(rows),parse_mode="Markdown")
 
 async def cmd_fichas(u,c):
     fs=db_list_fichas(u.message.from_user.id,u.effective_chat.id)
@@ -1031,6 +1119,123 @@ async def cmd_implante(u,c):
     if impl: txt+="\n"+"\n".join(f"  • {i}" for i in impl)
     cat_kb=KBD([[Btn("🧠 Cabeça",callback_data="ic:cabeça")],[Btn("🫀 Torso",callback_data="ic:torso")],[Btn("🦿 Membros",callback_data="ic:membros")],[Btn("🔙",callback_data="m:back")]])
     await u.message.reply_text(txt,reply_markup=cat_kb,parse_mode="Markdown")
+
+# ══════ PAINEL DO MESTRE ══════
+async def cmd_painel(u,c):
+    uid=str(u.message.from_user.id)
+    if not ADMIN or uid!=str(ADMIN): await u.message.reply_text("❌ Acesso negado.");return
+    cid=u.effective_chat.id
+    gm_status="🔴 OFF"
+    if godmode.get(uid): gm_status="🟢 ON"
+    kb=KBD([
+        [Btn(f"🔱 Godmode ({gm_status})",callback_data="panel:godmode")],
+        [Btn("💾 Forçar Backup/Salvar Sessão",callback_data="panel:save")],
+        [Btn("✨ +25 XP Geral",callback_data="panel:xp:25"),Btn("✨ +50 XP Geral",callback_data="panel:xp:50")],
+        [Btn("✨ +100 XP Geral",callback_data="panel:xp:100"),Btn("✨ +200 XP Geral",callback_data="panel:xp:200")],
+    ])
+    await u.message.reply_text("🔱 *PAINEL DO MESTRE*\n━━━━━━━━━━━━━━━━━━━━\nControle total da sessão.",
+        reply_markup=kb,parse_mode="Markdown")
+
+# ══════ HUD DA MESA ══════
+async def cmd_grupo(u,c):
+    cid=u.effective_chat.id
+    actives=db_get_all_active(cid)
+    if not actives: await u.message.reply_text("❌ Nenhum personagem ativo.");return
+    lines=["👥 *HUD DA MESA*\n━━━━━━━━━━━━━━━━━━━━"]
+    for f in actives:
+        pv_bar=render_bar(f.get("pv_atual",0),f.get("pv_max",1),"❤️","🖤",5)
+        ram_bar=render_bar(f.get("ram_atual",0),f.get("ram_max",1),"🧠","⚪",4)
+        lines.append(f"*{f.get('nome','?')}* ({f.get('raca','?')} {f.get('classe','?')} Nv{f.get('nivel',1)})")
+        lines.append(f"  ❤️ {pv_bar}  🧠 {ram_bar}  🛡️CD{f.get('cd','?')}")
+    await rp(u.message,"\n".join(lines))
+
+# ══════ BAÚ DA NAVE ══════
+async def cmd_bau(u,c):
+    cid=u.effective_chat.id
+    items=db_get_bau(cid)
+    txt="🚀 *BAÚ DA NAVE*\n━━━━━━━━━━━━━━━━━━━━\n"
+    txt+=(("\n".join(f"  • {it}" for it in items)) if items else "_Vazio_")
+    kb_rows=[]
+    if items:
+        for it in items:
+            kb_rows.append([Btn(f"📤 Sacar: {it[:30]}",callback_data=f"bau:sac:{it[:40]}")])
+    kb_rows.append([Btn("📥 Depositar item do inventário",callback_data="bau:dep_menu")])
+    await u.message.reply_text(txt,reply_markup=KBD(kb_rows),parse_mode="Markdown")
+
+# ══════ GERENCIADOR DE COMBATE ══════
+async def cmd_combate(u,c):
+    uid=str(u.message.from_user.id)
+    if not ADMIN or uid!=str(ADMIN): await u.message.reply_text("❌ Apenas o Mestre pode iniciar o combate.");return
+    cid=u.effective_chat.id
+    actives=db_get_all_active(cid)
+    if not actives: await u.message.reply_text("❌ Nenhum personagem ativo.");return
+    combat_state[cid]={"phase":"collect_init","iniciativas":{},"queue":[],"current_idx":0,"pinned_msg_id":None,"fichas":{f["nome"]:f for f in actives}}
+    nomes=", ".join(f.get("nome","?") for f in actives)
+    kb=KBD([[Btn(f"⚔️ Rolar Iniciativa de {f.get('nome','?')}",callback_data=f"combat:init:{f.get('nome','?')[:30]}") for f in [f2]][0:1] for f2 in actives])
+    txt=(f"⚔️ *COMBATE INICIADO!*\n━━━━━━━━━━━━━━━━━━━━\n"
+         f"👥 Combatentes: {nomes}\n\n"
+         f"_Cada jogador clique no botão para rolar sua Iniciativa!_")
+    await u.message.reply_text(txt,reply_markup=kb,parse_mode="Markdown")
+
+# ══════ ROLAGEM SECRETA ══════
+async def cmd_rolar_oculto(u,c):
+    uid=u.message.from_user.id
+    cid=u.effective_chat.id
+    is_private=(u.effective_chat.type=="private")
+    args=" ".join(c.args) if c.args else "1d20"
+    dice_m=re.match(r'(\d*)d(\d+)(?:([pm+-])(\d+))?',args.strip(),re.IGNORECASE)
+    if not dice_m: await u.message.reply_text("❌ Formato: `/rolar_oculto 1d20p5`",parse_mode="Markdown");return
+    n=int(dice_m.group(1) or 1);s=int(dice_m.group(2))
+    ms=dice_m.group(3);mv=int(dice_m.group(4) or 0)
+    mod=mv if ms in("p","+") else -mv if ms in("m","-") else 0
+    if not(1<=n<=20 and 1<=s<=100): await u.message.reply_text("❌ Dados inválidos.");return
+    rolls=[rng.randint(1,s) for _ in range(n)];total=sum(rolls)+mod
+    mod_str=f"{mod:+d}" if mod else ""
+    # Determina o grupo alvo
+    target_cid=cid if not is_private else user_last_chat.get(uid)
+    ficha=db_get_active(uid,target_cid) if target_cid else None
+    nome_pc=ficha.get("nome","?") if ficha else u.message.from_user.first_name or "?"
+    result_txt=f"🔒 *[ROLAGEM SECRETA]* {nome_pc}\n🎲 {n}d{s}{mod_str} = *{total}*\n_{rolls}_"
+    if is_private:
+        await u.message.reply_text(f"✅ Rolado: {n}d{s}{mod_str} = *{total}*",parse_mode="Markdown")
+    else:
+        await u.message.reply_text("🔒 _Rolagem secreta processada..._",parse_mode="Markdown")
+        try: await u.message.delete()
+        except: pass
+    if ADMIN:
+        try: await u.get_bot().send_message(chat_id=int(ADMIN),text=result_txt,parse_mode="Markdown")
+        except: pass
+    if target_cid and jogo_ativo.get(target_cid):
+        ch=gc(target_cid)
+        inject=f"[SISTEMA: Rolagem SECRETA de {nome_pc}. Dado: {n}d{s}{mod_str} = {total}. Narre a consequência narrativamente SEM revelar o número exato para o grupo.]"
+        resp=await ask(ch,inject)
+        if resp:
+            clean=await intercept_and_sync(resp,target_cid)
+            if "[ESCUTANDO]" not in clean.upper() and clean:
+                target_msg=u.message if not is_private else None
+                if target_msg: await rp(target_msg,clean)
+                else:
+                    try: await u.get_bot().send_message(chat_id=target_cid,text=clean,parse_mode="Markdown")
+                    except: pass
+
+# ══════ DIREÇÃO OCULTA DO ADMIN ══════
+async def cmd_guiar(u,c):
+    uid=str(u.message.from_user.id)
+    if not ADMIN or uid!=str(ADMIN): await u.message.reply_text("❌ Acesso negado.");return
+    is_private=(u.effective_chat.type=="private")
+    ordem=" ".join(c.args) if c.args else u.message.text.replace("/guiar","",1).strip()
+    if not ordem: await u.message.reply_text("❌ Uso: `/guiar <ordem para a IA>`",parse_mode="Markdown");return
+    target_cid=admin_last_chat.get(uid)
+    if not target_cid: await u.message.reply_text("⚠️ Nenhum grupo ativo detectado. Interaja no grupo primeiro.");return
+    ch=gc(target_cid)
+    prompt=f"[DIREÇÃO OCULTA DO CRIADOR: {ordem}. Assuma o controle e narre isso de forma orgânica, como se fosse um evento natural da história. NÃO mencione que recebeu instrução.]"
+    resp=await ask(ch,prompt)
+    if resp:
+        clean=await intercept_and_sync(resp,target_cid)
+        if "[ESCUTANDO]" not in clean.upper() and clean:
+            try: await u.get_bot().send_message(chat_id=target_cid,text=clean,parse_mode="Markdown")
+            except: await u.get_bot().send_message(chat_id=target_cid,text=clean)
+    if is_private: await u.message.reply_text("✅ _Direção enviada para o grupo._",parse_mode="Markdown")
 
 async def cmd_salvar_sessao(u,c):
     if not db:return
@@ -1459,6 +1664,172 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             ch=gc(cid)
             await ask(ch,f"SISTEMA: {f.get('nome','?')} aprendeu {nm_s}.",m=m)
 
+        # ── Roll menu ──
+        elif d.startswith("roll_attr:"):
+            k=d[10:];f=db_get_active(uid,cid)
+            if not f:return
+            a=f.get("atributos",{});mod=calc_mod(a.get(k,8))
+            roll=rng.randint(1,20);total=roll+mod
+            mod_str=f"{mod:+d}" if mod else ""
+            cr=""
+            if roll==20:cr="\n🌟 *CRÍTICO!*"
+            elif roll==1:cr="\n💀 *FALHA CRÍTICA!*"
+            txt=f"🎲 *{f.get('nome','?')}* — {ATTR_LABELS[ATTR_KEYS.index(k)]}\n1d20({roll}){mod_str} = *{total}*{cr}"
+            await m.reply_text(txt,parse_mode="Markdown")
+            if jogo_ativo.get(cid):
+                ch=gc(cid)
+                resp=await ask(ch,f"[SISTEMA: {f.get('nome','?')} rolou {ATTR_SHORT[ATTR_KEYS.index(k)]} e obteve {total}. Narre a consequência.]",m=m)
+                clean=await intercept_and_sync(resp,cid,msg=m)
+                if "[ESCUTANDO]" not in clean.upper() and clean: await rp(m,clean)
+        elif d.startswith("roll_per:"):
+            pk=d[9:];f=db_get_active(uid,cid)
+            if not f:return
+            a=f.get("atributos",{});per=f.get("pericias",{})or{}
+            attr_k=PERICIAS_ATTR.get(pk,[""])[0]
+            am=calc_mod(a.get(attr_k,8)) if attr_k else 0
+            pv=int(per.get(pk,0));total_mod=am+pv
+            roll=rng.randint(1,20);total=roll+total_mod
+            mod_str=f"{total_mod:+d}" if total_mod else ""
+            cr=""
+            if roll==20:cr="\n🌟 *CRÍTICO!*"
+            elif roll==1:cr="\n💀 *FALHA CRÍTICA!*"
+            txt=f"🎲 *{f.get('nome','?')}* — {PERICIAS_NOMES.get(pk,pk)}\n1d20({roll}){mod_str} = *{total}*{cr}"
+            await m.reply_text(txt,parse_mode="Markdown")
+            if jogo_ativo.get(cid):
+                ch=gc(cid)
+                resp=await ask(ch,f"[SISTEMA: {f.get('nome','?')} rolou {PERICIAS_NOMES.get(pk,pk)} e obteve {total}. Narre a consequência.]",m=m)
+                clean=await intercept_and_sync(resp,cid,msg=m)
+                if "[ESCUTANDO]" not in clean.upper() and clean: await rp(m,clean)
+
+        # ── Uso de item de inventário ──
+        elif d.startswith("use_item:"):
+            item=d[9:];f=db_get_active(uid,cid)
+            if not f:return
+            inv=list(f.get("inventario",[])or[])
+            matched=next((x for x in inv if x.startswith(item[:20])),None)
+            if not matched: await m.reply_text("❌ Item não encontrado no inventário.");return
+            inv.remove(matched)
+            ups={"inventario":inv}
+            heal=0
+            nome_low=matched.lower()
+            if "avançado" in nome_low or "avancado" in nome_low: heal=sum(rng.randint(1,6) for _ in range(4))
+            elif "kit" in nome_low: heal=sum(rng.randint(1,6) for _ in range(2))
+            if heal: ups["pv_atual"]=min(f.get("pv_atual",0)+heal,f.get("pv_max",1))
+            db_update_ficha(f["id"],ups)
+            txt=f"💊 *{f.get('nome','?')}* usou *{matched}*!"
+            if heal: txt+=f"\n💚 +{heal} PV → {ups['pv_atual']}/{f.get('pv_max','?')}"
+            await m.reply_text(txt,parse_mode="Markdown")
+            if jogo_ativo.get(cid):
+                ch=gc(cid)
+                inj=f"[SISTEMA: {f.get('nome','?')} usou {matched}."
+                if heal: inj+=f" Curou {heal} PV. PV atual: {ups['pv_atual']}/{f.get('pv_max','?')}."
+                inj+="]"
+                resp=await ask(ch,inj,m=m)
+                clean=await intercept_and_sync(resp,cid,msg=m)
+                if "[ESCUTANDO]" not in clean.upper() and clean: await rp(m,clean)
+
+        # ── Painel do Mestre ──
+        elif d=="panel:godmode":
+            uid_s=str(uid)
+            if not ADMIN or uid_s!=str(ADMIN): return
+            if godmode.get(uid_s): godmode.pop(uid_s,None); st2="🔴 DESATIVADO"
+            else: godmode[uid_s]=cid; st2="🟢 ATIVADO"
+            await m.reply_text(f"🔱 *GODMODE {st2}*",parse_mode="Markdown")
+        elif d=="panel:save":
+            if not ADMIN or str(uid)!=str(ADMIN): return
+            await cmd_salvar_sessao(u,c)
+        elif d.startswith("panel:xp:"):
+            if not ADMIN or str(uid)!=str(ADMIN): return
+            try: val=int(d.split(":")[-1])
+            except: return
+            actives2=db_get_all_active(cid)
+            if not actives2: await m.reply_text("❌ Sem fichas ativas.");return
+            xe=val//len(actives2)
+            notifs2=[]
+            for f2 in actives2:
+                nx=f2.get("xp",0)+xe;db_update_ficha(f2["id"],{"xp":nx})
+                notifs2.append(f"✨ +{xe}XP {f2.get('nome','?')} ({nx})")
+            await m.reply_text("📡 *XP Distribuído!*\n"+"\n".join(notifs2),parse_mode="Markdown")
+            if jogo_ativo.get(cid):
+                ch=gc(cid)
+                await ask(ch,f"[GODMODE] Distribua {val} XP ao grupo ({', '.join(f.get('nome','?') for f in actives2)}). Narre a conquista.",m=m)
+
+        # ── Baú da Nave ──
+        elif d.startswith("bau:sac:"):
+            item=d[8:];items=db_get_bau(cid)
+            matched=next((x for x in items if x.startswith(item[:20])),None)
+            if not matched: await m.reply_text("❌ Item não encontrado no baú.");return
+            f=db_get_active(uid,cid)
+            if not f: await m.reply_text("❌ Sem ficha ativa.");return
+            items.remove(matched);db_update_bau(cid,items)
+            inv=list(f.get("inventario",[])or[]);inv.append(matched)
+            db_update_ficha(f["id"],{"inventario":inv})
+            await m.reply_text(f"📤 *{matched}* sacado do baú → inventário de *{f.get('nome','?')}*",parse_mode="Markdown")
+        elif d=="bau:dep_menu":
+            f=db_get_active(uid,cid)
+            if not f: await m.reply_text("❌ Sem ficha ativa.");return
+            inv=f.get("inventario",[])or[]
+            if not inv: await m.reply_text("🎒 Inventário vazio.");return
+            btns=[[Btn(f"📥 {it[:35]}",callback_data=f"bau:dep:{it[:40]}")] for it in inv]
+            await m.reply_text("📥 *Qual item depositar no baú?*",reply_markup=KBD(btns),parse_mode="Markdown")
+        elif d.startswith("bau:dep:"):
+            item=d[8:];f=db_get_active(uid,cid)
+            if not f: return
+            inv=list(f.get("inventario",[])or[])
+            matched=next((x for x in inv if x.startswith(item[:20])),None)
+            if not matched: await m.reply_text("❌ Item não encontrado.");return
+            inv.remove(matched);db_update_ficha(f["id"],{"inventario":inv})
+            items=db_get_bau(cid);items.append(matched);db_update_bau(cid,items)
+            await m.reply_text(f"📥 *{matched}* depositado no baú da nave.",parse_mode="Markdown")
+
+        # ── Combate: rolagem de iniciativa ──
+        elif d.startswith("combat:init:"):
+            nome_target=d[12:]
+            cs=combat_state.get(cid)
+            if not cs or cs.get("phase")!="collect_init": return
+            f=db_get_active(uid,cid)
+            if not f: return
+            if f.get("nome","?")!=nome_target and str(uid)!=str(ADMIN): return
+            roll=rng.randint(1,20)
+            init_bonus=f.get("iniciativa",0)
+            total=roll+init_bonus
+            cs["iniciativas"][nome_target]=total
+            await m.reply_text(f"⚔️ *{nome_target}*: Iniciativa = {roll}+{init_bonus} = *{total}*",parse_mode="Markdown")
+            todos=list(cs["fichas"].keys())
+            if all(n in cs["iniciativas"] for n in todos):
+                queue=sorted(cs["iniciativas"].items(),key=lambda x:-x[1])
+                cs["queue"]=queue;cs["phase"]="running";cs["current_idx"]=0
+                txt="⚔️ *ORDEM DE TURNO*\n━━━━━━━━━━━━━━━━━━━━\n"
+                for i,(nm,iv) in enumerate(queue):
+                    arrow="▶️ " if i==0 else f"{i+1}. "
+                    txt+=f"{arrow}*{nm}* (Ini:{iv})\n"
+                txt+=f"\n🎯 *VEZ DE: {queue[0][0]}*"
+                pm=await m.reply_text(txt,parse_mode="Markdown")
+                try: await u.get_bot().pin_chat_message(chat_id=cid,message_id=pm.message_id,disable_notification=True)
+                except: pass
+                cs["pinned_msg_id"]=pm.message_id
+                if jogo_ativo.get(cid):
+                    ordem_txt=", ".join(f"{nm}(Ini:{iv})" for nm,iv in queue)
+                    ch=gc(cid)
+                    await ask(ch,f"[SISTEMA: COMBATE INICIADO. Ordem de iniciativa: {ordem_txt}. Aguarde as ações de {queue[0][0]}.]")
+        elif d=="combat:next":
+            cs=combat_state.get(cid)
+            if not cs or cs.get("phase")!="running": return
+            if not ADMIN or str(uid)!=str(ADMIN): return
+            cs["current_idx"]=(cs["current_idx"]+1)%len(cs["queue"])
+            atual=cs["queue"][cs["current_idx"]][0]
+            txt="⚔️ *ORDEM DE TURNO*\n━━━━━━━━━━━━━━━━━━━━\n"
+            for i,(nm,iv) in enumerate(cs["queue"]):
+                arrow="▶️ " if i==cs["current_idx"] else f"{i+1}. "
+                txt+=f"{arrow}*{nm}* (Ini:{iv})\n"
+            txt+=f"\n🎯 *VEZ DE: {atual}*"
+            kb2=KBD([[Btn("⏭️ Próximo Turno",callback_data="combat:next"),Btn("🏁 Encerrar Combate",callback_data="combat:end")]])
+            await m.reply_text(txt,reply_markup=kb2,parse_mode="Markdown")
+        elif d=="combat:end":
+            if not ADMIN or str(uid)!=str(ADMIN): return
+            combat_state.pop(cid,None)
+            await m.reply_text("🏁 *Combate encerrado.*",parse_mode="Markdown")
+
     except Exception as e:
         log.error(f"Erro Global Callback: {e}")
         try: await u.callback_query.message.reply_text(f"⚠️ Erro ao processar o botão: {e}")
@@ -1615,7 +1986,12 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         trace("GATE","❌ Mensagem IGNORADA — sem ficha ativa",uid=uid,cid=cid)
         await u.message.reply_text(f"⚠️ *{un}*, você não tem personagem ativo neste chat.\nUse /novojogo e selecione seu personagem no lobby.",parse_mode="Markdown")
         return
-    
+
+    # Rastreia último grupo ativo para /guiar e /rolar_oculto
+    if u.effective_chat.type!="private":
+        user_last_chat[uid]=cid
+        if ADMIN and str(uid)==str(ADMIN): admin_last_chat[str(uid)]=cid
+
     ch=gc(cid)
     try:
         nome_pc=ficha.get("nome","?")
@@ -1794,7 +2170,10 @@ async def main_async():
         ("ficha",cmd_ficha),("fichas",cmd_fichas),("deletarficha",cmd_deletar),
         ("levelup",cmd_levelup),("implante",cmd_implante),
         ("salvarsessao",cmd_salvar_sessao),("sessoes",cmd_sessoes),
-        ("cargarsessao",cmd_cargarsessao),("contexto",cmd_contexto)]:
+        ("cargarsessao",cmd_cargarsessao),("contexto",cmd_contexto),
+        ("rolar",cmd_rolar),("painel",cmd_painel),("grupo",cmd_grupo),
+        ("bau",cmd_bau),("nave",cmd_bau),("combate",cmd_combate),
+        ("rolar_oculto",cmd_rolar_oculto),("guiar",cmd_guiar)]:
         tg_app.add_handler(CommandHandler(cmd,fn))
     tg_app.add_handler(CallbackQueryHandler(on_cb))
     tg_app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,on_msg))
