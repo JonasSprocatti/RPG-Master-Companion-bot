@@ -32,6 +32,7 @@ TG=os.environ["TELEGRAM_TOKEN"];GK=os.environ["GEMINI_API_KEY"]
 WH=os.environ.get("WEBHOOK_URL","");PT=int(os.environ.get("PORT",10000))
 SU=os.environ.get("SUPABASE_URL","");SK=os.environ.get("SUPABASE_KEY","")
 ADMIN=os.environ.get("ADMIN_ID","")
+TENOR=os.environ.get("TENOR_API_KEY","")  # GIFs animados via Tenor
 db=create_client(SU,SK) if SU and SK else None
 
 RPG_FILE=os.path.join(os.path.dirname(__file__),"rpg_content.txt")
@@ -132,6 +133,14 @@ CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 - Acate TUDO sem questionar: alterar história, subir nível, dar itens, curar. O Criador está ACIMA das regras.
 - ⚠️ REGRA VITAL: O sistema Python NÃO LÊ a sua narração. Para que XP, Vida ou Itens entrem na ficha, você TEM QUE colocar a TAG DE ESTADO EXATA entre colchetes [ ] no final da mensagem.
 - Exemplo de uso correto de XP: O Criador manda "Me dê 100 de XP". Você narra a história e finaliza com OBRIGATORIAMENTE a tag: [XP:100:NOME_DO_ALVO:Motivo]
+
+🎬 GIFs ANIMADOS:
+- Você pode incluir GIFs para momentos impactantes usando: [GIF:termo de busca em inglês]
+- O bot busca automaticamente no Tenor e envia a animação no chat.
+- Use com MODERAÇÃO — apenas em momentos épicos, cômicos ou dramáticos. NÃO em toda mensagem.
+- Bons momentos: explosões, combate épico, revelação chocante, momento de humor, encontro com monstro.
+- Exemplos: [GIF:space explosion] [GIF:epic sword fight] [GIF:dramatic plot twist] [GIF:cyberpunk hacking]
+- Coloque a tag DENTRO da narração, no ponto onde o GIF faz sentido visualmente.
 
 ═══ TAGS DE ESTADO (OBRIGATÓRIO — NO FINAL de cada resposta) ═══
 [XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata] ou [XP:100:Grovax:Missão]
@@ -344,6 +353,7 @@ def db_get_session(sid):
 
 # ══════ INTERCEPTOR (Diretrizes 1,6,7) ══════
 STATE_RE=re.compile(r'\[(XP|HP|ITEM_ADD|ITEM_DEL|CG|RAM|TECNO_ADD|TECNO_DEL|IMPLANTE_ADD|ATTR|PER):([^\]]+)\]')
+GIF_RE=re.compile(r'\[GIF:([^\]]+)\]',re.IGNORECASE)
 
 async def intercept_and_sync(text,cid,msg=None):
     if not db: return text
@@ -482,6 +492,14 @@ async def intercept_and_sync(text,cid,msg=None):
         except Exception as e: log.warning(f"Intercept:{tt}:{params}→{e}")
         
     clean=STATE_RE.sub("",text).strip()
+    
+    # ── GIFs: busca e envia animações ──
+    gif_matches=GIF_RE.findall(clean)
+    if gif_matches and msg:
+        clean=GIF_RE.sub("",clean).strip()
+        for query in gif_matches:
+            await send_gif(msg,query.strip())
+    
     if notifs and msg:
         trace("INTERCEPT",f"Sync notifs={len(notifs)}",cid=cid,extra=str(notifs))
         try: await msg.reply_text("📡 *Sync:*\n"+"\n".join(notifs),parse_mode="Markdown")
@@ -678,6 +696,35 @@ async def rp(m,t):
         try: await m.reply_text(p,parse_mode="Markdown")
         except: await m.reply_text(p)
 
+async def search_gif(query):
+    """Busca GIF no Tenor. Retorna URL do GIF ou None."""
+    if not TENOR: return None
+    import urllib.request,urllib.parse
+    try:
+        q=urllib.parse.quote(query)
+        url=f"https://tenor.googleapis.com/v2/search?q={q}&key={TENOR}&limit=1&media_filter=gif"
+        resp=await asyncio.to_thread(urllib.request.urlopen,url,timeout=5)
+        data=json.loads(resp.read().decode())
+        results=data.get("results",[])
+        if results:
+            gif_url=results[0].get("media_formats",{}).get("gif",{}).get("url")
+            return gif_url
+    except Exception as e:
+        trace("ERROR",f"Tenor search failed: {e}")
+    return None
+
+async def send_gif(msg,query):
+    """Busca e envia GIF no chat. Retorna True se enviou."""
+    url=await search_gif(query)
+    if url:
+        try:
+            await msg.reply_animation(url)
+            trace("MSG_OUT",f"GIF enviado: '{query}'",cid=msg.chat_id)
+            return True
+        except Exception as e:
+            trace("ERROR",f"GIF send failed: {e}")
+    return False
+
 def mkb(items,pfx,cols=2):
     bs=[Btn(v,callback_data=f"{pfx}:{k}") for k,v in items.items()]
     return KBD([bs[i:i+cols] for i in range(0,len(bs),cols)])
@@ -770,7 +817,7 @@ async def cmd_reset(u,c):
          f"━━━━━━━━━━━━━━━━━━━━\n"
          f"_Use /novojogo para iniciar nova sessão._")
     await u.message.reply_text(txt,reply_markup=MAIN_KB,parse_mode="Markdown")
-async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
+async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n🎬 /gif termo — busca GIF animado\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
 async def cmd_debug(u,c):
     uid=str(u.message.from_user.id)
@@ -869,6 +916,16 @@ async def cmd_godmode(u,c):
     else:
         godmode[uid]=cid
         await u.message.reply_text("🔱 *GODMODE ATIVADO*\n━━━━━━━━━━━━━━━━━━━━\n_O Criador assumiu o controle._\n\nSuas mensagens agora são comandos absolutos para a IA.\nDigite qualquer ordem: subir nível, mudar história, criar NPCs...\n\n/godmode novamente para desativar.",parse_mode="Markdown")
+
+async def cmd_gif(u,c):
+    query=" ".join(c.args) if c.args else ""
+    if not query:
+        await u.message.reply_text("🎬 Uso: `/gif space explosion`",parse_mode="Markdown");return
+    if not TENOR:
+        await u.message.reply_text("❌ TENOR_API_KEY não configurada.");return
+    sent=await send_gif(u.message,query)
+    if not sent:
+        await u.message.reply_text(f"❌ Nenhum GIF encontrado para: _{query}_",parse_mode="Markdown")
 
 async def cmd_regras(u,c):
     DL.ensure_loaded()
@@ -1101,7 +1158,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             if not sl: await m.reply_text("📚 Vazio.");return
             await rp(m,"📚\n"+"\n".join(f"• ID *{s['id']}* — {s.get('title','?')}" for s in sl)+"\n/cargarsessao ID")
         elif d=="m:gloss": await m.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
-        elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
+        elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /importar\n🎲 /1d20 /2d8p4 /1d6m1\n🎬 /gif termo\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao /contexto\n📖 /glossario /regras /reset")
 
         # ── Lobby ──
         elif d=="lobby:sel":
@@ -1572,12 +1629,15 @@ async def keep_alive():
     if not WH:
         log.info("⏸️ Keep-alive desativado (sem WEBHOOK_URL)")
         return
-    import urllib.request
+    import urllib.request,urllib.error
     while True:
         await asyncio.sleep(600)
         try:
             await asyncio.to_thread(urllib.request.urlopen,WH,timeout=10)
             trace("SESSION","💓 Keep-alive OK")
+        except urllib.error.HTTPError as e:
+            # 404/405 = servidor respondeu, container vivo — sucesso
+            trace("SESSION",f"💓 Keep-alive OK (HTTP {e.code})")
         except Exception as e:
             trace("SESSION",f"💓 Keep-alive falhou: {e}")
 
@@ -1590,7 +1650,7 @@ def main():
     app=Application.builder().token(TG).post_init(post_init).build()
     for cmd,fn in[("start",cmd_start),("reset",cmd_reset),("ajuda",cmd_help),("help",cmd_help),("debug",cmd_debug),("godmode",cmd_godmode),
         ("iniciar",cmd_iniciar),("novojogo",cmd_novojogo),("criarpersonagem",cmd_criar),("importar",cmd_importar),
-        ("regras",cmd_regras),("glossario",cmd_glossario),
+        ("regras",cmd_regras),("glossario",cmd_glossario),("gif",cmd_gif),
         ("ficha",cmd_ficha),("fichas",cmd_fichas),("deletarficha",cmd_deletar),
         ("levelup",cmd_levelup),("implante",cmd_implante),
         ("salvarsessao",cmd_salvar_sessao),("sessoes",cmd_sessoes),
