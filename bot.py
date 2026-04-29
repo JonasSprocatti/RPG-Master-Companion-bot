@@ -180,6 +180,20 @@ REGRA DO DIÁLOGO: Falas entre aspas atribuídas ao PC = JAMAIS. A única voz qu
 - Estações: Leme(evasiva), Artilharia(fogo), Engenharia(reparo/escudo), Sensores(hackear fraqueza).
 - Cada tripulante opera UMA estação por turno.
 
+🎬 ABERTURA DE SESSÃO — IDENTIDADE ANTES DE ÉPICO:
+Quando iniciar uma nova aventura (SISTEMA: NOVA AVENTURA), a cena de abertura DEVE ser construída
+a partir de QUEM são os personagens — não de um template genérico de "nave no espaço" ou "anomalia gravitacional".
+- Leia RAÇA + CLASSE + FILOSOFIA de cada PC nas FICHAS_ATIVAS.
+- A cena deve colocar o personagem em uma situação que FAZ SENTIDO para sua identidade.
+- Franco-Atirador: numa posição de sniper, com um alvo na mira — não flutuando em nave.
+- Assassino: num safehouse ou monitorando um alvo — não sofrendo anomalia gravitacional.
+- Piloto: em pleno voo ou numa situação de pilotagem impossível.
+- Mecânico: consertando algo crítico que está prestes a falhar.
+- A RAÇA importa no cenário: Terráqueo = industrial/urbano; Marciano = militar; Infimor = espaços apertados.
+- O gancho deve surgir ORGANICAMENTE da situação, não ser imposto de fora.
+❌ PROIBIDO: Aberturas idênticas de "anomalia gravitacional + nave tremendo + alerta vermelho" para qualquer classe.
+✅ CORRETO: Cada abertura é única e personalizada para a combinação Raça+Classe+Filosofia do grupo.
+
 CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 
 🔱 GODMODE (COMANDO DO CRIADOR):
@@ -1495,7 +1509,26 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
                 if modo=="singular" else f"SESSÃO MULTIPLAYER — {n_jogadores} jogadores. Use plural normalmente.")
             if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {modo_instr}\n{ctx}")
             jogo_ativo[cid] = True
-            await rp_ai(m,await ask(ch,f"SISTEMA: NOVA aventura. {modo_instr} Cena épica de abertura, gancho narrativo, encerra perguntando O QUE {'VOCÊ FAZ' if modo=='singular' else 'VOCÊS FAZEM'}. Conciso.",m=m))
+            abertura_prompt=(
+                f"SISTEMA: NOVA AVENTURA. {modo_instr}\n"
+                f"ABERTURA PERSONALIZADA — REGRAS OBRIGATÓRIAS:\n"
+                f"1. Leia as FICHAS_ATIVAS acima. A cena de abertura DEVE surgir da RAÇA, CLASSE e FILOSOFIA "
+                f"{'do personagem' if modo=='singular' else 'dos personagens'}. NÃO use uma cena genérica de nave/espaço.\n"
+                f"2. Exemplos de abertura por classe:\n"
+                f"   Franco-Atirador → já está numa posição de sniper, mirando um alvo, ou recebendo um contrato de eliminação.\n"
+                f"   Assassino → num safehouse, monitorando o alvo, ou saindo de uma missão que deu errado.\n"
+                f"   Piloto → em plena fuga, numa corrida ilegal, ou tentando pousar numa situação impossível.\n"
+                f"   Soldado → numa zona de conflito ativo, cobrindo aliados ou preso atrás de barricadas.\n"
+                f"   Mecânico → consertando algo crítico que vai explodir, ou dentro de um casco de nave danificado.\n"
+                f"   Espião → undercover numa festa/reunião, prestes a ser descoberto.\n"
+                f"   Catador/Prospector → num campo de destroços, quando encontra algo que não deveria estar lá.\n"
+                f"   Médico/Cinético → numa enfermaria improvisada, durante uma batalha ou desastre.\n"
+                f"3. A RAÇA também importa: Terráqueo começa em contexto urbano/industrial. "
+                f"Marciano em contexto militar. Mercusys em ambiente quente/rápido. Infimor em espaços apertados/vácuo.\n"
+                f"4. O gancho narrativo deve exigir uma DECISÃO IMEDIATA — não contemplação.\n"
+                f"5. Máx 350 palavras. Encerra com O QUE {'VOCÊ FAZ' if modo=='singular' else 'VOCÊS FAZEM'}, {', '.join(f.get('nome','?') for f in actives)}?"
+            )
+            await rp_ai(m,await ask(ch,abertura_prompt,m=m))
         elif d=="play:context":
             if jogo_ativo.get(cid):
                 # Já tem sessão ativa — aviso grave
