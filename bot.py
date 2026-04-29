@@ -52,7 +52,11 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 - NUNCA tome decisões, declare ações ou crie diálogos para os PCs.
 - Descreva ambiente, controle NPCs, narre consequências das ações DELES.
 - DIREÇÃO DE CENA: Direcione perguntas ao personagem envolvido pelo NOME. Ex: "Grovax, o que você faz?"
-- Use o plural ("O que vocês fazem?") APENAS quando um evento atingir o grupo todo.
+- MODO SINGULAR vs PLURAL: Você receberá MODO_NARRATIVA no início da sessão.
+  • SINGULAR (1 jogador): JAMAIS use "vocês", "seus", "fazem". Use SEMPRE "você", "seu", "faz". Pergunte "O que você faz?" — nunca "O que vocês fazem?".
+  • PLURAL (2+ jogadores): Use plural normalmente.
+  ❌ PROIBIDO em solo: "Vocês pousaram", "O que vocês fazem?", "seus comunicadores"
+  ✅ CORRETO em solo: "Você pousou", "O que você faz?", "seu comunicador"
 - MODO ESCUTA: Se os jogadores estiverem APENAS conversando entre si, responda EXATAMENTE com [ESCUTANDO].
 
 🎭 REGRA CRÍTICA — JAMAIS FALE PELO PERSONAGEM DO JOGADOR:
@@ -193,6 +197,14 @@ CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 - Coloque a tag DENTRO da narração, no ponto onde o GIF faz sentido visualmente.
 
 ═══ TAGS DE ESTADO (OBRIGATÓRIO — NO FINAL de cada resposta) ═══
+🚫 REGRAS RÍGIDAS PARA XP E ITENS:
+- [XP] SOMENTE após: derrota de inimigo, conclusão de missão/objetivo, decisão dramática com consequência real.
+- JAMAIS use [XP] por: chegar a um lugar, iniciar uma cena, começar a sessão, explorar ambiente, fazer qualquer ação rotineira.
+  ❌ PROIBIDO: [XP:50:todos:Chegada em Ganimedes] / [XP:25:todos:Entrou na nave]
+  ✅ CORRETO: [XP:75:Zeb:Neutralizou o pirata] / [XP:100:todos:Completou a missão da torre]
+- [ITEM_ADD] SOMENTE quando o personagem efetivamente encontra/compra/recebe o item na narrativa. NUNCA distribua itens no início da sessão sem justificativa narrada.
+- Se não houver mudança de estado real nesta resposta, NÃO inclua NENHUMA tag.
+
 [XP:valor:alvo:motivo] — [XP:25:todos:Derrotou pirata] ou [XP:100:Grovax:Missão]
 [HP:valor:alvo] — [HP:-5:Zeb] ou [HP:999:Grovax]
 [ITEM_ADD:nome:alvo] — [ITEM_ADD:Pistola Laser:Zeb]
@@ -459,10 +471,11 @@ async def intercept_and_sync(text,cid,msg=None):
             if tt=="XP" and len(parts)>=2:
                 val = int(parts[0])
                 if val == 0: continue # Ignora a tag do resumo
+                if val < 0: continue  # Ignora XP negativo (bug da IA)
                 tgts,is_all=_find()
                 xe=val//(len(tgts)or 1) if is_all else val
                 for f in tgts:
-                    nx=f.get("xp",0)+xe;db_update_ficha(f["id"],{"xp":nx})
+                    nx=max(0,f.get("xp",0)+xe);db_update_ficha(f["id"],{"xp":nx})
                     nv=f.get("nivel",1);xr=XP_T.get(nv,9999)
                     notifs.append(f"✨ +{xe}XP {f.get('nome','?')} ({nx}/{xr}){' ⬆️ /levelup!' if nx>=xr else ''}")
                     
@@ -1386,7 +1399,9 @@ async def cmd_cargarsessao(u,c):
           f"📋 Fichas: *{len(actives)}* ({nomes})\n"
           f"✅ Sistema: *ONLINE*\n━━━━━━━━━━━━━━━━━━━━")
     await u.message.reply_text(boot,parse_mode="Markdown")
-    if ctx: await ask(ch,ctx)
+    modo_c="singular" if len(actives)<=1 else "plural"
+    modo_instr_c="⚠️ SESSÃO SOLO — USE 'você/seu'. PROIBIDO 'vocês'." if modo_c=="singular" else "SESSÃO MULTIPLAYER."
+    if ctx: await ask(ch,f"MODO_NARRATIVA: {modo_c}. {modo_instr_c}\n{ctx}")
     jogo_ativo[cid] = True
     await rp_ai(u.message,await ask(ch,f"CONTEXTO_SESSAO: Retomando '{s.get('title')}'.\n{s.get('summary')}\nRecapitule.",m=u.message))
 
@@ -1476,9 +1491,11 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
                   f"✅ Sistema: *ONLINE*\n━━━━━━━━━━━━━━━━━━━━")
             await q.edit_message_text(boot,parse_mode="Markdown")
             
-            if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {n_jogadores} jogador(es) ativo(s).\n{ctx}")
+            modo_instr=("⚠️ SESSÃO SOLO — 1 ÚNICO JOGADOR. USE SEMPRE 'você/seu/sua'. PROIBIDO 'vocês/seus/fazem'. Pergunte 'O que VOCÊ faz?' — NUNCA 'O que VOCÊS fazem?'."
+                if modo=="singular" else f"SESSÃO MULTIPLAYER — {n_jogadores} jogadores. Use plural normalmente.")
+            if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {modo_instr}\n{ctx}")
             jogo_ativo[cid] = True
-            await rp_ai(m,await ask(ch,"SISTEMA: NOVA aventura no Sistema Solar. Cena épica. Gancho. Opções. Conciso.",m=m))
+            await rp_ai(m,await ask(ch,f"SISTEMA: NOVA aventura. {modo_instr} Cena épica de abertura, gancho narrativo, encerra perguntando O QUE {'VOCÊ FAZ' if modo=='singular' else 'VOCÊS FAZEM'}. Conciso.",m=m))
         elif d=="play:context":
             if jogo_ativo.get(cid):
                 # Já tem sessão ativa — aviso grave
@@ -2021,10 +2038,11 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                   f"✅ Sistema: *ONLINE*\n━━━━━━━━━━━━━━━━━━━━")
             await u.message.reply_text(boot,parse_mode="Markdown")
             
-            if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}.\n{ctx}")
-            jogo_ativo[cid] = True 
+            modo_instr2=("⚠️ SESSÃO SOLO — USE 'você/seu'. PROIBIDO 'vocês'." if modo=="singular" else "SESSÃO MULTIPLAYER.")
+            if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}. {modo_instr2}\n{ctx}")
+            jogo_ativo[cid] = True
             resp=await ask(ch,f"CONTEXTO_SESSAO: Retomando.\n{txt}\nRecapitule e pergunte ação.",m=u.message)
-            await rp(u.message,resp);cstate.pop(uid,None);return
+            await rp_ai(u.message,resp);cstate.pop(uid,None);return
 
     if st and st.get("step")=="nome" and st.get("chat_id")==cid:
         st["nome"]=txt.strip()[:30]
