@@ -1531,11 +1531,17 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
 
     if not jogo_ativo.get(cid):
         trace("GATE","❌ Mensagem IGNORADA — jogo_ativo=False",uid=uid,cid=cid)
+        # Cooldown: avisa no máximo 1x a cada 5 minutos por chat
+        last_gate=cstate.get(f"gate_{cid}",0)
+        if time.time()-last_gate>300:
+            cstate[f"gate_{cid}"]=time.time()
+            await u.message.reply_text("⚠️ _Sessão inativa (servidor pode ter reiniciado)._\n\n🚀 /novojogo — iniciar nova sessão\n📂 /cargarsessao ID — retomar sessão salva\n📋 /sessoes — ver sessões disponíveis",parse_mode="Markdown")
         return
     
     ficha=db_get_active(uid,cid)
     if not ficha:
         trace("GATE","❌ Mensagem IGNORADA — sem ficha ativa",uid=uid,cid=cid)
+        await u.message.reply_text(f"⚠️ *{un}*, você não tem personagem ativo neste chat.\nUse /novojogo e selecione seu personagem no lobby.",parse_mode="Markdown")
         return
     
     ch=gc(cid)
@@ -1560,9 +1566,28 @@ async def on_err(u,c):
     trace("ERROR",f"Global: {c.error}")
     log.error(f"Err:{c.error}")
 
+# ══════ KEEP-ALIVE (evita Render free tier dormir) ══════
+async def keep_alive():
+    """Pinga o próprio servidor a cada 10 minutos."""
+    if not WH:
+        log.info("⏸️ Keep-alive desativado (sem WEBHOOK_URL)")
+        return
+    import urllib.request
+    while True:
+        await asyncio.sleep(600)
+        try:
+            await asyncio.to_thread(urllib.request.urlopen,WH,timeout=10)
+            trace("SESSION","💓 Keep-alive OK")
+        except Exception as e:
+            trace("SESSION",f"💓 Keep-alive falhou: {e}")
+
+async def post_init(app):
+    asyncio.create_task(keep_alive())
+    log.info("💓 Keep-alive iniciado (ping a cada 10min)")
+
 def main():
     DL.ensure_loaded()
-    app=Application.builder().token(TG).build()
+    app=Application.builder().token(TG).post_init(post_init).build()
     for cmd,fn in[("start",cmd_start),("reset",cmd_reset),("ajuda",cmd_help),("help",cmd_help),("debug",cmd_debug),("godmode",cmd_godmode),
         ("iniciar",cmd_iniciar),("novojogo",cmd_novojogo),("criarpersonagem",cmd_criar),("importar",cmd_importar),
         ("regras",cmd_regras),("glossario",cmd_glossario),
