@@ -2,7 +2,7 @@
 🌌 Passagem Sombria v3.0 — RPG Master Companion Bot
 Diretrizes 1-9 implementadas. Bot = lógica/estado. IA = narração.
 """
-import os,json,logging,asyncio,random as rng,re,unicodedata
+import os,json,logging,asyncio,random as rng,re,unicodedata,time
 from datetime import datetime,timezone
 from telegram import Update,InlineKeyboardButton as Btn,InlineKeyboardMarkup as KBD
 from telegram.ext import Application,CommandHandler,MessageHandler,CallbackQueryHandler,filters,ContextTypes
@@ -59,12 +59,40 @@ Formato rolagem: 🎲 1d20(14)+Mod(3)+Per(2)=19 vs CD15 → ✅
 - Use o NOME DO PERSONAGEM para se referir ao jogador na narração.
 - NUNCA confunda jogadores. Cada ação é de quem mandou.
 
-🎲 ROLAGENS DE DADOS:
-- Quando um jogador tentar ação com risco, PEÇA O TESTE usando o formato clicável:
-  /1d20p5 (p = soma modificador) ou /1d20m2 (m = subtrai). Sem modificador: /1d20
-  Exemplo: "Faça /1d20p5 para Furtividade CD 15" (onde p5 = +5 do modificador total).
-- O bot calcula automaticamente e injeta: [SISTEMA: Personagem rolou NdN+X = Total]
-- Ao receber um resultado de [SISTEMA:], narre a consequência IMEDIATA baseada no valor.
+🎲 ROLAGENS DE DADOS — QUANDO EXIGIR TESTES:
+- Use o formato clicável: /1d20p5 (p=plus) ou /1d20m2 (m=minus). Sem mod: /1d20
+- O bot calcula e injeta: [SISTEMA: Personagem rolou NdN+X = Total]. Narre a consequência.
+- CALCULE O MODIFICADOR CORRETO: Consulte FICHAS_ATIVAS, some Mod.Atributo + Perícia do jogador.
+  Exemplo: Grovax tem Carisma 12 (+2) e Persuasão +3. Modificador total = +5. Peça: "Faça /1d20p5 para Persuasão CD 15"
+
+⚠️ EXIJA TESTES NAS SEGUINTES SITUAÇÕES (NÃO deixe passar sem rolagem):
+🗣️ SOCIAL — Sempre que o jogador tentar:
+  • Convencer, enganar, intimidar ou manipular um NPC → Persuasão/Enganação/Intimidação
+  • Extrair informação que o NPC não quer dar → Persuasão ou Intimidação (CD 13-18)
+  • Barganhar preço, pedir favor, negociar acordo → Persuasão (CD 12-16)
+  • Blefar, mentir ou disfarçar intenções → Espionagem ou Persuasão
+  • Discurso para multidão, performance → Performance ou Liderança
+  NPCs não são cooperativos por padrão. Informações importantes custam testes.
+
+🏃 FÍSICA — Sempre que houver risco corporal:
+  • Pular, escalar, equilibrar, nadar → Acrobacia ou Força
+  • Correr sob pressão, esquivar de armadilha → Destreza/Acrobacia
+  • Arrombar porta, dobrar grade → Força
+  • Resistir veneno, dor, frio extremo → Constituição/Resistência
+  • Aguentar tortura, manter concentração → Sabedoria/Resistência
+
+🔍 MENTAL — Sempre que informação não é óbvia:
+  • Perceber emboscada, detalhe oculto → Investigação ou Sabedoria
+  • Lembrar fato histórico, identificar tech → Conhecimentos
+  • Ler linguagem corporal do NPC → Sabedoria/Investigação
+  • Hackear terminal, desativar alarme → Tecnomancia
+  • Rastrear, navegar, encontrar abrigo → Sobrevivência
+
+🔧 REGRA DE OURO DAS ROLAGENS:
+  Se o jogador tenta algo que um NPC resistiria, que a física dificulta, ou que requer
+  conhecimento especial → PARE e peça o teste ANTES de narrar o resultado.
+  NÃO narre sucesso automático em situações que merecem teste.
+  Ajuste a CD pela dificuldade: 10=fácil 13=rotina 15=médio 18=difícil 20=muito difícil 25=formidável
 
 📋 CONSCIÊNCIA DA FICHA (Diretriz 7):
 - Você recebe o bloco FICHAS_ATIVAS com todos os dados dos jogadores.
@@ -745,20 +773,90 @@ async def cmd_reset(u,c):
 async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS*\n━━━━━━━━━━━━━━━━━━━━\n⚔️ /iniciar /novojogo /criarpersonagem /importar\n🎲 Rolagens: /1d20 /2d8p4 /1d6m1 (p=plus m=minus)\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao ID /contexto\n📖 /glossario /regras /reset /ajuda")
 
 async def cmd_debug(u,c):
-    DL._loaded = False
-    DL.DISPLAY.clear()
-    DL.ensure_loaded()
+    uid=str(u.message.from_user.id)
+    if ADMIN and uid!=str(ADMIN):
+        await u.message.reply_text("❌ Acesso negado.");return
+    cid=u.effective_chat.id
+    await u.message.reply_text("⚙️ _Executando diagnóstico..._",parse_mode="Markdown")
     
-    txt = "⚙️ *DIAGNÓSTICO DO SISTEMA*\n━━━━━━━━━━━━━━━━━━━━\n"
-    txt += "✅ Memória limpa e recarregada do Supabase.\n\n"
-    r = DL.get_display("display_racas", {})
-    if isinstance(r, dict) and r: txt += f"🟢 *Raças (Dicionário):* OK! Encontrou {len(r)} raças.\n"
-    else: txt += f"🔴 *Raças (Dicionário):* ERRO. Retornou vazio ou formato incorreto.\n"
-        
-    n = DL.get_display("display_naves", "")
-    if isinstance(n, str) and len(n) > 10: txt += f"🟢 *Naves (Texto):* OK! Carregou {len(n)} caracteres.\n"
-    else: txt += f"🔴 *Naves (Texto):* ERRO. Retornou vazio ou formato incorreto.\n"
-    await u.message.reply_text(txt, parse_mode="Markdown")
+    # ── 1. Reload forçado do data_loader ──
+    db_ok=DL.reload_all()
+    
+    txt="⚙️ *DIAGNÓSTICO COMPLETO*\n━━━━━━━━━━━━━━━━━━━━\n"
+    
+    # ── 2. Supabase ──
+    txt+="\n*📡 SUPABASE*\n"
+    if db_ok:
+        txt+=f"🟢 Conexão: OK\n"
+        txt+=f"🟢 dados_rpg: {len(DL.DISPLAY)} displays carregados\n"
+    else:
+        txt+=f"🔴 Conexão: FALHOU (usando fallback local)\n"
+    
+    # ── 3. Dados mecânicos ──
+    txt+=f"\n*📦 DADOS MECÂNICOS*\n"
+    checks=[
+        ("Raças",DL.RACAS_STATS,9),("Classes",DL.CLASSES_STATS,15),
+        ("Filosofias",DL.FILOS_STATS,12),("Tecnomancias",DL.TECNO_SCRIPTS,29),
+        ("Implantes",DL.IMPLANTES_DATA,15),
+    ]
+    for nome,data,esperado in checks:
+        qtd=len(data)
+        icon="🟢" if qtd>=esperado else "🟡" if qtd>0 else "🔴"
+        txt+=f"{icon} {nome}: {qtd}/{esperado}\n"
+    
+    # ── 4. Display (glossário do banco) ──
+    txt+=f"\n*📖 GLOSSÁRIO (dados_rpg)*\n"
+    display_keys=["display_racas","display_classes","display_armas_brancas","display_armas_fogo",
+        "display_armaduras","display_ferramentas","display_implantes","display_naves",
+        "display_modificacoes","display_filosofias","display_tecno_basicas",
+        "display_tecno_injecoes","display_tecno_protocolos",
+        "display_bestiario_planetas","display_bestiario_fauna","display_bestiario_vazio"]
+    ok=0;fail=0
+    for k in display_keys:
+        val=DL.DISPLAY.get(k)
+        if val:
+            ok+=1
+        else:
+            fail+=1
+            txt+=f"🔴 Faltando: `{k}`\n"
+    if fail==0: txt+=f"🟢 Todos {ok}/{len(display_keys)} displays carregados\n"
+    else: txt+=f"🟡 {ok}/{len(display_keys)} carregados, {fail} faltando\n"
+    
+    # Regras
+    if DL.REGRAS_TEXT and len(DL.REGRAS_TEXT)>10:
+        txt+=f"🟢 Regras: OK ({len(DL.REGRAS_TEXT)} chars)\n"
+    else:
+        txt+=f"🔴 Regras: vazio ou não carregado\n"
+    
+    # ── 5. Estado da sessão neste chat ──
+    txt+=f"\n*🎮 SESSÃO (chat {cid})*\n"
+    jogo=jogo_ativo.get(cid,False)
+    txt+=f"{'🟢' if jogo else '⚫'} Jogo ativo: *{'SIM' if jogo else 'NÃO'}*\n"
+    history_len=len(chats[cid].history) if cid in chats else 0
+    txt+=f"🧠 Histórico IA: *{history_len} msgs* {'(limite 60)' if history_len>50 else ''}\n"
+    god_users=[k for k,v in godmode.items() if v]
+    txt+=f"🔱 Godmode: *{'ATIVO (' + ','.join(god_users) + ')' if god_users else 'off'}*\n"
+    
+    # ── 6. Fichas ativas neste chat ──
+    actives=db_get_all_active(cid)
+    txt+=f"\n*👥 FICHAS ATIVAS*\n"
+    if actives:
+        for f in actives:
+            txt+=f"  ✅ {f.get('user_name','?')} → *{f.get('nome','?')}* (Nv{f.get('nivel',1)} ❤️{f.get('pv_atual','?')}/{f.get('pv_max','?')})\n"
+    else:
+        txt+="  ⚫ Nenhuma ficha ativa neste chat\n"
+    
+    # ── 7. Gemini ──
+    txt+=f"\n*🤖 GEMINI*\n"
+    txt+=f"🟢 Modelo: `{mdl.model_name}`\n"
+    try:
+        test_resp=mdl.generate_content("Responda apenas: OK")
+        txt+=f"🟢 Ping: *OK* ({len(test_resp.text)} chars)\n"
+    except Exception as e:
+        txt+=f"🔴 Ping: *FALHOU* ({str(e)[:50]})\n"
+    
+    txt+="\n━━━━━━━━━━━━━━━━━━━━"
+    await rp(u.message,txt)
 
 async def cmd_godmode(u,c):
     uid=str(u.message.from_user.id)
@@ -865,27 +963,53 @@ async def cmd_implante(u,c):
 async def cmd_salvar_sessao(u,c):
     if not db:return
     cid=u.effective_chat.id;ch=gc(cid)
-    if cid not in chats: await u.message.reply_text("❌ Sem sessão ativa para salvar.");return
+    if cid not in chats or not chats[cid].history:
+        await u.message.reply_text("❌ Sem sessão ativa para salvar.");return
     
-    await u.message.reply_text("📝 _Compilando os diários de bordo da nave..._",parse_mode="Markdown")
+    await u.message.reply_text("📝 _Extraindo diários de bordo..._",parse_mode="Markdown")
     
-    prompt_resumo = """RESUMO_SESSAO: Escreva o resumo detalhado da sessão de hoje.
-OBRIGATÓRIO usar o seguinte formato exato (incluindo o markdown e a tag de XP zero no final):
+    # ── Extrai as últimas 50 mensagens do histórico real do Gemini ──
+    history=chats[cid].history
+    recent=history[-50:] if len(history)>50 else history
+    
+    log_lines=[]
+    for msg in recent:
+        role="JOGADOR" if msg.role=="user" else "MESTRE"
+        text=""
+        for part in msg.parts:
+            if hasattr(part,"text") and part.text:
+                # Limpa tags de sistema do log
+                clean=STATE_RE.sub("",part.text).strip()
+                if clean and "[ESCUTANDO]" not in clean.upper():
+                    text=clean[:200]  # Trunca mensagens muito longas
+        if text:
+            log_lines.append(f"[{role}]: {text}")
+    
+    transcript="\n".join(log_lines)
+    trace("SESSION",f"Extraindo contexto: {len(log_lines)} msgs de {len(recent)} no histórico",cid=cid)
+    
+    # ── Pede à IA para gerar resumo baseado no transcript real ──
+    prompt_resumo=f"""RESUMO_SESSAO: Baseado no LOG REAL abaixo, escreva o resumo detalhado.
+NÃO invente eventos que não estão no log. Use APENAS o que realmente aconteceu.
 
-## Resumo da Sessão: [Crie um Título Épico]
+LOG DAS ÚLTIMAS {len(log_lines)} INTERAÇÕES:
+{transcript}
 
-[Parágrafo introdutório descrevendo o cenário atual, os personagens presentes e a atmosfera da cena]
+FORMATO OBRIGATÓRIO:
+## Resumo da Sessão: [Título Épico]
 
-**[Nome da Cena/Evento 1]:**
-[Descrição detalhada do evento, conflitos, testes importantes e decisões tomadas]
+[Parágrafo: cenário, personagens presentes, atmosfera]
 
-**[Nome da Cena/Evento 2]:**
-[Descrição do próximo evento, descobertas de itens ou lore, e consequências]
+**[Nome do Evento 1]:**
+[O que aconteceu, testes feitos, resultados, decisões]
 
-[...adicione quantos eventos em negrito forem necessários para cobrir toda a sessão...]
+**[Nome do Evento 2]:**
+[Próximo evento, descobertas, consequências]
 
-**Momento de Incerteza:**
-[Parágrafo final descrevendo a situação de tensão ou o gancho (cliffhanger) em que a sessão parou agora]
+[...quantos eventos forem necessários...]
+
+**Situação Atual:**
+[Onde os personagens estão AGORA, o que está pendente, ganchos abertos]
 
 ---
 [XP:0:todos:Resumo da Sessão]"""
@@ -895,7 +1019,7 @@ OBRIGATÓRIO usar o seguinte formato exato (incluindo o markdown e a tag de XP z
     t = t.strip().strip('"')[:60]
     
     if db_save_session(cid,t,s): 
-        await u.message.reply_text(f"✅ *Sessão Salva com Sucesso: {t}*", parse_mode="Markdown")
+        await u.message.reply_text(f"✅ *Sessão Salva: {t}*\n📊 Baseada em *{len(log_lines)} interações* reais.", parse_mode="Markdown")
         await rp(u.message, s)
 
 # 👇 ESTA É A FUNÇÃO QUE FALTAVA! 👇
@@ -1017,8 +1141,37 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             jogo_ativo[cid] = True
             await rp(m,await ask(ch,"SISTEMA: NOVA aventura no Sistema Solar. Cena épica. Gancho. Opções. Conciso.",m=m))
         elif d=="play:context":
-            cstate[uid]={"step":"wait_context","chat_id":cid}
-            await q.edit_message_text("📜 *Envio de Contexto*\nDigite o resumo da aventura anterior:",parse_mode="Markdown")
+            if jogo_ativo.get(cid):
+                # Já tem sessão ativa — aviso grave
+                history_len=len(chats[cid].history) if cid in chats else 0
+                cstate[uid]={"step":"wait_context_confirm","chat_id":cid}
+                await q.edit_message_text(
+                    f"⚠️ *ATENÇÃO — SESSÃO ATIVA*\n━━━━━━━━━━━━━━━━━━━━\n"
+                    f"Existe uma sessão em andamento com *{history_len} mensagens*.\n\n"
+                    f"Continuar vai *APAGAR TODO O HISTÓRICO* e iniciar do zero com contexto importado.\n\n"
+                    f"Tem certeza?",
+                    reply_markup=KBD([[Btn("⚠️ SIM, apagar e reimportar",callback_data="ctx:confirm")],
+                                      [Btn("❌ CANCELAR — manter sessão",callback_data="ctx:cancel")]]),
+                    parse_mode="Markdown")
+            else:
+                cstate[uid]={"step":"wait_context","chat_id":cid,"ts":time.time()}
+                await q.edit_message_text(
+                    "📜 *Envio de Contexto*\n━━━━━━━━━━━━━━━━━━━━\n"
+                    "Digite o resumo da aventura anterior.\n\n"
+                    "_⏳ Expira em 2 minutos. Qualquer outra ação cancela._",
+                    reply_markup=KBD([[Btn("❌ Cancelar",callback_data="ctx:cancel")]]),
+                    parse_mode="Markdown")
+
+        # ── Contexto: confirmar/cancelar ──
+        elif d=="ctx:confirm":
+            cstate[uid]={"step":"wait_context","chat_id":cid,"ts":time.time()}
+            await q.edit_message_text(
+                "📜 *Confirmado.* Digite o resumo da aventura.\n_⏳ Expira em 2 minutos._",
+                reply_markup=KBD([[Btn("❌ Cancelar",callback_data="ctx:cancel")]]),
+                parse_mode="Markdown")
+        elif d=="ctx:cancel":
+            cstate.pop(uid,None)
+            await q.edit_message_text("✅ *Cancelado.* Sessão atual mantida intacta.",parse_mode="Markdown")
 
         elif d=="g:racas": await m.reply_text("🌌 *RAÇAS:*",reply_markup=mkb(RACAS_BTN,"gr",2),parse_mode="Markdown")
         elif d=="g:classes": await m.reply_text("⚔️ *CLASSES:*",reply_markup=mkb(CLASSES_BTN,"gc",2),parse_mode="Markdown")
@@ -1309,26 +1462,39 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
                     if clean: await rp(u.message,clean)
             return
 
+    if st and st.get("step")=="wait_context_confirm" and st.get("chat_id")==cid:
+        # Esperando confirmação por BOTÃO, não por texto
+        await u.message.reply_text("⚠️ Aguardando confirmação. Use os botões acima ou /reset para cancelar.")
+        return
+
     if st and st.get("step")=="wait_context" and st.get("chat_id")==cid:
-        old_history=len(chats[cid].history) if cid in chats else 0
-        chats.pop(cid,None);ch=gc(cid)
-        actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
-        modo="singular" if len(actives)<=1 else "plural"
-        nomes=", ".join(f.get("nome","?") for f in actives)
-        
-        trace("SESSION","📜 Retomando com contexto",uid=uid,cid=cid,extra=f"purged={old_history}msgs jogadores={len(actives)}")
-        
-        boot=(f"⚙️ *BOOT DO MESTRE*\n━━━━━━━━━━━━━━━━━━━━\n"
-              f"🧹 Memória anterior: *PURGADA* ({old_history} msgs removidas)\n"
-              f"🧠 IA: *Nova instância* + contexto importado\n"
-              f"📋 Fichas: *{len(actives)}* ({nomes})\n"
-              f"✅ Sistema: *ONLINE*\n━━━━━━━━━━━━━━━━━━━━")
-        await u.message.reply_text(boot,parse_mode="Markdown")
-        
-        if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}.\n{ctx}")
-        jogo_ativo[cid] = True 
-        resp=await ask(ch,f"CONTEXTO_SESSAO: Retomando.\n{txt}\nRecapitule e pergunte ação.",m=u.message)
-        await rp(u.message,resp);cstate.pop(uid,None);return
+        # Expiração: 2 minutos
+        ts=st.get("ts",0)
+        if time.time()-ts>120:
+            cstate.pop(uid,None)
+            trace("GATE","⏰ wait_context EXPIROU — mensagem tratada normalmente",uid=uid,cid=cid)
+            # NÃO retorna — cai no fluxo normal de jogo abaixo
+        else:
+            # Confirmação: mostra o que vai acontecer antes de purgar
+            old_history=len(chats[cid].history) if cid in chats else 0
+            chats.pop(cid,None);ch=gc(cid)
+            actives=db_get_all_active(cid);ctx=inject_fichas_prompt(actives)
+            modo="singular" if len(actives)<=1 else "plural"
+            nomes=", ".join(f.get("nome","?") for f in actives)
+            
+            trace("SESSION","📜 Retomando com contexto",uid=uid,cid=cid,extra=f"purged={old_history}msgs jogadores={len(actives)}")
+            
+            boot=(f"⚙️ *BOOT DO MESTRE*\n━━━━━━━━━━━━━━━━━━━━\n"
+                  f"🧹 Memória anterior: *PURGADA* ({old_history} msgs removidas)\n"
+                  f"🧠 IA: *Nova instância* + contexto importado\n"
+                  f"📋 Fichas: *{len(actives)}* ({nomes})\n"
+                  f"✅ Sistema: *ONLINE*\n━━━━━━━━━━━━━━━━━━━━")
+            await u.message.reply_text(boot,parse_mode="Markdown")
+            
+            if ctx: await ask(ch,f"MODO_NARRATIVA: {modo}.\n{ctx}")
+            jogo_ativo[cid] = True 
+            resp=await ask(ch,f"CONTEXTO_SESSAO: Retomando.\n{txt}\nRecapitule e pergunte ação.",m=u.message)
+            await rp(u.message,resp);cstate.pop(uid,None);return
 
     if st and st.get("step")=="nome" and st.get("chat_id")==cid:
         st["nome"]=txt.strip()[:30]
