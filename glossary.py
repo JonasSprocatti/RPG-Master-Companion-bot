@@ -103,6 +103,7 @@ TECNO_SCRIPTS = {
     "ping":{"nome":"Ping","ram":0,"tier":"basica","desc":"Interage eletrônico 10m"},
     "choque":{"nome":"Choque Estático","ram":0,"tier":"basica","desc":"1d6 elétrico"},
     "query":{"nome":"Query Neural","ram":0,"tier":"basica","desc":"Lê pensamento cibernético"},
+    "bateria":{"nome":"Bateria Fantasma","ram":0,"tier":"basica","desc":"Recarrega 1 dispositivo com estática"},
     "scanner":{"nome":"Scanner Frequência","ram":0,"tier":"basica","desc":"Emissões 50m"},
     "jammer":{"nome":"Jammer Pessoal","ram":1,"tier":"basica","desc":"Bolha 10m 3t"},
     "glitch":{"nome":"Glitch Visual","ram":1,"tier":"basica","desc":"-2 ataque alvo"},
