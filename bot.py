@@ -1351,18 +1351,61 @@ async def cmd_guiar(u,c):
     if not ADMIN or uid!=str(ADMIN): await u.message.reply_text("❌ Acesso negado.");return
     is_private=(u.effective_chat.type=="private")
     ordem=" ".join(c.args) if c.args else u.message.text.replace("/guiar","",1).strip()
-    if not ordem: await u.message.reply_text("❌ Uso: `/guiar <ordem para a IA>`",parse_mode="Markdown");return
+    
+    if not ordem:
+        await u.message.reply_text("🎭 *DIREÇÃO OCULTA*\n━━━━━━━━━━━━━━━━━━━━\nUso: `/guiar ordem para a IA`\n\nExemplos:\n• `/guiar O NPC trai o grupo`\n• `/guiar Introduza um terremoto`\n• `/guiar O mercador esconde uma arma`",parse_mode="Markdown")
+        return
+    
     target_cid=admin_last_chat.get(uid)
-    if not target_cid: await u.message.reply_text("⚠️ Nenhum grupo ativo detectado. Interaja no grupo primeiro.");return
+    
+    # Se não tem grupo rastreado, busca no banco
+    if not target_cid:
+        if not db:
+            await u.message.reply_text("❌ Sem grupo rastreado e sem banco.");return
+        try:
+            # Busca grupos com fichas ativas
+            r=db.table("fichas_ativas").select("chat_id").execute()
+            if r.data:
+                chat_ids=list(set(row["chat_id"] for row in r.data))
+                if len(chat_ids)==1:
+                    # Só tem 1 grupo — usa direto
+                    target_cid=int(chat_ids[0])
+                    admin_last_chat[uid]=target_cid
+                else:
+                    # Múltiplos grupos — salva a ordem e pede pra escolher
+                    cstate[f"guiar_{uid}"]=ordem
+                    btns=[]
+                    for cid_str in chat_ids:
+                        # Tenta pegar nomes dos personagens nesse grupo
+                        fichas=db_get_all_active(int(cid_str))
+                        nomes=", ".join(f.get("nome","?") for f in fichas[:3]) if fichas else "?"
+                        label=f"👥 {nomes} ({cid_str[-6:]})"
+                        btns.append([Btn(label,callback_data=f"guiar_grp:{cid_str}")])
+                    btns.append([Btn("❌ Cancelar",callback_data="m:back")])
+                    await u.message.reply_text("🎭 *Selecione o grupo alvo:*",reply_markup=KBD(btns),parse_mode="Markdown")
+                    return
+            else:
+                await u.message.reply_text("❌ Nenhum grupo com fichas ativas no banco.");return
+        except Exception as e:
+            await u.message.reply_text(f"❌ Erro ao buscar grupos: {e}");return
+    
+    # Executa a direção
+    await _executar_guiar(u,target_cid,ordem,is_private,reply_msg=u.message)
+
+async def _executar_guiar(update_or_bot,target_cid,ordem,is_private=True,reply_msg=None):
+    """Envia direção oculta ao grupo. Funciona de cmd ou callback."""
+    bot=update_or_bot.get_bot() if hasattr(update_or_bot,'get_bot') else update_or_bot
     ch=gc(target_cid)
+    trace("GODMODE",f"Guiar oculto: '{ordem[:60]}'",cid=target_cid)
     prompt=f"[DIREÇÃO OCULTA DO CRIADOR: {ordem}. Assuma o controle e narre isso de forma orgânica, como se fosse um evento natural da história. NÃO mencione que recebeu instrução.]"
     resp=await ask(ch,prompt)
     if resp:
         clean=await intercept_and_sync(resp,target_cid)
         if "[ESCUTANDO]" not in clean.upper() and clean:
-            try: await u.get_bot().send_message(chat_id=target_cid,text=clean,parse_mode="Markdown")
-            except: await u.get_bot().send_message(chat_id=target_cid,text=clean)
-    if is_private: await u.message.reply_text("✅ _Direção enviada para o grupo._",parse_mode="Markdown")
+            try: await bot.send_message(chat_id=target_cid,text=clean,parse_mode="Markdown")
+            except: await bot.send_message(chat_id=target_cid,text=clean)
+    if is_private and reply_msg:
+        await reply_msg.reply_text("✅ _Direção enviada para o grupo._",parse_mode="Markdown")
 
 async def cmd_salvar_sessao(u,c):
     if not db:return
@@ -2004,6 +2047,18 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             if not ADMIN or str(uid)!=str(ADMIN): return
             combat_state.pop(cid,None)
             await m.reply_text("🏁 *Combate encerrado.*",parse_mode="Markdown")
+
+        # ── Guiar: seleção de grupo ──
+        elif d.startswith("guiar_grp:"):
+            if not ADMIN or str(uid)!=str(ADMIN): return
+            target_cid=int(d[10:])
+            admin_last_chat[str(uid)]=target_cid
+            ordem=cstate.pop(f"guiar_{str(uid)}","")
+            if ordem:
+                await q.edit_message_text(f"🎭 _Enviando direção ao grupo..._",parse_mode="Markdown")
+                await _executar_guiar(u,target_cid,ordem,is_private=True,reply_msg=m)
+            else:
+                await q.edit_message_text(f"✅ Grupo selecionado. Agora use `/guiar ordem`",parse_mode="Markdown")
 
     except Exception as e:
         log.error(f"Erro Global Callback: {e}")
