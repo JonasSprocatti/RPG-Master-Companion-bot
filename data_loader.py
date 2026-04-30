@@ -70,7 +70,19 @@ def load_from_db():
 
 def load_fallback():
     global _loaded
-    _loaded=True; log.info("📁 Dados RPG: usando apenas fallback local")
+    # Re-popula com dados locais
+    RACAS_STATS.update(_FB_R);CLASSES_STATS.update(_FB_C);FILOS_STATS.update(_FB_F)
+    TECNO_SCRIPTS.update(_FB_T);IMPLANTES_DATA.update(_FB_I)
+    _loaded=True; log.info("📁 Dados RPG: fallback local carregado")
+
+def reload_all():
+    """Reload forçado: limpa tudo, carrega fallback, sobrepõe com DB."""
+    global _loaded, REGRAS_TEXT
+    _loaded=False; REGRAS_TEXT=""
+    RACAS_STATS.clear();CLASSES_STATS.clear();FILOS_STATS.clear()
+    TECNO_SCRIPTS.clear();IMPLANTES_DATA.clear();DISPLAY.clear()
+    load_fallback()  # Garante dados locais primeiro
+    return load_from_db()  # Sobrepõe com DB (retorna True/False)
 
 def ensure_loaded():
     global _loaded
