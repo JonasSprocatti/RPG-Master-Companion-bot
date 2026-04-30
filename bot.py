@@ -2283,7 +2283,7 @@ body{font-family:'Rajdhani',sans-serif;background:#0a0a0f;color:#c8ccd0;min-heig
   <div class="stats-grid">
     <div class="stat"><div class="num">9</div><div class="label">Raças</div></div>
     <div class="stat"><div class="num">15</div><div class="label">Classes</div></div>
-    <div class="stat"><div class="num">29</div><div class="label">Scripts</div></div>
+    <div class="stat"><div class="num">30</div><div class="label">Scripts</div></div>
     <div class="stat"><div class="num">15</div><div class="label">Implantes</div></div>
     <div class="stat"><div class="num">∞</div><div class="label">Aventuras</div></div>
   </div>
