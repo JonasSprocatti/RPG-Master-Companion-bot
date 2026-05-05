@@ -2399,131 +2399,16 @@ async def keep_alive():
             trace("SESSION",f"💓 Keep-alive falhou: {e}")
 
 # ══════ LANDING PAGE ══════
-LANDING_HTML="""<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Passagem Sombria — RPG Espacial</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Rajdhani',sans-serif;background:#0a0a0f;color:#c8ccd0;min-height:100vh;overflow-x:hidden}
-.stars{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;
-  background:radial-gradient(2px 2px at 20% 30%,#ffffff33,transparent),
-  radial-gradient(2px 2px at 40% 70%,#ffffff22,transparent),
-  radial-gradient(1px 1px at 60% 20%,#ffffff44,transparent),
-  radial-gradient(1px 1px at 80% 50%,#ffffff22,transparent),
-  radial-gradient(1px 1px at 10% 80%,#ffffff33,transparent),
-  radial-gradient(2px 2px at 70% 90%,#ffffff22,transparent),
-  radial-gradient(1px 1px at 90% 10%,#ffffff44,transparent);
-  animation:drift 60s linear infinite}
-@keyframes drift{to{transform:translateY(-100px)translateX(-50px)}}
-.nebula{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;
-  background:radial-gradient(ellipse at 20% 50%,#1a0a2e22 0%,transparent 50%),
-  radial-gradient(ellipse at 80% 20%,#0a1a2e22 0%,transparent 50%),
-  radial-gradient(ellipse at 50% 80%,#2e0a0a11 0%,transparent 50%)}
-.container{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:40px 20px;text-align:center}
-.logo{margin:60px 0 20px}
-.logo h1{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(2rem,6vw,3.5rem);
-  background:linear-gradient(135deg,#00f0ff,#7b2fff,#ff2d55);-webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;letter-spacing:4px;text-transform:uppercase;
-  text-shadow:0 0 40px #00f0ff22;line-height:1.2}
-.logo .sub{font-family:'Orbitron',monospace;font-size:clamp(0.7rem,2vw,1rem);
-  color:#00f0ff88;letter-spacing:8px;margin-top:8px;text-transform:uppercase}
-.divider{width:200px;height:1px;margin:30px auto;
-  background:linear-gradient(90deg,transparent,#00f0ff44,#7b2fff44,transparent)}
-.hero-text{font-size:clamp(1rem,2.5vw,1.3rem);line-height:1.8;color:#8890a0;max-width:650px;margin:0 auto 40px;font-weight:300}
-.hero-text em{color:#00f0ff;font-style:normal}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px;margin:40px 0}
-.stat{background:linear-gradient(135deg,#ffffff06,#ffffff03);border:1px solid #ffffff0a;
-  border-radius:12px;padding:24px 16px;backdrop-filter:blur(10px);transition:all .3s}
-.stat:hover{border-color:#00f0ff33;transform:translateY(-2px);box-shadow:0 8px 32px #00f0ff11}
-.stat .num{font-family:'Orbitron',monospace;font-size:2rem;font-weight:700;
-  background:linear-gradient(135deg,#00f0ff,#7b2fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.stat .label{font-size:0.85rem;color:#556;margin-top:6px;text-transform:uppercase;letter-spacing:2px}
-.features{margin:50px 0;text-align:left}
-.feature{display:flex;gap:16px;align-items:flex-start;padding:20px;margin:12px 0;
-  background:#ffffff04;border-radius:10px;border-left:3px solid transparent;transition:all .3s}
-.feature:hover{border-left-color:#00f0ff;background:#ffffff08}
-.feature .icon{font-size:1.8rem;min-width:40px;text-align:center}
-.feature .text h3{font-family:'Orbitron',monospace;font-size:0.9rem;color:#c8ccd0;letter-spacing:1px;margin-bottom:4px}
-.feature .text p{font-size:0.9rem;color:#667;line-height:1.5}
-.cta{margin:50px 0}
-.cta a{display:inline-flex;align-items:center;gap:10px;padding:16px 40px;
-  background:linear-gradient(135deg,#00f0ff22,#7b2fff22);border:1px solid #00f0ff44;
-  border-radius:50px;color:#00f0ff;font-family:'Orbitron',monospace;font-size:0.9rem;
-  text-decoration:none;letter-spacing:2px;text-transform:uppercase;transition:all .3s}
-.cta a:hover{background:linear-gradient(135deg,#00f0ff33,#7b2fff33);border-color:#00f0ff88;
-  box-shadow:0 0 30px #00f0ff22;transform:translateY(-2px)}
-.footer{margin-top:60px;padding:30px 0;border-top:1px solid #ffffff08;color:#334;font-size:0.8rem}
-.footer a{color:#00f0ff66;text-decoration:none}
-.pulse{display:inline-block;width:8px;height:8px;background:#00ff88;border-radius:50%;
-  margin-right:8px;animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 #00ff8844}50%{opacity:.7;box-shadow:0 0 0 6px #00ff8800}}
-.status{font-family:'Orbitron',monospace;font-size:0.75rem;color:#00ff8888;letter-spacing:3px;margin:20px 0}
-</style>
-</head>
-<body>
-<div class="stars"></div>
-<div class="nebula"></div>
-<div class="container">
-  <div class="logo">
-    <h1>Passagem<br>Sombria</h1>
-    <div class="sub">RPG Espacial</div>
-  </div>
-  <div class="status"><span class="pulse"></span>SISTEMA ONLINE</div>
-  <div class="divider"></div>
-  <p class="hero-text">
-    O <em>Sistema Solar</em> é seu campo de batalha.<br>
-    Um bot de RPG de mesa no <em>Telegram</em> com IA narrativa,<br>
-    fichas persistentes e combate tático em tempo real.
-  </p>
-  <div class="stats-grid">
-    <div class="stat"><div class="num">9</div><div class="label">Raças</div></div>
-    <div class="stat"><div class="num">15</div><div class="label">Classes</div></div>
-    <div class="stat"><div class="num">30</div><div class="label">Scripts</div></div>
-    <div class="stat"><div class="num">15</div><div class="label">Implantes</div></div>
-    <div class="stat"><div class="num">∞</div><div class="label">Aventuras</div></div>
-  </div>
-  <div class="features">
-    <div class="feature">
-      <div class="icon">🧠</div>
-      <div class="text"><h3>IA Narrativa</h3><p>Mestre movido por Google Gemini. Narra aventuras, controla NPCs, exige testes de perícia e reage às decisões dos jogadores em tempo real.</p></div>
-    </div>
-    <div class="feature">
-      <div class="icon">📡</div>
-      <div class="text"><h3>Interceptor de Estado</h3><p>Cada resposta da IA é parseada automaticamente. XP, dano, itens e créditos são sincronizados com o banco de dados sem intervenção manual.</p></div>
-    </div>
-    <div class="feature">
-      <div class="icon">🧑‍🚀</div>
-      <div class="text"><h3>Fichas Persistentes</h3><p>Criação 100% por botões. Atributos, perícias, tecnomancias e implantes cibernéticos. Seus personagens sobrevivem entre sessões.</p></div>
-    </div>
-    <div class="feature">
-      <div class="icon">🎲</div>
-      <div class="text"><h3>Dados Clicáveis</h3><p>Digite /1d20p5 direto no chat. O bot calcula, mostra o resultado e a IA narra a consequência imediatamente.</p></div>
-    </div>
-    <div class="feature">
-      <div class="icon">🦾</div>
-      <div class="text"><h3>Cirurgia de Implantes</h3><p>Sistema autônomo calcula tolerância biológica. Ultrapasse o limite e arrisque curto-circuito neural — ou a morte.</p></div>
-    </div>
-    <div class="feature">
-      <div class="icon">🚀</div>
-      <div class="text"><h3>Combate Espacial</h3><p>Pilote naves, opere estações de batalha, hackear sistemas inimigos. EMP destrói escudos, balístico rasga cascos.</p></div>
-    </div>
-  </div>
-  <div class="cta">
-    <a href="https://t.me/PassagemSombria_bot" target="_blank">🚀 ACESSAR NO TELEGRAM</a>
-  </div>
-  <div class="cta" style="margin-top:10px">
-    <a href="https://github.com/JonasSprocatti/RPG-Master-Companion-bot" target="_blank" style="border-color:#ffffff22;color:#8890a0;font-size:0.75rem">📂 REPOSITÓRIO NO GITHUB</a>
-  </div>
-  <div class="footer">
-    <p>Passagem Sombria &copy; 2026 Jonas Antonio da Silva Sprocatti</p>
-    <p style="margin-top:4px">Powered by <a href="#">Gemini</a> + <a href="#">Supabase</a> + <a href="#">Claude</a></p>
-  </div>
-</div>
-</body>
-</html>"""
+# ══════ LANDING PAGE (carrega de arquivo) ══════
+import os as _os
+_landing_path=_os.path.join(_os.path.dirname(_os.path.abspath(__file__)),"landing.html")
+if _os.path.exists(_landing_path):
+    with open(_landing_path,"r",encoding="utf-8") as _f: LANDING_HTML=_f.read()
+    log.info(f"🌐 Landing page carregada de {_landing_path} ({len(LANDING_HTML)} chars)")
+else:
+    LANDING_HTML="<html><body><h1>Passagem Sombria</h1><p>landing.html não encontrado</p></body></html>"
+    log.warning("⚠️ landing.html não encontrado — usando fallback")
+
 
 # ══════ MAIN (aiohttp serve landing + webhook no mesmo port) ══════
 async def main_async():
