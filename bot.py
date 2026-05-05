@@ -1603,7 +1603,7 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             if not sl: await m.reply_text("📚 Vazio.");return
             await rp(m,"📚\n"+"\n".join(f"• ID *{s['id']}* — {s.get('title','?')}" for s in sl)+"\n/cargarsessao ID")
         elif d=="m:gloss": await m.reply_text("📖 *BANCO DE DADOS*",reply_markup=GLOSS_KB,parse_mode="Markdown")
-        elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /importar\n🎲 /1d20 /2d8p4 /1d6m1\n🎬 /gif termo\n💾 /ficha /fichas /deletarficha /levelup /implante\n📚 /salvarsessao /sessoes /cargarsessao /contexto\n📖 /glossario /regras /reset")
+        elif d=="m:help": await rp(m,"📡 /iniciar /novojogo /criarpersonagem /importar\n🎲 /rolar (menu) | /1d20 /2d8p4 /1d6m1\n🔒 /rolar_oculto — dado secreto\n💾 /ficha /fichas /deletarficha /levelup /implante\n🏪 /loja | /craftar Item1 + Item2\n👥 /grupo | /bau /nave | /combate\n🎬 /gif termo\n📚 /salvarsessao /sessoes /cargarsessao /contexto\n📖 /glossario /regras /reset\n🔱 /godmode /painel /guiar")
 
         # ── Lobby ──
         elif d=="lobby:sel":
