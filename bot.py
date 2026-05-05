@@ -100,6 +100,29 @@ REGRA DE INTERFACE: NÃO inclua barras de status de PV ou CD nas suas respostas,
   Jogador diz "atiro" → NÃO narre o tiro. Peça: "Faça /1d20p9 para Armas de Fogo CD 15."
   Só após receber [SISTEMA: rolou X] você narra sucesso ou falha.
 
+🔴 ROLAGEM DE DANO — OBRIGATÓRIA E CLICÁVEL:
+  Após um ACERTO confirmado (pelo [SISTEMA:]), você DEVE pedir a rolagem de dano.
+  O JOGADOR rola o dano, NÃO você. Use o formato clicável:
+  
+  ❌ PROIBIDO: "O dano é 1d12. SISTEMA: rolou 9." (NUNCA fabrique resultado)
+  ❌ PROIBIDO: Narrar o efeito do dano ANTES do jogador rolar
+  ❌ PROIBIDO: Escrever o dano como texto "role 1d12" sem o formato /1d12
+  ✅ CORRETO: "Acertou! Role o dano: /1d12" (o bot cria botão clicável)
+  ✅ CORRETO: "Crítico! Role /2d12 de dano!"
+  
+  FLUXO COMPLETO DE ATAQUE:
+  1. Jogador: "Atiro no guarda"
+  2. Você: "Faça /1d20p9 para Armas de Fogo CD 15." → PARE
+  3. [SISTEMA: rolou 22] → Acertou!
+  4. Você: "O tiro acerta! Role o dano: /1d12" → PARE
+  5. [SISTEMA: rolou 1d12 = 8]
+  6. AGORA você narra: "O projétil perfura a armadura. [HP:-8:NomeDoAlvo]"
+
+🔴 ATAQUE À DISTÂNCIA USA DESTREZA, CORPO A CORPO USA FORÇA:
+  ❌ PROIBIDO: Usar Mod.Força para ataques com armas de fogo/laser/ranged
+  ✅ Armas de Fogo/Laser = Mod.Destreza + Perícia Armas de Fogo
+  ✅ Armas Brancas/Corpo a corpo = Mod.Força + Perícia Armas Brancas
+
 🔴 NÃO EXISTE PERÍCIA "PSIONISMO":
   A IA NÃO pode inventar perícias. Use APENAS as que existem em FICHAS_ATIVAS.
   Poderes mentais do Proturno (Levantamento Mental, Invasão da Sombra) usam:
@@ -196,6 +219,9 @@ CRIAÇÃO DE FICHAS É FEITA PELO BOT. VOCÊ NÃO CRIA FICHAS.
 [IMPLANTE_ADD:id:alvo] — [IMPLANTE_ADD:olho:Grovax]
 [ATTR:atrib:valor:alvo] — [ATTR:forca:+1:Grovax]
 [PER:pericia:valor:alvo] — [PER:furtividade:+1:Grovax]
+[STATUS_ADD:condição:alvo] — [STATUS_ADD:Atordoado:Grovax] [STATUS_ADD:Envenenado:Zeb]
+[STATUS_DEL:condição:alvo] — [STATUS_DEL:Atordoado:Grovax]
+Condições válidas: Atordoado(-2 testes), Envenenado(-2 testes, 1d4/turno), Sangrando(1d4/turno), Cego(-5 ataque), Surdo, Derrubado, Imobilizado
 IDs scripts: ping choque query bateria scanner jammer glitch trava rollback firewall travar_arma curto_arm hack_motor ejetar_pente cegueira drenar sobrecarga desativar loop torreta hack_nav apagao inverter reator marionete emp ejetar_piloto reparo_nave formatar gravidade
 IDs implantes: chip_ram olho interface_nav tradutor mira placas coracao filtro adrenalina bateria_int braco estabilizador mantis pernas ancoras
 
@@ -285,6 +311,8 @@ chats:dict={};cstate:dict={};jogo_ativo:dict={};godmode:dict={}
 admin_last_chat:dict={}   # admin_uid -> cid (último grupo ativo do admin para /guiar)
 user_last_chat:dict={}    # uid -> cid (último grupo ativo de cada jogador para /rolar_oculto)
 combat_state:dict={}      # cid -> {phase, queue, current_idx, pinned_msg_id}
+lorebook:dict={}           # {cid: "resumo NPCs/fatos cruciais"}
+msg_counter:dict={}        # {cid: count} — a cada 50 msgs atualiza lorebook
 
 def gc(cid):
     if cid not in chats: chats[cid]=mdl.start_chat(history=[])
@@ -415,7 +443,7 @@ def db_update_bau(cid,items):
     except Exception as e: log.error(f"db_update_bau:{e}"); return False
 
 # ══════ INTERCEPTOR (Diretrizes 1,6,7) ══════
-STATE_RE=re.compile(r'\[(XP|HP|ITEM_ADD|ITEM_DEL|CG|RAM|TECNO_ADD|TECNO_DEL|IMPLANTE_ADD|ATTR|PER):([^\]]+)\]')
+STATE_RE=re.compile(r'\[(XP|HP|ITEM_ADD|ITEM_DEL|CG|RAM|TECNO_ADD|TECNO_DEL|IMPLANTE_ADD|ATTR|PER|STATUS_ADD|STATUS_DEL):([^\]]+)\]')
 GIF_RE=re.compile(r'\[GIF:([^\]]+)\]',re.IGNORECASE)
 
 async def intercept_and_sync(text,cid,msg=None):
@@ -552,6 +580,22 @@ async def intercept_and_sync(text,cid,msg=None):
                 for f in tgts:
                     p=dict(f.get("pericias",{}));p[pk]=p.get(pk,0)+val;db_update_ficha(f["id"],{"pericias":p})
                     notifs.append(f"🎯 {f.get('nome','?')}: {PERICIAS_NOMES.get(pk,pk)} {val:+d}")
+            
+            elif tt=="STATUS_ADD" and len(parts)>=2:
+                cond=parts[0];tgts,_=_find()
+                for f in tgts:
+                    conds=list(f.get("condicoes",[])or[])
+                    if cond not in conds: conds.append(cond)
+                    db_update_ficha(f["id"],{"condicoes":conds})
+                    notifs.append(f"⚠️ {f.get('nome','?')}: +{cond}")
+            
+            elif tt=="STATUS_DEL" and len(parts)>=2:
+                cond=parts[0];tgts,_=_find()
+                for f in tgts:
+                    conds=list(f.get("condicoes",[])or[])
+                    conds=[c for c in conds if c.lower()!=cond.lower()]
+                    db_update_ficha(f["id"],{"condicoes":conds})
+                    notifs.append(f"✅ {f.get('nome','?')}: -{cond}")
                     
         except Exception as e: log.warning(f"Intercept:{tt}:{params}→{e}")
         
@@ -844,12 +888,14 @@ def ff(f):
     habs="\n".join(f"  🔹 {h}" for h in(f.get("habilidades",[])or[]))or"  —"
     tec_ids=f.get("tecnomancias",[])or[]
     tecno=", ".join(DL.TECNO_SCRIPTS.get(t,{}).get("nome",t) for t in tec_ids) if tec_ids else "—"
+    conds=f.get("condicoes",[])or[]
+    cond_txt=f"\n⚠️ Condições: {', '.join(conds)}" if conds else ""
     return (f"🧑‍🚀 *{f.get('nome','?')}* (ID:{f.get('id','?')})\n━━━━━━━━━━━━━━━━━━━━\n"
         f"🌌 {f.get('raca','?')} | ⚔️ {f.get('classe','?')} | 📜 {f.get('filosofia','?')}\n"
         f"📊 Nv{f.get('nivel',1)} | ✨ {f.get('xp',0)}XP\n━━━━━━━━━━━━━━━━━━━━\n"
         f"❤️ {render_bar(f.get('pv_atual',0),f.get('pv_max',1),'❤️','🖤')} | 🛡️ CD{f.get('cd','?')}\n"
         f"🧠 {render_bar(f.get('ram_atual',0),f.get('ram_max',1),'🧠','⚪')}\n"
-        f"⚡Init+{f.get('iniciativa',0)} | 🏃{f.get('deslocamento',9)}m\n━━━━━━━━━━━━━━━━━━━━\n"
+        f"⚡Init+{f.get('iniciativa',0)} | 🏃{f.get('deslocamento',9)}m{cond_txt}\n━━━━━━━━━━━━━━━━━━━━\n"
         f"💪{a.get('forca','?')}({calc_mod(a.get('forca',8)):+d}) ⚡{a.get('destreza','?')}({calc_mod(a.get('destreza',8)):+d}) 🩸{a.get('constituicao','?')}({calc_mod(a.get('constituicao',8)):+d})\n"
         f"🧠{a.get('inteligencia','?')}({calc_mod(a.get('inteligencia',8)):+d}) 🦉{a.get('sabedoria','?')}({calc_mod(a.get('sabedoria',8)):+d}) 🗣️{a.get('carisma','?')}({calc_mod(a.get('carisma',8)):+d})\n━━━━━━━━━━━━━━━━━━━━\n"
         f"🎯 {per}\n🧠 Tecno: {tecno}\n🛠️\n{habs}\n⚔️\n{arms}\n"
@@ -866,7 +912,9 @@ def inject_fichas_prompt(fichas):
         lines.append(f"PV:{f.get('pv_atual')}/{f.get('pv_max')} CD:{f.get('cd')} RAM:{f.get('ram_atual')}/{f.get('ram_max')}")
         lines.append(f"For:{a.get('forca',8)} Des:{a.get('destreza',8)} Con:{a.get('constituicao',8)} Int:{a.get('inteligencia',8)} Sab:{a.get('sabedoria',8)} Car:{a.get('carisma',8)}")
         lines.append(f"Per:{f.get('pericias',{})} Armas:{f.get('armas',[])} Inv:{f.get('inventario',[])}")
-        lines.append(f"CG:{f.get('creditos',100)} Tecno:{tnames} Implantes:{f.get('implantes',[])} Filosofia:{f.get('filosofia','')}\n")
+        lines.append(f"CG:{f.get('creditos',100)} Tecno:{tnames} Implantes:{f.get('implantes',[])} Filosofia:{f.get('filosofia','')}")
+        conds=f.get("condicoes",[])or[]
+        if conds: lines.append(f"⚠️ CONDIÇÕES ATIVAS: {', '.join(conds)} (aplique penalidades)")
         lines.append(f"Habilidades Ativas e Passivas:\n{f.get('habilidades',[])}\n")
     return "\n".join(lines)
 
@@ -931,6 +979,7 @@ async def cmd_help(u,c): await rp(u.message,"📡 *PROTOCOLOS v4.0*\n━━━�
     "🎲 Rolagens: /rolar (menu) | /1d20 /2d8p4 /1d6m1\n"
     "🔒 /rolar_oculto 1d20p5 — dado secreto só p/ IA\n"
     "💾 /ficha /fichas /deletarficha /levelup /implante\n"
+    "🏪 /loja — comprar itens | /craftar Item1 + Item2\n"
     "👥 /grupo — HUD da mesa | /bau /nave — baú da nave\n"
     "⚔️ /combate — gerenciador de turnos\n"
     "🎬 /gif termo — busca GIF animado\n"
@@ -1186,6 +1235,70 @@ async def cmd_implante(u,c):
     if impl: txt+="\n"+"\n".join(f"  • {i}" for i in impl)
     cat_kb=KBD([[Btn("🧠 Cabeça",callback_data="ic:cabeça")],[Btn("🫀 Torso",callback_data="ic:torso")],[Btn("🦿 Membros",callback_data="ic:membros")],[Btn("🔙",callback_data="m:back")]])
     await u.message.reply_text(txt,reply_markup=cat_kb,parse_mode="Markdown")
+
+# ══════ LOJA E COMÉRCIO ══════
+SHOP_ITEMS={
+    "kit_medico":{"nome":"Kit Médico","preco":20,"desc":"Cura 1d8 PV"},
+    "municao":{"nome":"Caixa de Munição","preco":10,"desc":"Recarrega 3 pentes"},
+    "racao":{"nome":"Tubo de Rações","preco":5,"desc":"1 dia de alimento"},
+    "granada_frag":{"nome":"Granada Fragmentação","preco":50,"desc":"3d6 dano 5m"},
+    "granada_flash":{"nome":"Granada Flash","preco":30,"desc":"Cego 2 turnos"},
+    "stim":{"nome":"Stim Pack","preco":40,"desc":"+2 atributo 5 turnos"},
+    "bateria_fantasma":{"nome":"Bateria Fantasma","preco":30,"desc":"Recupera 1 RAM"},
+    "kit_sobrev":{"nome":"Kit Sobrevivência","preco":15,"desc":"Corda, lanterna, isqueiro"},
+    "seringa_adrenalina":{"nome":"Seringa de Adrenalina","preco":35,"desc":"Revive com 1 PV"},
+    "escudo_portatil":{"nome":"Escudo Portátil","preco":60,"desc":"+2 CD 3 turnos"},
+}
+
+async def cmd_loja(u,c):
+    f=db_get_active(u.message.from_user.id,u.effective_chat.id)
+    if not f: await u.message.reply_text("❌ Sem personagem ativo.");return
+    cg=f.get("creditos",0)
+    txt=f"🏪 *LOJA DA ESTAÇÃO*\n━━━━━━━━━━━━━━━━━━━━\n💎 Seus créditos: *{cg} CG*\n"
+    btns=[]
+    for k,item in SHOP_ITEMS.items():
+        btns.append([Btn(f"{item['nome']} — {item['preco']}CG ({item['desc']})",callback_data=f"buy:{k}")])
+    btns.append([Btn("🔙 Fechar",callback_data="m:back")])
+    await u.message.reply_text(txt,reply_markup=KBD(btns),parse_mode="Markdown")
+
+async def cmd_craftar(u,c):
+    """Combina 2 itens do inventário em algo novo via teste de Mecânica."""
+    f=db_get_active(u.message.from_user.id,u.effective_chat.id)
+    if not f: await u.message.reply_text("❌ Sem personagem ativo.");return
+    raw=u.message.text.replace("/craftar","",1).strip()
+    if "+" not in raw:
+        await u.message.reply_text("🔧 *CRAFTING*\nUso: `/craftar Item 1 + Item 2`\n\nCombina 2 itens do inventário. Exige teste de Mecânica.\nSucesso → item novo. Falha → itens perdidos.",parse_mode="Markdown")
+        return
+    parts=[p.strip() for p in raw.split("+",1)]
+    if len(parts)!=2 or not parts[0] or not parts[1]:
+        await u.message.reply_text("❌ Formato: `/craftar Item 1 + Item 2`",parse_mode="Markdown");return
+    inv=list(f.get("inventario",[])or[])
+    inv_lower=[i.lower() for i in inv]
+    found=[None,None]
+    for idx,item_name in enumerate(parts):
+        for i,inv_item in enumerate(inv_lower):
+            if item_name.lower() in inv_item and i not in [found[0],found[1]]:
+                found[idx]=i;break
+    if found[0] is None or found[1] is None:
+        await u.message.reply_text(f"❌ Item não encontrado no inventário.\n🎒 Seus itens: {', '.join(inv) if inv else 'vazio'}");return
+    item1=inv[found[0]];item2=inv[found[1]]
+    # Remove itens
+    for idx in sorted([found[0],found[1]],reverse=True): inv.pop(idx)
+    db_update_ficha(f["id"],{"inventario":inv})
+    # Rola Mecânica
+    a=f.get("atributos",{});per=f.get("pericias",{})
+    mod_mec=calc_mod(a.get("inteligencia",8))+per.get("mecanica",0)
+    roll=rng.randint(1,20);total=roll+mod_mec
+    mod_str=f"{mod_mec:+d}" if mod_mec else ""
+    await u.message.reply_text(f"🔧 *CRAFTING*\n🎲 Mecânica: 1d20({roll}){mod_str} = *{total}*",parse_mode="Markdown")
+    # Injeta na IA para narrar o resultado
+    if jogo_ativo.get(u.effective_chat.id):
+        ch=gc(u.effective_chat.id)
+        prompt=f"[SISTEMA: O personagem {f.get('nome','?')} tentou craftar usando {item1} e {item2}. Teste de Mecânica: {total}. Se total >= 13: sucesso — narre o que ele construiu e use [ITEM_ADD:nome_item_novo:{f.get('nome','?')}]. Se total < 13: falha — os itens foram desperdiçados, narre o que deu errado. Seja criativo com o item construído.]"
+        resp=await ask(ch,prompt,m=u.message)
+        if resp:
+            clean=await intercept_and_sync(resp,u.effective_chat.id,msg=u.message)
+            if clean: await rp_ai(u.message,clean)
 
 # ══════ PAINEL DO MESTRE ══════
 async def cmd_painel(u,c):
@@ -1631,6 +1744,23 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             f=db_get_active(uid,cid)
             if f: await _install_implant(m,f,d[3:])
 
+        # ── Loja: compra ──
+        elif d.startswith("buy:"):
+            item_key=d[4:]
+            if item_key not in SHOP_ITEMS: return
+            f=db_get_active(uid,cid)
+            if not f: await m.reply_text("❌ Sem personagem ativo.");return
+            item=SHOP_ITEMS[item_key]
+            cg=f.get("creditos",0)
+            if cg<item["preco"]:
+                await m.reply_text(f"❌ Créditos insuficientes. Tem {cg}CG, precisa {item['preco']}CG.");return
+            inv=list(f.get("inventario",[])or[])
+            inv.append(item["nome"])
+            new_cg=cg-item["preco"]
+            db_update_ficha(f["id"],{"inventario":inv,"creditos":new_cg})
+            await m.reply_text(f"📡 *Sync:*\n💎 -{item['preco']}CG → {new_cg}CG\n🎒 +{item['nome']}",parse_mode="Markdown")
+            trace("DB",f"Compra: {item['nome']} por {item['preco']}CG",uid=uid,cid=cid)
+
         elif d.startswith("r:"):
             k=d[2:];cstate.setdefault(uid,{});cstate[uid].update({"step":"classe","raca":k,"chat_id":cid})
             await q.edit_message_text(f"✅ *{RACAS_BTN[k]}*\n📋 2/5: *Especialização*",parse_mode="Markdown")
@@ -1827,12 +1957,21 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             k=d[10:];f=db_get_active(uid,cid)
             if not f:return
             a=f.get("atributos",{});mod=calc_mod(a.get(k,8))
-            roll=rng.randint(1,20);total=roll+mod
-            mod_str=f"{mod:+d}" if mod else ""
+            # Penalidade de condições
+            conds=f.get("condicoes",[])or[]
+            penalty=0
+            pen_txt=""
+            for cond in conds:
+                cl=cond.lower()
+                if cl in("atordoado","envenenado"): penalty-=2
+                elif cl=="cego" and k in("destreza","sabedoria"): penalty-=5
+            if penalty: pen_txt=f" [{penalty:+d} condição]"
+            roll=rng.randint(1,20);total=roll+mod+penalty
+            mod_str=f"{mod+penalty:+d}" if (mod+penalty) else ""
             cr=""
             if roll==20:cr="\n🌟 *CRÍTICO!*"
             elif roll==1:cr="\n💀 *FALHA CRÍTICA!*"
-            txt=f"🎲 *{f.get('nome','?')}* — {ATTR_LABELS[ATTR_KEYS.index(k)]}\n1d20({roll}){mod_str} = *{total}*{cr}"
+            txt=f"🎲 *{f.get('nome','?')}* — {ATTR_LABELS[ATTR_KEYS.index(k)]}{pen_txt}\n1d20({roll}){mod_str} = *{total}*{cr}"
             await m.reply_text(txt,parse_mode="Markdown")
             if jogo_ativo.get(cid):
                 ch=gc(cid)
@@ -1846,12 +1985,20 @@ async def on_cb(u:Update,c:ContextTypes.DEFAULT_TYPE):
             attr_k=PERICIAS_ATTR.get(pk,[""])[0]
             am=calc_mod(a.get(attr_k,8)) if attr_k else 0
             pv=int(per.get(pk,0));total_mod=am+pv
-            roll=rng.randint(1,20);total=roll+total_mod
-            mod_str=f"{total_mod:+d}" if total_mod else ""
+            # Penalidade de condições
+            conds=f.get("condicoes",[])or[]
+            penalty=0;pen_txt=""
+            for cond in conds:
+                cl=cond.lower()
+                if cl in("atordoado","envenenado"): penalty-=2
+                elif cl=="cego" and pk in("armas_fogo","furtividade","investigacao"): penalty-=5
+            if penalty: pen_txt=f" [{penalty:+d} condição]"
+            roll=rng.randint(1,20);total=roll+total_mod+penalty
+            mod_str=f"{total_mod+penalty:+d}" if (total_mod+penalty) else ""
             cr=""
             if roll==20:cr="\n🌟 *CRÍTICO!*"
             elif roll==1:cr="\n💀 *FALHA CRÍTICA!*"
-            txt=f"🎲 *{f.get('nome','?')}* — {PERICIAS_NOMES.get(pk,pk)}\n1d20({roll}){mod_str} = *{total}*{cr}"
+            txt=f"🎲 *{f.get('nome','?')}* — {PERICIAS_NOMES.get(pk,pk)}{pen_txt}\n1d20({roll}){mod_str} = *{total}*{cr}"
             await m.reply_text(txt,parse_mode="Markdown")
             if jogo_ativo.get(cid):
                 ch=gc(cid)
@@ -2166,7 +2313,18 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
     ch=gc(cid)
     try:
         nome_pc=ficha.get("nome","?")
-        header=f"[Usuário: @{username} | Personagem: {nome_pc}] diz: {txt}"
+        # ── Lorebook: injeta contexto persistente se existir ──
+        lb=lorebook.get(cid)
+        if lb:
+            header=f"[LOREBOOK — fatos cruciais da sessão: {lb}]\n[Usuário: @{username} | Personagem: {nome_pc}] diz: {txt}"
+        else:
+            header=f"[Usuário: @{username} | Personagem: {nome_pc}] diz: {txt}"
+        
+        # ── Condições ativas do personagem ──
+        conds=ficha.get("condicoes",[])or[]
+        if conds:
+            header=f"[CONDIÇÕES ATIVAS de {nome_pc}: {', '.join(conds)}. Aplique penalidades.]\n{header}"
+        
         resp=await ask(ch,header,m=u.message)
         th(cid)
         clean=await intercept_and_sync(resp,cid,msg=u.message)
@@ -2178,8 +2336,48 @@ async def on_msg(u:Update,c:ContextTypes.DEFAULT_TYPE):
         
         trace("MSG_OUT",f"resp_len={len(clean)}",cid=cid)
         await rp_ai(u.message,clean)
+        
+        # ── Lorebook auto-update a cada 50 mensagens ──
+        msg_counter[cid]=msg_counter.get(cid,0)+1
+        if msg_counter[cid]>=50:
+            msg_counter[cid]=0
+            asyncio.create_task(_update_lorebook(cid))
     except Exception as e:
         log.error(f"Msg:{e}");await u.message.reply_text("⚠️ Interferência.")
+
+async def _update_lorebook(cid):
+    """Gera resumo dos fatos cruciais das últimas 50 mensagens para memória de longo prazo."""
+    try:
+        ch=gc(cid)
+        if not ch.history: return
+        recent=ch.history[-50:] if len(ch.history)>50 else ch.history
+        log_lines=[]
+        for msg in recent:
+            for part in msg.parts:
+                if hasattr(part,"text") and part.text:
+                    clean=part.text[:150]
+                    if "[ESCUTANDO]" not in clean.upper():
+                        role="J" if msg.role=="user" else "M"
+                        log_lines.append(f"[{role}]{clean}")
+        if not log_lines: return
+        transcript="\n".join(log_lines[-30:])  # Últimas 30 para não estourar tokens
+        prompt=f"""LOREBOOK: Baseado no log abaixo, liste em EXATAMENTE 5 tópicos curtos:
+1. NPCs encontrados (nome, papel, status)
+2. Objetivos atuais do grupo
+3. Itens/informações descobertas
+4. Localização atual
+5. Ameaças pendentes
+
+LOG:
+{transcript}
+
+Responda APENAS os 5 tópicos, sem introdução. Máximo 200 palavras."""
+        summary=await ask(ch,prompt)
+        if summary and len(summary)>20:
+            lorebook[cid]=summary[:800]  # Limita tamanho
+            trace("SESSION",f"📚 Lorebook atualizado ({len(summary)} chars)",cid=cid)
+    except Exception as e:
+        trace("ERROR",f"Lorebook update failed: {e}")
 
 async def on_err(u,c):
     trace("ERROR",f"Global: {c.error}")
@@ -2344,7 +2542,8 @@ async def main_async():
         ("cargarsessao",cmd_cargarsessao),("contexto",cmd_contexto),
         ("rolar",cmd_rolar),("painel",cmd_painel),("grupo",cmd_grupo),
         ("bau",cmd_bau),("nave",cmd_bau),("combate",cmd_combate),
-        ("rolar_oculto",cmd_rolar_oculto),("guiar",cmd_guiar)]:
+        ("rolar_oculto",cmd_rolar_oculto),("guiar",cmd_guiar),
+        ("loja",cmd_loja),("craftar",cmd_craftar)]:
         tg_app.add_handler(CommandHandler(cmd,fn))
     tg_app.add_handler(CallbackQueryHandler(on_cb))
     tg_app.add_handler(MessageHandler(filters.TEXT&~filters.COMMAND,on_msg))
